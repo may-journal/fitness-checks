@@ -1,0 +1,18 @@
+# cspell:ignore gomod
+# Opens one pull request when a new fitness-runner release is out. Minor and
+# patch bumps share it, so go.mod stays the one place the engine version lives.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-name: github.com/may-journal/fitness-runner/go
+    groups:
+      engine:
+        patterns:
+          - github.com/may-journal/fitness-runner/go
+        update-types:
+          - minor
+          - patch
