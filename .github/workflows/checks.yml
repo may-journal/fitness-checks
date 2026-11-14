@@ -12,6 +12,7 @@ on:
       - go.mod
       - go.sum
       - scripts/**
+      - tools/**
       - .github/workflows/checks.yml
   push:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - go.mod
       - go.sum
       - scripts/**
+      - tools/**
       - .github/workflows/checks.yml
 
 permissions:
@@ -90,6 +92,20 @@ jobs:
           go-version-file: go.mod
       - name: Run the requirement suite against these programs
         run: tests/requirements.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  readmes:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Fail on a README that differs from its doc.go
+        run: scripts/generate-readmes.sh -check
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

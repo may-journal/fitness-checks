@@ -61,6 +61,7 @@ flowchart TB
     release[(22 Main releases the changed checks<br/>Req 0162, 0163)]:::system
     parity[(23 CI compares binaries with built-ins<br/>Req 0164)]:::system
     fix(18 Fix and rerun<br/>Req 0003):::action
+    readmes(24 Edit a check's doc comment<br/>Req 0165):::action
 
     dev --> runFitness
     runFitness --> startCheck
@@ -70,6 +71,7 @@ flowchart TB
     fix --> runFitness
     fix --> ci
     ci --> parity
+    readmes --> ci
     ci --> release
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
@@ -107,3 +109,4 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 21  | CI on a pull request.             | System  | It builds and tests only the checks the change can alter.                   |
 | 22  | Release on a push to main.        | System  | Each check the push can alter gets its own tag, release and programs.      |
 | 23  | Parity run.                       | System  | Each check binary judges sample repos as the engine's built-in does.      |
+| 24  | Edit a check's doc comment.       | Action  | The README script rewrites its README, and CI fails one left stale.         |
