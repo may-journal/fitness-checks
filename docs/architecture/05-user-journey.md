@@ -57,6 +57,7 @@ flowchart TB
     end
 
     results[17 Results table<br/>Req 0003, 0160]:::screen
+    ci[(21 CI builds the changed checks<br/>Req 0161)]:::system
     fix(18 Fix and rerun<br/>Req 0003):::action
 
     dev --> runFitness
@@ -65,6 +66,7 @@ flowchart TB
     checks --> results
     results --> fix
     fix --> runFitness
+    fix --> ci
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px
@@ -98,3 +100,4 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 18  | Fix and rerun.                    | Action  | The invoker edits the code and runs again.                                  |
 | 19  | Spelling checks.                  | System  | Unknown words fail, and an encoded block no one wrote passes.               |
 | 20  | Workflow checks.                  | System  | Each workflow ref exists, and each job reports on its run page.             |
+| 21  | CI on a pull request.             | System  | It builds and tests only the checks the change can alter.                   |

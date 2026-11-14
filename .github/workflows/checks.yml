@@ -1,0 +1,97 @@
+# Builds and tests only the checks that scripts/changed-checks.sh says a
+# change can alter, so one check's edit never waits on the others.
+name: Checks
+on:
+  pull_request:
+    paths:
+      - cmd/**
+      - internal/**
+      - requirements/**
+      - docs/requirements/**
+      - tests/**
+      - go.mod
+      - go.sum
+      - scripts/changed-checks.sh
+      - scripts/test-check.sh
+      - .github/workflows/checks.yml
+  push:
+    branches: [main]
+    paths:
+      - cmd/**
+      - internal/**
+      - requirements/**
+      - docs/requirements/**
+      - tests/**
+      - go.mod
+      - go.sum
+      - scripts/changed-checks.sh
+      - scripts/test-check.sh
+      - .github/workflows/checks.yml
+
+permissions:
+  contents: read
+
+jobs:
+  changed:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    outputs:
+      checks: ${{ steps.pick.outputs.checks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Pick the changed checks
+        id: pick
+        env:
+          # A pull request checks out its merge into the base. That merge's
+          # first parent is the base as it stands, so the diff is the PR's.
+          BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
+        run: checks="$(scripts/changed-checks.sh "$BASE")" && echo "checks=$checks" >> "$GITHUB_OUTPUT"
+      - name: Report job outcome
+        if: ${{ always() }}
+        env:
+          CHECKS: ${{ steps.pick.outputs.checks }}
+        run: printf '### Job %s (%s)\n\n%s\n' "$GITHUB_JOB" "${{ job.status }}" "$CHECKS" >> "$GITHUB_STEP_SUMMARY"
+
+  check:
+    needs: changed
+    if: ${{ needs.changed.outputs.checks != '[]' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJSON(needs.changed.outputs.checks) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build, vet and test the check
+        env:
+          CHECK: ${{ matrix.check }}
+        run: scripts/test-check.sh "$CHECK"
+      - name: Report job outcome
+        if: ${{ always() }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: printf '### %s (%s)\n' "$CHECK" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  requirements:
+    runs-on: ubuntu-24.04-arm
+    # The suite took 73s on a laptop; a cold runner also builds every check.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run the requirement suite against these programs
+        run: tests/requirements.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
