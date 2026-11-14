@@ -84,6 +84,9 @@ func Test0163_1(t *testing.T) {
 	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
 	scriptWith0163(t, clone, bare, "release-major.sh")
 	got := []string{commitOf0163(bare, "fitness-check-gofmt-v1"), commitOf0163(bare, "fitness-check-gofmt-v2")}
+	if calls := calls0163(t, bare); !strings.Contains(calls, "-X POST repos/acme/checks/git/refs -f ref=refs/tags/fitness-check-gofmt-v2") {
+		t.Errorf("the missing v2 tag was not created with a POST: %s", calls)
+	}
 	if !slices.Equal(got, []string{one, two}) {
 		t.Errorf("remote major tags = %v, want %v", got, []string{one, two})
 	}
@@ -182,4 +185,24 @@ func git0163(t *testing.T, dir string, args ...string) string {
 	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
 	mustDo(t, err)
 	return strings.TrimSpace(string(out))
+}
+
+func Test0163_6(t *testing.T) {
+	t.Parallel()
+	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+	bare := remote0163(t, clone)
+	first := release0163(t, clone, "1.0.0")
+	git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~1")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", first)
+	git(t, clone, "tag", "-d", "fitness-check-gofmt-v1")
+	script, err := filepath.Abs(filepath.Join("..", "scripts", "release-major.sh"))
+	mustDo(t, err)
+	cmd := exec.Command(script)
+	cmd.Dir = clone
+	cmd.Env = append(append(os.Environ(), fakeGh0163(t, bare)...), "FAKE_PATCH_ERROR=gh: Forbidden (HTTP 403)")
+	out, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "could not move fitness-check-gofmt-v1") || strings.Contains(calls0163(t, bare), "-X POST") {
+		t.Errorf("run = %v with %q, want an error naming the tag and no POST for an existing tag", err, out)
+	}
 }

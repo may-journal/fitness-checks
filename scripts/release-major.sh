@@ -16,15 +16,14 @@ for tag in $(git tag -l --sort=-v:refname | grep -E "$semver"); do
   here="$(git rev-parse "$tag^{commit}")"
   [ "$(git rev-parse -q --verify "refs/tags/$move^{commit}" || true)" = "$here" ] && continue
   # The API moves a tag where a push from a workflow is refused for a commit that changes a workflow file.
-  # Only a missing tag is created, so any other error stops the run with its text.
+  # A failed move creates the tag only when a lookup finds none, so any other error stops the run with its text.
   if ! error="$(gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$move" -f sha="$here" -F force=true --silent 2>&1)"; then
-    case "$error" in
-    *"Not Found"*) gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$move" -f sha="$here" --silent ;;
-    *)
+    found="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$move" --jq "[.[] | select(.ref == \"refs/tags/$move\")] | length")"
+    if [ "$found" != 0 ]; then
       echo "release-major: could not move $move: $error" >&2
       exit 1
-      ;;
-    esac
+    fi
+    gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$move" -f sha="$here" --silent
   fi
   git tag -f "$move" "$here"
 done
