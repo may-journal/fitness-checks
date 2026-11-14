@@ -4,4 +4,4 @@
 
 - Build: `.github/dependabot.yml` watches `github.com/may-journal/fitness-runner/go` in `go.mod` each day.
 - Build: minor and patch bumps share one pull request.
-- Chore: Dependabot has no auto-merge here, so the owner reviews each bump.
+- Chore: the commit message prefix is `build(deps)`, and nothing merges a bump until the owner approves it.
