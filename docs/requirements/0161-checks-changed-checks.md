@@ -24,3 +24,7 @@ Changes
     - Given Developer changes `go.mod`, or gives no base
         - When `scripts/changed-checks.sh` runs
             - Then it names every check
+- 0161.4
+    - Given Developer has a check the change names
+        - When `scripts/test-check.sh` runs with its name
+            - Then it builds, vets and tests that check, and prints its `--describe` answer

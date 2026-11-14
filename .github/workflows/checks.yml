@@ -68,13 +68,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Build, vet and test the check
-        env:
-          CHECK: ./cmd/fitness-check-${{ matrix.check }}
-        run: |
-          go build -o out/ "$CHECK"
-          go vet "$CHECK"
-          go test -count=1 "$CHECK"
-          "out/fitness-check-${{ matrix.check }}" --describe
+        run: scripts/test-check.sh "${{ matrix.check }}"
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### %s (%s)\n' "${{ matrix.check }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

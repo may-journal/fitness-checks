@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -69,5 +70,15 @@ func Test0161_3(t *testing.T) {
 		if len(got) != len(every) {
 			t.Errorf("changed-checks names %d checks, want all %d", len(got), len(every))
 		}
+	}
+}
+
+func Test0161_4(t *testing.T) {
+	t.Parallel()
+	script, err := filepath.Abs(filepath.Join("..", "scripts", "test-check.sh"))
+	mustDo(t, err)
+	out, err := exec.Command(script, "gofmt").CombinedOutput()
+	if err != nil || !strings.Contains(string(out), `{"name":"gofmt"`) {
+		t.Errorf("test-check.sh gofmt: %v\n%s", err, out)
 	}
 }
