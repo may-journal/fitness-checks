@@ -19,7 +19,7 @@ for tag in $(git tag -l --sort=-v:refname | grep -E "$semver"); do
   # Only a missing tag is created, so any other error stops the run with its text.
   if ! error="$(gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$move" -f sha="$here" -F force=true --silent 2>&1)"; then
     case "$error" in
-    *"Not Found"*) gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$move" -f sha="$here" --silent ;;
+    *"Not Found"* | *"Reference does not exist"*) gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$move" -f sha="$here" --silent ;;
     *)
       echo "release-major: could not move $move: $error" >&2
       exit 1

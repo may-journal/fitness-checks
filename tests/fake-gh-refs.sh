@@ -21,7 +21,7 @@ if [ "$method" = PATCH ] && [ -n "${FAKE_PATCH_ERROR:-}" ]; then
   exit 1
 fi
 if [ "$method" = PATCH ]; then
-  git -C "$FAKE_REMOTE" rev-parse -q --verify "$ref" > /dev/null || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+  git -C "$FAKE_REMOTE" rev-parse -q --verify "$ref" > /dev/null || { echo "gh: Reference does not exist (HTTP 422)" >&2; exit 1; }
 fi
 git -C "$FAKE_REMOTE" cat-file -e "$sha^{commit}" 2> /dev/null || { echo "gh: Object does not exist (HTTP 422)" >&2; exit 1; }
 if [ "$method" = PATCH ] && [ "$force" != true ]; then

@@ -84,6 +84,9 @@ func Test0163_1(t *testing.T) {
 	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
 	scriptWith0163(t, clone, bare, "release-major.sh")
 	got := []string{commitOf0163(bare, "fitness-check-gofmt-v1"), commitOf0163(bare, "fitness-check-gofmt-v2")}
+	if !strings.Contains(calls0163(t, bare), "-X POST") {
+		t.Errorf("the missing v2 tag was not created with a POST: %s", calls0163(t, bare))
+	}
 	if !slices.Equal(got, []string{one, two}) {
 		t.Errorf("remote major tags = %v, want %v", got, []string{one, two})
 	}
