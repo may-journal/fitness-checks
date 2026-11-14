@@ -103,7 +103,7 @@ func Test0160_2(t *testing.T) {
 // declaration, since the judgment lives in the engine.
 func ranOurs0160(out, check string) bool {
 	return strings.Contains(out, "fitness-check-"+check+" replaces the built-in "+check+" check") ||
-		strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
+		check == "local-branch" && strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
 }
 
 func Test0160_3(t *testing.T) {
