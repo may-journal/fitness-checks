@@ -37,7 +37,9 @@ func scriptWith0163(t *testing.T, dir, remote, name string, args ...string) stri
 	mustDo(t, err)
 	cmd := exec.Command(script, args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), fakeGh0163(t, remote)...)
+	if remote != "" {
+		cmd.Env = append(os.Environ(), fakeGh0163(t, remote)...)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s: %v\n%s", name, err, out)
@@ -116,7 +118,7 @@ const releases0163 = `[
 
 // index0163 is the index the releases above make: the draft, the prerelease,
 // the other release and each .sha256 file are left out.
-const index0163 = `{"format":1,"repository":"acme/checks","checks":{"gofmt":{
+const index0163 = `{"format":1,"repository":"may-journal/fitness-checks","checks":{"gofmt":{
  "latest":"1.10.0","majors":{"1":"1.10.0"},"versions":{
   "1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/a.tar","sha256":"aaa"}}},
   "1.10.0":{"tag":"fitness-check-gofmt-v1.10.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"ccc"}}}}}}}`
@@ -155,5 +157,22 @@ func Test0163_4(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err == nil || !strings.Contains(string(out), "HTTP 403") || commitOf0163(bare, "fitness-check-gofmt-v1") != "" {
 		t.Errorf("run = %v with %q, want an error naming HTTP 403 and no tag created", err, out)
+	}
+}
+
+func Test0163_5(t *testing.T) {
+	t.Parallel()
+	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+	bare := remote0163(t, clone)
+	git(t, clone, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "chore: other line")
+	git(t, clone, "tag", "fitness-check-gofmt-v1")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/side", "refs/tags/fitness-check-gofmt-v1")
+	git(t, clone, "reset", "-q", "--hard", "HEAD~1")
+	git(t, clone, "tag", "-d", "fitness-check-gofmt-v1")
+	release := release0163(t, clone, "1.0.0")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	scriptWith0163(t, clone, bare, "release-major.sh")
+	if got := commitOf0163(bare, "fitness-check-gofmt-v1"); got != release {
+		t.Errorf("remote major tag = %q, want the release %q, moved by force", got, release)
 	}
 }

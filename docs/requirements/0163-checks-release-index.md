@@ -28,3 +28,7 @@ Checks
     - Given Developer has a release whose major tag is missing, and GitHub refuses the tag move as forbidden
         - When `scripts/release-major.sh` runs
             - Then it exits 1 with GitHub's message and creates no tag
+- 0163.5
+    - Given Developer has a major tag on a commit that is not an ancestor of the release
+        - When `scripts/release-major.sh` runs
+            - Then the tag moves to the release, since the move is forced
