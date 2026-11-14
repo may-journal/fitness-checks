@@ -11,8 +11,7 @@ on:
       - tests/**
       - go.mod
       - go.sum
-      - scripts/changed-checks.sh
-      - scripts/test-check.sh
+      - scripts/**
       - .github/workflows/checks.yml
   push:
     branches: [main]
@@ -24,8 +23,7 @@ on:
       - tests/**
       - go.mod
       - go.sum
-      - scripts/changed-checks.sh
-      - scripts/test-check.sh
+      - scripts/**
       - .github/workflows/checks.yml
 
 permissions:
