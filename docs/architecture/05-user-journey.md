@@ -58,7 +58,7 @@ flowchart TB
 
     results[17 Results table<br/>Req 0003, 0160]:::screen
     ci[(21 CI builds the changed checks<br/>Req 0161)]:::system
-    release[(22 Main releases the changed checks<br/>Req 0162)]:::system
+    release[(22 Main releases the changed checks<br/>Req 0162, 0163)]:::system
     fix(18 Fix and rerun<br/>Req 0003):::action
 
     dev --> runFitness

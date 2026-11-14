@@ -28,7 +28,7 @@ trap 'rm -rf "$cache"' EXIT
 tags=""
 for folder in cmd/fitness-check-*; do
   check="${folder#cmd/fitness-check-}"
-  last="$(git tag -l "fitness-check-$check-v[0-9]*" --sort=-v:refname | head -n 1)"
+  last="$(git tag -l "fitness-check-$check-v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | head -n 1)"
   if [ -z "$last" ]; then
     tags="$tags fitness-check-$check-v1.0.0"
     continue

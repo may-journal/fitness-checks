@@ -12,7 +12,7 @@ out="out/release/$tag"
 "$here/release-build.sh" "$tag" "$out"
 
 notes="$out.md"
-last="$(git tag -l "$component-v[0-9]*" --sort=-v:refname | grep -vxF "$tag" | head -n 1 || true)"
+last="$(git tag -l "$component-v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | grep -vxF "$tag" | head -n 1 || true)"
 if [ -z "$last" ]; then
   echo "First release of $component on its own line." > "$notes"
 else
