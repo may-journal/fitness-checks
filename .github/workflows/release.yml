@@ -79,6 +79,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Move the major tags
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: scripts/release-major.sh
       - name: Publish the release index
         env:

@@ -26,10 +26,20 @@ func remote0163(t *testing.T, clone string) string {
 // standard output.
 func script0163(t *testing.T, dir, name string, args ...string) string {
 	t.Helper()
+	return scriptWith0163(t, dir, "", name, args...)
+}
+
+// scriptWith0163 is script0163 with gh standing in for GitHub over the bare
+// remote, when there is one.
+func scriptWith0163(t *testing.T, dir, remote, name string, args ...string) string {
+	t.Helper()
 	script, err := filepath.Abs(filepath.Join("..", "scripts", name))
 	mustDo(t, err)
 	cmd := exec.Command(script, args...)
 	cmd.Dir = dir
+	if remote != "" {
+		cmd.Env = append(os.Environ(), fakeGh0163(t, remote)...)
+	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s: %v\n%s", name, err, out)
@@ -52,6 +62,17 @@ func release0163(t *testing.T, clone, version string) string {
 	return commitOf0163(clone, "fitness-check-gofmt-v"+version)
 }
 
+// fakeGh0163 puts the stand-in gh first on PATH, applying tag calls to the bare
+// remote given in FAKE_REMOTE.
+func fakeGh0163(t *testing.T, remote string) []string {
+	t.Helper()
+	bin := t.TempDir()
+	shim, err := filepath.Abs(filepath.Join("..", "tests", "fake-gh-refs.sh"))
+	mustDo(t, err)
+	mustDo(t, os.Symlink(shim, filepath.Join(bin, "gh")))
+	return []string{"PATH=" + bin + string(os.PathListSeparator) + os.Getenv("PATH"), "GITHUB_REPOSITORY=acme/checks", "FAKE_REMOTE=" + remote}
+}
+
 func Test0163_1(t *testing.T) {
 	t.Parallel()
 	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
@@ -60,13 +81,16 @@ func Test0163_1(t *testing.T) {
 	one := release0163(t, clone, "1.2.0")
 	two := release0163(t, clone, "2.0.0")
 	git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~2")
-	script0163(t, clone, "release-major.sh")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	scriptWith0163(t, clone, bare, "release-major.sh")
 	got := []string{commitOf0163(bare, "fitness-check-gofmt-v1"), commitOf0163(bare, "fitness-check-gofmt-v2")}
 	if !slices.Equal(got, []string{one, two}) {
 		t.Errorf("remote major tags = %v, want %v", got, []string{one, two})
 	}
-	if out := script0163(t, clone, "release-major.sh"); strings.Contains(out, "new tag") || strings.Contains(out, "forced update") {
-		t.Errorf("the second run moved a tag: %s", out)
+	before := calls0163(t, bare)
+	scriptWith0163(t, clone, bare, "release-major.sh")
+	if after := calls0163(t, bare); after != before {
+		t.Errorf("the second run called gh again: %s", after)
 	}
 }
 
@@ -109,4 +133,53 @@ func Test0163_3(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("index = %v, want %v", got, want)
 	}
+}
+
+// calls0163 returns the gh calls the stand-in logged for the bare remote.
+func calls0163(t *testing.T, bare string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(bare, "calls.log"))
+	mustDo(t, err)
+	return string(b)
+}
+
+func Test0163_4(t *testing.T) {
+	t.Parallel()
+	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+	bare := remote0163(t, clone)
+	release0163(t, clone, "1.0.0")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	script, err := filepath.Abs(filepath.Join("..", "scripts", "release-major.sh"))
+	mustDo(t, err)
+	cmd := exec.Command(script)
+	cmd.Dir = clone
+	cmd.Env = append(append(os.Environ(), fakeGh0163(t, bare)...), "FAKE_PATCH_ERROR=gh: Forbidden (HTTP 403)")
+	out, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "HTTP 403") || commitOf0163(bare, "fitness-check-gofmt-v1") != "" {
+		t.Errorf("run = %v with %q, want an error naming HTTP 403 and no tag created", err, out)
+	}
+}
+
+func Test0163_5(t *testing.T) {
+	t.Parallel()
+	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+	bare := remote0163(t, clone)
+	release := release0163(t, clone, "1.0.0")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	// An orphan commit in the remote is no ancestor of the release.
+	tree := git0163(t, bare, "rev-parse", "main^{tree}")
+	other := git0163(t, bare, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "-m", "other line", tree)
+	git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", other)
+	scriptWith0163(t, clone, bare, "release-major.sh")
+	if got := commitOf0163(bare, "fitness-check-gofmt-v1"); got != release {
+		t.Errorf("remote major tag = %q, want the release %q, moved by force", got, release)
+	}
+}
+
+// git0163 runs git in dir and returns its trimmed standard output.
+func git0163(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
+	mustDo(t, err)
+	return strings.TrimSpace(string(out))
 }
