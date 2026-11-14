@@ -13,7 +13,7 @@ Checks
 ## Requirements
 
 - 0163.1
-    - Given Developer has checks released at 1.0.0, 1.2.0 and 2.0.0, and a major tag behind, in any clone
+    - Given Developer has checks released at 1.0.0, 1.2.0 and 2.0.0, and a major tag behind, moved through the API
         - When `scripts/release-major.sh` runs, then runs again
             - Then each `fitness-check-<name>-vN` tag points at the newest release of major N, and the second run moves nothing
 - 0163.2
