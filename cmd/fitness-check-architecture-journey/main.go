@@ -1,0 +1,22 @@
+package main
+
+import (
+	"github.com/may-journal/fitness-checks/internal/architecture"
+	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+)
+
+func main() {
+	program.Main(docSource, checkkit.Check{
+		Describe: checkkit.Describe{Name: "architecture-journey", Scope: checkkit.ScopeFiles},
+		Run:      run,
+	})
+}
+
+func run(root string, _ []string) (checkkit.Result, error) {
+	model, err := architecture.Load(root)
+	if errs := model.JourneyErrors(); len(errs) > 0 {
+		return checkkit.Fail(model.JourneyFiles(), errs...), err
+	}
+	return checkkit.Pass(model.JourneyFiles()), err
+}

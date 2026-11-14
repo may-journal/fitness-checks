@@ -1,0 +1,40 @@
+package main
+
+import (
+	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-runner/go/pkg/changelog"
+	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+)
+
+func main() {
+	program.Main(docSource, checkkit.Check{
+		Describe: checkkit.Describe{Name: "changelog", Scope: checkkit.ScopeFiles},
+		Run:      run,
+	})
+}
+
+// run judges every entry file; a repo without any passes with none checked.
+func run(root string, _ []string) (checkkit.Result, error) {
+	entries, err := changelog.ReadEntries(root)
+	if err != nil {
+		return checkkit.Result{}, err
+	}
+	if errs := entryErrors(entries); len(errs) > 0 {
+		return checkkit.Fail(len(entries), errs...), nil
+	}
+	return checkkit.Pass(len(entries)), nil
+}
+
+// entryErrors names each entry file that holds other than one dated heading,
+// or whose name does not start with that heading's date.
+func entryErrors(entries []changelog.Entry) []string {
+	var errs []string
+	for _, e := range entries {
+		if !e.Shaped() {
+			errs = append(errs, e.Path+" must hold one ### yyyy.mm.dd.HHMM heading and its bullets, nothing else")
+		} else if msg := changelog.NameError(e.Path, e.Text); msg != "" {
+			errs = append(errs, msg)
+		}
+	}
+	return errs
+}

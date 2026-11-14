@@ -1,0 +1,230 @@
+// Package requirements proves docs/requirements as a user meets them: each test
+// runs the installer at FITNESS_INSTALL in a copied example repo.
+package requirements
+
+import (
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"syscall"
+	"testing"
+	"time"
+)
+
+// ansi matches terminal color codes, which a reader does not see as text.
+var ansi = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// example copies tests/examples/<name> into a fresh directory, writes the
+// Given's files over it, and commits it as a user's repo would be. Each test
+// skips first, before any setup, when no candidate installer is set.
+func example(t *testing.T, name string, files map[string]string) string {
+	t.Helper()
+	installer(t)
+	repo := t.TempDir()
+	if err := os.CopyFS(repo, os.DirFS(filepath.Join("..", "tests", "examples", name))); err != nil {
+		t.Fatal(err)
+	}
+	commit(t, repo, files, "docs(readme): add readme")
+	return repo
+}
+
+// commit writes files into repo and commits everything with message.
+func commit(t *testing.T, repo string, files map[string]string, message string) {
+	t.Helper()
+	write(t, repo, files)
+	git(t, repo, "init", "-q")
+	git(t, repo, "add", "-A")
+	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", message)
+}
+
+// write puts each file into repo, creating folders as needed. An empty body
+// deletes the file.
+func write(t *testing.T, repo string, files map[string]string) {
+	t.Helper()
+	for name, body := range files {
+		path := filepath.Join(repo, filepath.FromSlash(name))
+		if body == "" {
+			_ = os.Remove(path)
+			continue
+		}
+		mustDo(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		mustDo(t, os.WriteFile(path, []byte(body), 0o755))
+	}
+}
+
+func git(t *testing.T, repo string, args ...string) {
+	t.Helper()
+	if out, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+}
+
+func mustDo(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// fitness runs the documented one-liner, `fitness-install -- <args>`, in
+// repo with env added, and returns what it printed and its exit code. With
+// no args it runs the full suite.
+func fitness(t *testing.T, repo string, env []string, args ...string) (string, int) {
+	t.Helper()
+	return piped(t, repo, "", env, args...)
+}
+
+// piped runs the one-liner like fitness, with stdin as the text a user pipes
+// in; empty stdin means none.
+func piped(t *testing.T, repo, stdin string, env []string, args ...string) (string, int) {
+	t.Helper()
+	if len(args) == 0 {
+		args = []string{"--policy=external", "--all"}
+	}
+	return execute(t, func() *exec.Cmd {
+		cmd := exec.Command(installer(t), append([]string{"--"}, args...)...)
+		cmd.Dir, cmd.Env = repo, append(userEnv(), env...)
+		if stdin != "" {
+			cmd.Stdin = strings.NewReader(stdin)
+		}
+		return cmd
+	})
+}
+
+// execute runs the command build makes and returns its output, color codes
+// dropped, and exit code, retrying a busy binary briefly.
+func execute(t *testing.T, build func() *exec.Cmd) (string, int) {
+	t.Helper()
+	var out []byte
+	cmd := started(t, build, func(cmd *exec.Cmd) (err error) {
+		out, err = cmd.CombinedOutput()
+		return err
+	})
+	return ansi.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
+}
+
+// started runs each command build makes with run until one starts, and
+// returns it. A busy binary is retried as execute says; any other start
+// error fails the test.
+func started(t *testing.T, build func() *exec.Cmd, run func(*exec.Cmd) error) *exec.Cmd {
+	t.Helper()
+	for attempt := 0; ; attempt++ {
+		cmd := build()
+		err := run(cmd)
+		if cmd.ProcessState != nil {
+			return cmd
+		}
+		if !errors.Is(err, syscall.ETXTBSY) || attempt == 40 {
+			t.Fatalf("start %s: %v", cmd.Path, err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// placeRunner hard-links the installed runner at dst, so no parallel test's fork
+// inherits an open write handle. Where linking fails, it writes, closes and
+// renames a temporary file into place.
+func placeRunner(t *testing.T, installed, dst string) {
+	t.Helper()
+	if os.Link(installed, dst) == nil {
+		return
+	}
+	raw, err := os.ReadFile(installed)
+	mustDo(t, err)
+	tmp := dst + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o755)
+	mustDo(t, err)
+	_, err = f.Write(raw)
+	mustDo(t, errors.Join(err, f.Close()))
+	mustDo(t, os.Rename(tmp, dst))
+}
+
+// userEnv is this process's environment without the CI job's GITHUB_*
+// variables, which a user's own terminal does not have.
+func userEnv() []string {
+	var env []string
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "GITHUB_") {
+			env = append(env, kv)
+		}
+	}
+	return env
+}
+
+// installer returns the candidate fitness-install the environment provides.
+func installer(t *testing.T) string {
+	t.Helper()
+	path := os.Getenv("FITNESS_INSTALL")
+	if path == "" {
+		t.Skip("set FITNESS_INSTALL to the candidate fitness-install to run requirement tests")
+	}
+	return path
+}
+
+// read returns text as a person reads it, table borders dropped and wrapped
+// lines joined into one.
+func read(text string) string {
+	return strings.Join(strings.Fields(strings.ReplaceAll(text, "│", " ")), " ")
+}
+
+// sees asserts the user saw every want and got exit code code.
+func sees(t *testing.T, out string, gotCode, code int, want ...string) {
+	t.Helper()
+	for _, w := range want {
+		if !strings.Contains(read(out), read(w)) {
+			t.Errorf("output is missing %q:\n%s", w, out)
+		}
+	}
+	if gotCode != code {
+		t.Errorf("exit code = %d, want %d:\n%s", gotCode, code, out)
+	}
+}
+
+// resultRow matches a results-table line: name, status, files, time.
+var resultRow = regexp.MustCompile(`^│ (\S+)\s+│ (passed|failed|info)\s+│`)
+
+// row returns the results-table line for check, or "". The table shortens
+// long names with "…", as a reader sees them.
+func row(out, check string) string {
+	for _, line := range strings.Split(out, "\n") {
+		if m := resultRow.FindStringSubmatch(line); m != nil && names(m[1], check) {
+			return line
+		}
+	}
+	return ""
+}
+
+// names reports whether a table cell shows check, whole or shortened.
+func names(cell, check string) bool {
+	short, cut := strings.CutSuffix(cell, "…")
+	return cell == check || cut && strings.HasPrefix(check, short)
+}
+
+// passedWithNoFiles asserts check's row shows a pass that judged 0 files.
+func passedWithNoFiles(t *testing.T, out, check string) {
+	t.Helper()
+	if !regexp.MustCompile(`│ passed\s+│ 0\s+│`).MatchString(row(out, check)) {
+		t.Errorf("%s must pass with 0 files, got row %q", check, row(out, check))
+	}
+}
+
+// showsInfo asserts the run exited 0 printing every want, with check's row
+// showing info because the check could not judge.
+func showsInfo(t *testing.T, out string, code int, check string, want ...string) {
+	t.Helper()
+	sees(t, out, code, 0, want...)
+	if !strings.Contains(row(out, check), "info") {
+		t.Errorf("%s must show info, got row %q", check, row(out, check))
+	}
+}
+
+// passedWith asserts check's row shows a pass that judged files.
+func passedWith(t *testing.T, out, check, files string) {
+	t.Helper()
+	if !regexp.MustCompile(`│ passed\s+│ ` + files + `\s+│`).MatchString(row(out, check)) {
+		t.Errorf("%s must pass with %s files, got row %q", check, files, row(out, check))
+	}
+}
