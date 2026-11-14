@@ -15,36 +15,30 @@ bump() {
     echo 3
   elif printf '%s\n' "$subject" | grep -qE '^feat(\([^)]*\))?:'; then
     echo 2
-  elif printf '%s\n' "$subject" | grep -qE '^((fix|perf|revert)(\([^)]*\))?|[a-z]+\(deps\)):'; then
+  elif printf '%s\n' "$subject" | grep -qE '^((fix|perf|revert)(\([^)]*\))?|[a-z]+\(deps\)):|^Revert "'; then
     echo 1
   else
     echo 0
   fi
 }
 
-# The affected checks for each distinct tagged commit, read once each.
-affected=""
+# Each distinct tagged commit's changed-checks.sh --each lines, read once each.
+cache="$(mktemp -d)"
+trap 'rm -rf "$cache"' EXIT
 tags=""
 for folder in cmd/fitness-check-*; do
   check="${folder#cmd/fitness-check-}"
-  last="$(git tag -l "fitness-check-$check-v*" --sort=-v:refname | head -n 1)"
+  last="$(git tag -l "fitness-check-$check-v[0-9]*" --sort=-v:refname | head -n 1)"
   if [ -z "$last" ]; then
     tags="$tags fitness-check-$check-v1.0.0"
     continue
   fi
   base="$(git rev-parse "$last^{commit}")"
-  names="$(printf '%s\n' "$affected" | sed -n "s/^$base //p")"
-  if [ -z "$names" ]; then
-    names="$("$here/changed-checks.sh" "$base")"
-    affected="$(printf '%s\n%s %s' "$affected" "$base" "$names")"
-  fi
-  case "$names" in
-  *\""$check"\"*) ;;
-  *) continue ;;
-  esac
+  [ -f "$cache/$base" ] || "$here/changed-checks.sh" --each "$base" > "$cache/$base"
+  lines="$("$here/check-commits.sh" "$check" < "$cache/$base")"
 
   level=0
-  for commit in $("$here/check-commits.sh" "$check" "$base" | cut -d' ' -f1); do
+  for commit in $(printf '%s\n' "$lines" | cut -d' ' -f1); do
     this="$(bump "$commit")"
     [ "$this" -gt "$level" ] && level="$this"
   done
@@ -62,10 +56,4 @@ for folder in cmd/fitness-check-*; do
   tags="$tags fitness-check-$check-v$next"
 done
 
-printf '['
-sep=""
-for tag in $tags; do
-  printf '%s"%s"' "$sep" "$tag"
-  sep=","
-done
-printf ']\n'
+"$here/json-array.sh" $tags

@@ -17,6 +17,12 @@ func releaseClone(t *testing.T, message string, tagged bool, files ...string) st
 	t.Helper()
 	clone, base := changedClone(t, files...)
 	git(t, clone, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--amend", "-m", message)
+	// The clone copies this checkout's tags, real releases included.
+	tags, err := exec.Command("git", "-C", clone, "tag", "-l").Output()
+	mustDo(t, err)
+	if names := strings.Fields(string(tags)); len(names) > 0 {
+		git(t, clone, append([]string{"tag", "-d"}, names...)...)
+	}
 	if tagged {
 		for _, check := range everyCheck0162(t) {
 			git(t, clone, "tag", "fitness-check-"+check+"-v1.0.0", base)
@@ -87,8 +93,9 @@ func Test0162_3(t *testing.T) {
 func Test0162_4(t *testing.T) {
 	t.Parallel()
 	cases := map[string][]string{
-		"docs(gofmt): change gofmt":      {},
-		"refactor(gofmt)!: change gofmt": {"fitness-check-gofmt-v2.0.0"},
+		"docs(gofmt): change gofmt":          {},
+		"refactor(gofmt)!: change gofmt":     {"fitness-check-gofmt-v2.0.0"},
+		`Revert "feat(gofmt): change gofmt"`: {"fitness-check-gofmt-v1.0.1"},
 	}
 	for message, want := range cases {
 		clone := releaseClone(t, message, true, "cmd/fitness-check-gofmt/main.go")

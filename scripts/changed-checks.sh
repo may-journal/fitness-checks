@@ -2,6 +2,7 @@
 # Prints the checks a change since a base can alter as a JSON array, or all of
 # them for go.mod or no base. With --each, it prints one per commit after it.
 set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
 cd "$(git rev-parse --show-toplevel)"
 
 each=""
@@ -57,22 +58,18 @@ json() {
       if printf '%s\n' "$owners" | grep -qxF "$dir"; then echo "$check"; fi
     done | sort -u)"
   fi
-  printf '['
-  sep=""
-  for check in $chosen; do
-    printf '%s"%s"' "$sep" "$check"
-    sep=","
-  done
-  printf ']\n'
+  "$here/json-array.sh" $chosen
 }
 
 if [ -n "$each" ]; then
   for commit in $(git rev-list --reverse "$base..HEAD"); do
+    files="$(git diff --name-only "$commit^" "$commit")"
     printf '%s ' "$commit"
-    json "$(git diff --name-only "$commit^" "$commit")"
+    json "$files"
   done
 elif [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
   json go.mod
 else
-  json "$(git diff --name-only "$base" HEAD)"
+  files="$(git diff --name-only "$base" HEAD)"
+  json "$files"
 fi

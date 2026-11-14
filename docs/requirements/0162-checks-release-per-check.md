@@ -25,9 +25,9 @@ Pushes to main
         - When `scripts/release-plan.sh` runs on main
             - Then it plans a patch release of every check
 - 0162.4
-    - Given Developer merges a `docs` commit to a check, or one marked breaking with `!`
+    - Given Developer merges to a check a `docs` commit, a commit marked breaking with `!`, or a GitHub `Revert` commit
         - When `scripts/release-plan.sh` runs on main
-            - Then the first plans no release, and the second plans a major release
+            - Then it plans no release, a major release, and a patch release in turn
 - 0162.5
     - Given Developer has a check with no release tag yet
         - When `scripts/release-plan.sh` runs on main
