@@ -92,7 +92,6 @@ func Test0160_2(t *testing.T) {
 		if got["protocol"] != float64(1) {
 			t.Errorf("%s --describe has protocol %v, want 1", name, got["protocol"])
 		}
-		delete(got, "protocol")
 		if !maps.Equal(got, want) {
 			t.Errorf("%s --describe = %v, want the bundled check's %v", name, got, want)
 		}
