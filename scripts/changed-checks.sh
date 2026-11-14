@@ -1,9 +1,14 @@
 #!/bin/sh
-# Prints, as a JSON array, the checks a change since the base commit given can
-# alter, run inside the repo to judge. A go.mod change or no base names all.
+# Prints the checks a change since a base can alter as a JSON array, or all of
+# them for go.mod or no base. With --each, it prints one per commit after it.
 set -eu
 cd "$(git rev-parse --show-toplevel)"
 
+each=""
+if [ "${1:-}" = --each ]; then
+  each=1
+  shift
+fi
 base="${1:-}"
 module="$(go list -m)"
 checks="$(ls -d cmd/fitness-check-* | sed 's|^cmd/fitness-check-||')"
@@ -14,10 +19,9 @@ for check in $checks; do
   }
 done
 
-if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-  changed=go.mod
-else
-  changed="$(git diff --name-only "$base" HEAD)"
+if [ -n "$each" ] && ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+  echo "changed-checks.sh: --each needs a base commit, not '$base'" >&2
+  exit 1
 fi
 
 # One go list call pairs each check with the folders of the module packages
@@ -43,19 +47,32 @@ owner() {
   printf '%s\n' "$dir"
 }
 
-if printf '%s\n' "$changed" | grep -qxE 'go\.(mod|sum)'; then
-  chosen="$checks"
-else
-  owners="$(for file in $changed; do owner "$file"; done | sort -u)"
-  chosen="$(printf '%s\n' "$pairs" | while read -r check dir; do
-    if printf '%s\n' "$owners" | grep -qxF "$dir"; then echo "$check"; fi
-  done | sort -u)"
-fi
+# json prints the checks the files in $1 can alter as a JSON array.
+json() {
+  if printf '%s\n' "$1" | grep -qxE 'go\.(mod|sum)'; then
+    chosen="$checks"
+  else
+    owners="$(for file in $1; do owner "$file"; done | sort -u)"
+    chosen="$(printf '%s\n' "$pairs" | while read -r check dir; do
+      if printf '%s\n' "$owners" | grep -qxF "$dir"; then echo "$check"; fi
+    done | sort -u)"
+  fi
+  printf '['
+  sep=""
+  for check in $chosen; do
+    printf '%s"%s"' "$sep" "$check"
+    sep=","
+  done
+  printf ']\n'
+}
 
-printf '['
-sep=""
-for check in $chosen; do
-  printf '%s"%s"' "$sep" "$check"
-  sep=","
-done
-printf ']\n'
+if [ -n "$each" ]; then
+  for commit in $(git rev-list --reverse "$base..HEAD"); do
+    printf '%s ' "$commit"
+    json "$(git diff --name-only "$commit^" "$commit")"
+  done
+elif [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+  json go.mod
+else
+  json "$(git diff --name-only "$base" HEAD)"
+fi

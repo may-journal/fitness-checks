@@ -1,0 +1,68 @@
+# Releases, on each push to main, exactly the checks the push can alter.
+# scripts/release-plan.sh picks each check's next tag from the conventional
+# commits since its last one, and scripts/release-publish.sh builds and
+# publishes one check per job.
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run at a time, so each plan sees the tags the run before it made.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    outputs:
+      tags: ${{ steps.plan.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Plan the release tags
+        id: plan
+        run: tags="$(scripts/release-plan.sh)" && echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - name: Report job outcome
+        if: ${{ always() }}
+        env:
+          TAGS: ${{ steps.plan.outputs.tags }}
+        run: printf '### Job %s (%s)\n\n%s\n' "$GITHUB_JOB" "${{ job.status }}" "$TAGS" >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: plan
+    if: ${{ needs.plan.outputs.tags != '[]' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJSON(needs.plan.outputs.tags) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ matrix.tag }}
+        run: scripts/release-publish.sh "$TAG"
+      - name: Report job outcome
+        if: ${{ always() }}
+        env:
+          TAG: ${{ matrix.tag }}
+        run: printf '### %s (%s)\n' "$TAG" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
