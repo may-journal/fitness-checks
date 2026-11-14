@@ -2,6 +2,6 @@
 
 > A missing major tag is created, since GitHub answers a move of a missing tag with a 422 and not a 404.
 
-- Fix: `scripts/release-major.sh` creates the tag when the move says the reference does not exist.
-- Test: the stand-in gh answers a missing tag as GitHub does, with HTTP 422.
-- Chore: the first run with the App token failed with HTTP 422 on the first tag.
+- Fix: `scripts/release-major.sh` creates the tag when a lookup finds none, instead of matching error text.
+- Test: requirement 0163.6 proves a refused move of an existing tag stops the run without a create.
+- Chore: the first run with the App token failed on the first tag with HTTP 422.

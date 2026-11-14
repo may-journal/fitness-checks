@@ -7,16 +7,22 @@ method=PATCH
 sha=""
 ref=""
 force=""
+lookup=""
 for arg in "$@"; do
   case "$arg" in
   POST) method=POST ;;
   force=*) force="${arg#force=}" ;;
   sha=*) sha="${arg#sha=}" ;;
   ref=*) ref="${arg#ref=}" ;;
+  repos/*/git/matching-refs/tags/*) lookup="refs/tags/${arg##*/matching-refs/tags/}" ;;
   repos/*/git/refs/tags/*) ref="refs/tags/${arg##*/git/refs/tags/}" ;;
   esac
 done
-if [ "$method" = PATCH ] && [ -n "${FAKE_PATCH_ERROR:-}" ]; then
+if [ -n "$lookup" ]; then
+  if git -C "$FAKE_REMOTE" rev-parse -q --verify "$lookup" > /dev/null; then echo 1; else echo 0; fi
+  exit 0
+fi
+if [ -n "${FAKE_PATCH_ERROR:-}" ]; then
   echo "$FAKE_PATCH_ERROR" >&2
   exit 1
 fi

@@ -32,3 +32,7 @@ Checks
     - Given Developer has a major tag on a commit that is no ancestor of the release
         - When `scripts/release-major.sh` runs
             - Then the tag moves to the release, since the move is forced
+- 0163.6
+    - Given Developer has a release whose major tag exists, and GitHub refuses to move it
+        - When `scripts/release-major.sh` runs
+            - Then it exits 1 naming the tag, and never tries to create it
