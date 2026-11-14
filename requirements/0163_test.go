@@ -17,6 +17,7 @@ func remote0163(t *testing.T, clone string) string {
 	t.Helper()
 	bare := filepath.Join(t.TempDir(), "remote.git")
 	git(t, clone, "init", "-q", "--bare", bare)
+	git(t, bare, "config", "receive.shallowUpdate", "true")
 	git(t, clone, "remote", "set-url", "origin", bare)
 	return bare
 }

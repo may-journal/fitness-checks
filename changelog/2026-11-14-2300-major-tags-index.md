@@ -6,4 +6,4 @@
 - Feat: `scripts/release-index.sh` writes `index.json` and `scripts/release-index-publish.sh` keeps it on the release `fitness-check-index`.
 - Fix: the release scripts read only `vX.Y.Z` tags as a check's last release, so a major tag is never mistaken for one.
 - Docs: requirement 0163 records the index format.
-- Test: requirement 0163 proves the tags move once, the plan ignores them, and the index lists only published releases.
+- Test: requirement 0163 proves the major tag moves once in any clone, the plan ignores it, and the index lists published releases.
