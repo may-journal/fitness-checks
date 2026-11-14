@@ -164,15 +164,22 @@ func Test0163_5(t *testing.T) {
 	t.Parallel()
 	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
 	bare := remote0163(t, clone)
-	git(t, clone, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "chore: other line")
-	git(t, clone, "tag", "fitness-check-gofmt-v1")
-	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/side", "refs/tags/fitness-check-gofmt-v1")
-	git(t, clone, "reset", "-q", "--hard", "HEAD~1")
-	git(t, clone, "tag", "-d", "fitness-check-gofmt-v1")
 	release := release0163(t, clone, "1.0.0")
 	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	// An orphan commit in the remote is no ancestor of the release.
+	tree := git0163(t, bare, "rev-parse", "main^{tree}")
+	other := git0163(t, bare, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "-m", "other line", tree)
+	git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", other)
 	scriptWith0163(t, clone, bare, "release-major.sh")
 	if got := commitOf0163(bare, "fitness-check-gofmt-v1"); got != release {
 		t.Errorf("remote major tag = %q, want the release %q, moved by force", got, release)
 	}
+}
+
+// git0163 runs git in dir and returns its trimmed standard output.
+func git0163(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
+	mustDo(t, err)
+	return strings.TrimSpace(string(out))
 }
