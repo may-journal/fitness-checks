@@ -140,3 +140,20 @@ func calls0163(t *testing.T, bare string) string {
 	mustDo(t, err)
 	return string(b)
 }
+
+func Test0163_4(t *testing.T) {
+	t.Parallel()
+	clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+	bare := remote0163(t, clone)
+	release0163(t, clone, "1.0.0")
+	git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+	script, err := filepath.Abs(filepath.Join("..", "scripts", "release-major.sh"))
+	mustDo(t, err)
+	cmd := exec.Command(script)
+	cmd.Dir = clone
+	cmd.Env = append(append(os.Environ(), fakeGh0163(t, bare)...), "FAKE_PATCH_ERROR=gh: Forbidden (HTTP 403)")
+	out, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "HTTP 403") || commitOf0163(bare, "fitness-check-gofmt-v1") != "" {
+		t.Errorf("run = %v with %q, want an error naming HTTP 403 and no tag created", err, out)
+	}
+}

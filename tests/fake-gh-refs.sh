@@ -14,7 +14,11 @@ for arg in "$@"; do
   repos/*/git/refs/tags/*) ref="refs/tags/${arg##*/git/refs/tags/}" ;;
   esac
 done
+if [ "$method" = PATCH ] && [ -n "${FAKE_PATCH_ERROR:-}" ]; then
+  echo "$FAKE_PATCH_ERROR" >&2
+  exit 1
+fi
 if [ "$method" = PATCH ]; then
-  git -C "$FAKE_REMOTE" rev-parse -q --verify "$ref" > /dev/null || exit 1
+  git -C "$FAKE_REMOTE" rev-parse -q --verify "$ref" > /dev/null || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
 fi
 git -C "$FAKE_REMOTE" update-ref "$ref" "$sha"

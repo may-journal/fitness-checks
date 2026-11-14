@@ -24,3 +24,7 @@ Checks
     - Given Developer has releases that include a draft, a prerelease, a release that is no check and two versions of one check
         - When `scripts/release-index.sh` reads them
             - Then the index holds the published check releases with `latest`, `majors` and each artifact's URL and sha256
+- 0163.4
+    - Given Developer has a release whose major tag is missing, and GitHub refuses the tag move as forbidden
+        - When `scripts/release-major.sh` runs
+            - Then it exits 1 with GitHub's message and creates no tag
