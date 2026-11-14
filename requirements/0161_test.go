@@ -56,19 +56,24 @@ func Test0161_1(t *testing.T) {
 
 func Test0161_2(t *testing.T) {
 	t.Parallel()
-	clone, base := changedClone(t, "internal/spell/mask.go")
-	if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"cspell"}) {
-		t.Errorf("changed-checks = %v, want only cspell, the one check that imports spell", got)
+	for _, file := range []string{"internal/spell/mask.go", "internal/spell/dict/git.txt"} {
+		clone, base := changedClone(t, file)
+		if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"cspell"}) {
+			t.Errorf("after %s, changed-checks = %v, want only cspell, the one check that imports spell", file, got)
+		}
 	}
 }
 
 func Test0161_3(t *testing.T) {
 	t.Parallel()
 	clone, base := changedClone(t, "go.mod")
-	every := checkFolders0160(t)
+	var every []string
+	for _, folder := range checkFolders0160(t) {
+		every = append(every, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"))
+	}
 	for _, got := range [][]string{changedChecks(t, clone, base), changedChecks(t, clone)} {
-		if len(got) != len(every) {
-			t.Errorf("changed-checks names %d checks, want all %d", len(got), len(every))
+		if !slices.Equal(got, every) {
+			t.Errorf("changed-checks = %v, want every check, %v", got, every)
 		}
 	}
 }

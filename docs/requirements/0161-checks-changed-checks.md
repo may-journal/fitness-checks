@@ -17,7 +17,7 @@ Changes
         - When `scripts/changed-checks.sh` runs against the change's base
             - Then it names only that check
 - 0161.2
-    - Given Developer changes a check-only helper
+    - Given Developer changes a check-only helper, or a file it embeds
         - When `scripts/changed-checks.sh` runs against the change's base
             - Then it names exactly the checks whose Go dependencies hold that helper
 - 0161.3

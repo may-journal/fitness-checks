@@ -12,6 +12,7 @@ on:
       - go.mod
       - go.sum
       - scripts/changed-checks.sh
+      - scripts/test-check.sh
       - .github/workflows/checks.yml
   push:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - go.mod
       - go.sum
       - scripts/changed-checks.sh
+      - scripts/test-check.sh
       - .github/workflows/checks.yml
 
 permissions:
@@ -45,8 +47,10 @@ jobs:
       - name: Pick the changed checks
         id: pick
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: echo "checks=$(scripts/changed-checks.sh "$BASE")" >> "$GITHUB_OUTPUT"
+          # A pull request checks out its merge into the base. That merge's
+          # first parent is the base as it stands, so the diff is the PR's.
+          BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
+        run: checks="$(scripts/changed-checks.sh "$BASE")" && echo "checks=$checks" >> "$GITHUB_OUTPUT"
       - name: Report job outcome
         if: ${{ always() }}
         env:
@@ -68,13 +72,16 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Build, vet and test the check
-        run: scripts/test-check.sh "${{ matrix.check }}"
+        env:
+          CHECK: ${{ matrix.check }}
+        run: scripts/test-check.sh "$CHECK"
       - name: Report job outcome
         if: ${{ always() }}
-        run: printf '### %s (%s)\n' "${{ matrix.check }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          CHECK: ${{ matrix.check }}
+        run: printf '### %s (%s)\n' "$CHECK" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   requirements:
-    needs: changed
     runs-on: ubuntu-24.04-arm
     # The suite took 73s on a laptop; a cold runner also builds every check.
     timeout-minutes: 15
