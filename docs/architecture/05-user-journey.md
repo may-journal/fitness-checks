@@ -36,7 +36,7 @@ Each step's label ends with the requirement docs it fulfils, by ID. The `archite
 flowchart TB
     dev((1 Developer or agent)):::persona
     runFitness(2 Run fitness or a hook<br/>Req 0003):::action
-    startCheck[(3 Engine starts each check program<br/>Req 0003, 0160)]:::system
+    startCheck[(3 Engine starts each check program<br/>Req 0003, 0067, 0160)]:::system
 
     subgraph checks["Check families"]
         commitChecks[(4 Commit messages<br/>Req 0020, 0031, 0049, 0056, 0153)]:::system

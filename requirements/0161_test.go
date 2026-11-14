@@ -68,7 +68,7 @@ func Test0161_3(t *testing.T) {
 	t.Parallel()
 	clone, base := changedClone(t, "go.mod")
 	var every []string
-	for _, folder := range checkFolders0160(t) {
+	for _, folder := range checkFolders0160(t, clone) {
 		every = append(every, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"))
 	}
 	for _, got := range [][]string{changedChecks(t, clone, base), changedChecks(t, clone)} {

@@ -31,7 +31,7 @@ Pushes to main
 - 0162.5
     - Given Developer has a check with no release tag yet
         - When `scripts/release-plan.sh` runs on main
-            - Then it plans that check's first release, 1.0.0
+            - Then it plans that check's first release, 1.0.0, from the checks the repo holds
 - 0162.6
     - Given Developer builds a release for one check
         - When `scripts/release-build.sh` runs for its tag

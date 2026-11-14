@@ -98,6 +98,11 @@ func Test0164_1(t *testing.T) {
 	mustDo(t, err)
 	got, code, out := parity0164(t, bin)
 	rows, found := withFindings0164(t, out)
+	tsv, err := os.ReadFile(filepath.Join(out, "results.tsv"))
+	mustDo(t, err)
+	if !strings.Contains(string(tsv), "\tlocal-branch\tskipped\t") {
+		t.Errorf("results.tsv does not skip local-branch, which the engine judges:\n%s", tsv)
+	}
 	if want := len(strings.Fields(string(listed))); code != 0 || rows != want || found < 10 {
 		t.Errorf("exit %d with %d rows and %d with findings, want 0, %d rows, one per built-in check, and at least 10 with findings:\n%s", code, rows, found, want, got)
 	}

@@ -47,7 +47,8 @@ run() {
 compare() {
   local name="$1" check="$2" sample="$out/samples/$1" status=match
   local binary="$out/bin/fitness-check-$check" built again bin findings
-  if [ ! -x "$binary" ]; then
+  # The engine judges local-branch, so its binary only declares the check.
+  if [ ! -x "$binary" ] || [ "$check" = local-branch ]; then
     printf '%s\t%s\tskipped\t\n' "$name" "$check" > "$out/rows/$name.$check"
     return 0
   fi

@@ -24,7 +24,7 @@ func releaseClone(t *testing.T, message string, tagged bool, files ...string) st
 		git(t, clone, append([]string{"tag", "-d"}, names...)...)
 	}
 	if tagged {
-		for _, check := range everyCheck0162(t) {
+		for _, check := range everyCheck0162(t, clone) {
 			git(t, clone, "tag", "fitness-check-"+check+"-v1.0.0", base)
 		}
 	}
@@ -46,21 +46,21 @@ func releasePlan(t *testing.T, clone string) []string {
 	return tags
 }
 
-// everyCheck0162 names each check folder's check.
-func everyCheck0162(t *testing.T) []string {
+// everyCheck0162 names each check folder's check in the repo at root.
+func everyCheck0162(t *testing.T, root string) []string {
 	t.Helper()
 	var every []string
-	for _, folder := range checkFolders0160(t) {
+	for _, folder := range checkFolders0160(t, root) {
 		every = append(every, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"))
 	}
 	return every
 }
 
-// tagsFor0162 names the tag each check gets at the version given.
-func tagsFor0162(t *testing.T, version string) []string {
+// tagsFor0162 names the tag each check of the repo at root gets at version.
+func tagsFor0162(t *testing.T, root, version string) []string {
 	t.Helper()
 	var tags []string
-	for _, check := range everyCheck0162(t) {
+	for _, check := range everyCheck0162(t, root) {
 		tags = append(tags, "fitness-check-"+check+"-v"+version)
 	}
 	return tags
@@ -85,7 +85,7 @@ func Test0162_2(t *testing.T) {
 func Test0162_3(t *testing.T) {
 	t.Parallel()
 	clone := releaseClone(t, "build(deps): change go.mod", true, "go.mod")
-	if got, want := releasePlan(t, clone), tagsFor0162(t, "1.0.1"); !slices.Equal(got, want) {
+	if got, want := releasePlan(t, clone), tagsFor0162(t, clone, "1.0.1"); !slices.Equal(got, want) {
 		t.Errorf("release-plan = %v, want every check at 1.0.1, %v", got, want)
 	}
 }
@@ -108,7 +108,7 @@ func Test0162_4(t *testing.T) {
 func Test0162_5(t *testing.T) {
 	t.Parallel()
 	clone := releaseClone(t, "docs(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-	if got, want := releasePlan(t, clone), tagsFor0162(t, "1.0.0"); !slices.Equal(got, want) {
+	if got, want := releasePlan(t, clone), tagsFor0162(t, clone, "1.0.0"); !slices.Equal(got, want) {
 		t.Errorf("release-plan = %v, want every check's first release, %v", got, want)
 	}
 }

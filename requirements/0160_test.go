@@ -22,11 +22,11 @@ func engineOnly0160(dep string) bool {
 	})
 }
 
-// checkFolders0160 lists this repo's check folders, such as
+// checkFolders0160 lists the check folders of the repo at root, such as
 // cmd/fitness-check-gofmt.
-func checkFolders0160(t *testing.T) []string {
+func checkFolders0160(t *testing.T, root string) []string {
 	t.Helper()
-	folders, err := filepath.Glob(filepath.Join("..", "cmd", "fitness-check-*"))
+	folders, err := filepath.Glob(filepath.Join(root, "cmd", "fitness-check-*"))
 	mustDo(t, err)
 	if len(folders) == 0 {
 		t.Fatal("no check folders under cmd")
@@ -52,7 +52,7 @@ func strayDeps(t *testing.T, folder string) []string {
 
 func Test0160_1(t *testing.T) {
 	t.Parallel()
-	for _, folder := range checkFolders0160(t) {
+	for _, folder := range checkFolders0160(t, "..") {
 		for _, dep := range strayDeps(t, folder) {
 			t.Errorf("%s depends on %s", filepath.Base(folder), dep)
 		}
@@ -85,14 +85,13 @@ func Test0160_2(t *testing.T) {
 	t.Parallel()
 	ours := goBuild0160(t, "./cmd/...")
 	engine := goBuild0160(t, "github.com/may-journal/fitness-runner/go/cmd/fitness")
-	for _, folder := range checkFolders0160(t) {
+	for _, folder := range checkFolders0160(t, "..") {
 		name := filepath.Base(folder)
 		mustDo(t, os.Symlink(filepath.Join(engine, "fitness"), filepath.Join(engine, name)))
 		got, want := describe0160(t, filepath.Join(ours, name)), describe0160(t, filepath.Join(engine, name))
 		if got["protocol"] != float64(1) {
 			t.Errorf("%s --describe has protocol %v, want 1", name, got["protocol"])
 		}
-		delete(got, "protocol")
 		if !maps.Equal(got, want) {
 			t.Errorf("%s --describe = %v, want the bundled check's %v", name, got, want)
 		}
@@ -100,9 +99,11 @@ func Test0160_2(t *testing.T) {
 }
 
 // ranOurs0160 reports whether out says the engine started this repo's program
-// for check.
+// for check. For local-branch it says the engine took the program as the
+// declaration, since the judgment lives in the engine.
 func ranOurs0160(out, check string) bool {
-	return strings.Contains(out, "fitness-check-"+check+" replaces the built-in "+check+" check")
+	return strings.Contains(out, "fitness-check-"+check+" replaces the built-in "+check+" check") ||
+		check == "local-branch" && strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
 }
 
 func Test0160_3(t *testing.T) {
@@ -110,7 +111,7 @@ func Test0160_3(t *testing.T) {
 	repo := example(t, "happyRepo", nil)
 	all, code := fitness(t, repo, nil)
 	sees(t, all, code, 0)
-	for _, folder := range checkFolders0160(t) {
+	for _, folder := range checkFolders0160(t, "..") {
 		check := strings.TrimPrefix(filepath.Base(folder), "fitness-check-")
 		out := all
 		if !strings.Contains(all, "→ "+check+"\n") {
