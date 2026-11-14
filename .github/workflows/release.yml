@@ -78,13 +78,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Mint the automation App token
+        id: app-token
+        uses: may-journal/fitness-runner/.github/actions/app-token@v1
+        with:
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_KEY }}
       - name: Move the major tags
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: scripts/release-major.sh
       - name: Publish the release index
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: scripts/release-index-publish.sh
       - name: Report job outcome
         if: ${{ always() }}
