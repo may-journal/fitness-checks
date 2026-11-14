@@ -6,6 +6,8 @@ cd "$(git rev-parse --show-toplevel)"
 
 out="${1:-out/parity}"
 case "$out" in /*) ;; *) out="$(pwd)/$out" ;; esac
+# Refuse a folder that holds this checkout, since the script clears it first.
+case "$(pwd)/" in "$out/"*) echo "check-parity: $out holds this checkout" >&2; exit 1 ;; esac
 rm -rf "$out"
 mkdir -p "$out/bin" "$out/samples"
 if [ -n "${CHECK_PARITY_BIN:-}" ]; then
@@ -17,7 +19,7 @@ fi
 fitness="$out/bin/fitness"
 
 # A sample is a checkout of one pinned commit, as the engine meets a repo.
-while read -r name url sha; do
+while read -r name url sha || [ -n "$name" ]; do
   case "$name" in '' | '#'*) continue ;; esac
   dir="$out/samples/$name"
   git init -q "$dir"
@@ -31,11 +33,14 @@ while read -r name url sha; do
   git -C "$dir" checkout -q FETCH_HEAD
 done < "${CHECK_PARITY_SAMPLES:-tests/parity/samples.txt}"
 
+# verdict prints the exit code and ok flag of a run's output.
+verdict() { { printf '%s\n' "${1%%$'\n'*}"; printf '%s\n' "${1#*$'\n'}" | jq -r .ok 2> /dev/null || true; }; }
+
 # run prints a side's exit code on its first line and its normalized stdout after it.
 run() {
   local code=0 stdout
   stdout="$("$@" 2> /dev/null < /dev/null)" || code=$?
-  printf '%s\n%s\n' "$code" "$(printf '%s' "$stdout" | jq -S . 2> /dev/null || printf '%s' "$stdout")"
+  printf '%s\n%s\n' "$code" "$(printf '%s' "${stdout//$PWD/<root>}" | jq -S . 2> /dev/null || printf '%s' "${stdout//$PWD/<root>}")"
 }
 
 printf 'sample\tcheck\tstatus\tfindings\n' > "$out/results.tsv"
@@ -57,10 +62,13 @@ for sample in "$out"/samples/*; do
     findings="$(printf '%s\n' "$built" | tail -n +2 | jq '.errors | length' 2> /dev/null || echo '?')"
     status=match
     if [ "$built" != "$again" ]; then
-      # A built-in that disagrees with itself, as a test run can, has no verdict to match.
+      # A built-in that disagrees with itself, as a test run can, is held only to its exit code and ok flag.
       status=unstable
+      [ "$(verdict "$bin")" = "$(verdict "$built")" ] || [ "$(verdict "$bin")" = "$(verdict "$again")" ] || status=differ
     elif [ "$built" != "$bin" ]; then
       status=differ
+    fi
+    if [ "$status" = differ ]; then
       mismatches=$((mismatches + 1))
       echo "MISMATCH: check $check on sample $name, see $out/results/$name/$check.{builtin,binary}.json" >&2
     fi

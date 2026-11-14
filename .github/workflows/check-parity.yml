@@ -9,7 +9,7 @@ on:
       - go.mod
       - go.sum
       - tests/parity/**
-      - scripts/check-parity.sh
+      - scripts/check-parity*.sh
       - .github/workflows/check-parity.yml
   push:
     branches: [main]

@@ -70,7 +70,7 @@ flowchart TB
     fix --> runFitness
     fix --> ci
     ci --> parity
-    parity --> release
+    ci --> release
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px

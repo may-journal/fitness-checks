@@ -97,3 +97,16 @@ func Test0164_3(t *testing.T) {
 		t.Errorf("exit %d with results %q and output %q, want 0 and gofmt unstable", code, b, got)
 	}
 }
+
+func Test0164_4(t *testing.T) {
+	t.Parallel()
+	bin := t.TempDir()
+	engine := "#!/bin/sh\nif [ \"$2\" = --list ]; then echo gofmt; exit 0; fi\n" +
+		"n=$(cat \"$(dirname \"$0\")/count\" 2> /dev/null || echo 0)\necho $((n + 1)) > \"$(dirname \"$0\")/count\"\nprintf '{\"ok\":true,\"n\":%s}\\n' \"$n\"\n"
+	mustDo(t, os.WriteFile(filepath.Join(bin, "fitness"), []byte(engine), 0o755))
+	mustDo(t, os.WriteFile(filepath.Join(bin, "fitness-check-gofmt"), []byte("#!/bin/sh\nprintf '{\"ok\":false,\"n\":0}\\n'\n"), 0o755))
+	got, code, _ := parity0164(t, bin)
+	if code != 1 || !strings.Contains(got, "MISMATCH: check gofmt on sample dirty") {
+		t.Errorf("exit %d with %q, want 1 naming check gofmt on sample dirty", code, got)
+	}
+}

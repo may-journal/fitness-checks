@@ -23,4 +23,8 @@ Check and sample pairs
 - 0164.3
     - Given Developer has a built-in that disagrees with itself between two runs
         - When `scripts/check-parity.sh` runs
-            - Then the pair is recorded as unstable and does not fail the run
+            - Then the pair is recorded as unstable, and fails only if the binary matches neither run on exit code and ok flag
+- 0164.4
+    - Given Developer has a built-in that disagrees with itself, and a binary whose ok flag matches neither run
+        - When `scripts/check-parity.sh` runs
+            - Then it exits 1 and names the check and the sample
