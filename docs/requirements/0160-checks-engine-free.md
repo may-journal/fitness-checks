@@ -23,4 +23,4 @@ Checks
 - 0160.3
     - Given Developer runs the requirement suite with `tests/requirements.sh`
         - When the installed engine runs every check
-            - Then it starts this repo's program for each check, never its own built-in one
+            - Then it starts this repo's program for each check, or declares `local-branch`, which it judges itself, and never runs a built-in one
