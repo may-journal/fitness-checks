@@ -1,10 +1,12 @@
 package requirements
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -19,18 +21,44 @@ func dirtyOnly0164(t *testing.T) string {
 	return list
 }
 
-// builtPrograms0164 builds the pinned engine and every check into a folder.
+// programs0164 is the one build of the engine and every check that the tests copy.
+var programs0164 struct {
+	once sync.Once
+	dir  string
+	err  error
+}
+
+// builtPrograms0164 returns a folder of links to the pinned engine and every check,
+// built once for the whole run.
 func builtPrograms0164(t *testing.T) string {
 	t.Helper()
-	bin := t.TempDir()
+	programs0164.once.Do(func() {
+		programs0164.dir, programs0164.err = buildPrograms0164()
+	})
+	mustDo(t, programs0164.err)
+	copied := t.TempDir()
+	entries, err := os.ReadDir(programs0164.dir)
+	mustDo(t, err)
+	for _, entry := range entries {
+		mustDo(t, os.Symlink(filepath.Join(programs0164.dir, entry.Name()), filepath.Join(copied, entry.Name())))
+	}
+	return copied
+}
+
+// buildPrograms0164 builds the pinned engine and every check into a new folder.
+func buildPrograms0164() (string, error) {
+	bin, err := os.MkdirTemp("", "parity-programs")
+	if err != nil {
+		return "", err
+	}
 	for _, target := range []string{"github.com/may-journal/fitness-runner/go/cmd/fitness", "./cmd/..."} {
 		build := exec.Command("go", "build", "-o", bin+string(os.PathSeparator), target)
 		build.Dir = ".."
 		if out, err := build.CombinedOutput(); err != nil {
-			t.Fatalf("go build %s: %v\n%s", target, err, out)
+			return "", fmt.Errorf("go build %s: %v\n%s", target, err, out)
 		}
 	}
-	return bin
+	return bin, nil
 }
 
 // parity0164 runs scripts/check-parity.sh with programs in bin, and returns
@@ -65,10 +93,13 @@ func withFindings0164(t *testing.T, out string) (rows, found int) {
 
 func Test0164_1(t *testing.T) {
 	t.Parallel()
-	got, code, out := parity0164(t, builtPrograms0164(t))
+	bin := builtPrograms0164(t)
+	listed, err := exec.Command(filepath.Join(bin, "fitness"), "check", "--list").Output()
+	mustDo(t, err)
+	got, code, out := parity0164(t, bin)
 	rows, found := withFindings0164(t, out)
-	if code != 0 || rows != len(checkFolders0160(t))+1 || found < 10 {
-		t.Errorf("exit %d with %d rows and %d with findings, want 0, one row per check and local-branch, and at least 10 with findings:\n%s", code, rows, found, got)
+	if want := len(strings.Fields(string(listed))); code != 0 || rows != want || found < 10 {
+		t.Errorf("exit %d with %d rows and %d with findings, want 0, %d rows, one per built-in check, and at least 10 with findings:\n%s", code, rows, found, want, got)
 	}
 }
 
@@ -76,6 +107,7 @@ func Test0164_2(t *testing.T) {
 	t.Parallel()
 	bin := builtPrograms0164(t)
 	tampered := "#!/bin/sh\nprintf '{\"ok\":false,\"errors\":[\"tampered\"],\"filesChecked\":0}\\n'\n"
+	mustDo(t, os.Remove(filepath.Join(bin, "fitness-check-gofmt")))
 	mustDo(t, os.WriteFile(filepath.Join(bin, "fitness-check-gofmt"), []byte(tampered), 0o755))
 	got, code, _ := parity0164(t, bin)
 	if code != 1 || !strings.Contains(got, "MISMATCH: check gofmt on sample dirty") {

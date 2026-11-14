@@ -15,7 +15,7 @@ Check and sample pairs
 - 0164.1
     - Given Developer has every check built as a binary and as the engine's built-in
         - When `scripts/check-parity.sh` runs on the dirty sample
-            - Then it exits 0, and `results.tsv` has a row for each check, with findings from many checks
+            - Then it exits 0, and `results.tsv` has a row for each built-in check, with findings from many checks
 - 0164.2
     - Given Developer has a binary that reports a different verdict from its built-in
         - When `scripts/check-parity.sh` runs on the dirty sample

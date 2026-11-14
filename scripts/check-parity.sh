@@ -43,38 +43,44 @@ run() {
   printf '%s\n%s\n' "$code" "$(printf '%s' "${stdout//$PWD/<root>}" | jq -S . 2> /dev/null || printf '%s' "${stdout//$PWD/<root>}")"
 }
 
-printf 'sample\tcheck\tstatus\tfindings\n' > "$out/results.tsv"
-mismatches=0
+# compare judges one check on one sample both ways, and writes its results.tsv row.
+compare() {
+  local name="$1" check="$2" sample="$out/samples/$1" status=match
+  local binary="$out/bin/fitness-check-$check" built again bin findings
+  if [ ! -x "$binary" ]; then
+    printf '%s\t%s\tskipped\t\n' "$name" "$check" > "$out/rows/$name.$check"
+    return 0
+  fi
+  built="$(cd "$sample" && run "$fitness" check "$check")"
+  again="$(cd "$sample" && run "$fitness" check "$check")"
+  bin="$(cd "$sample" && run "$binary" --root "$sample")"
+  printf '%s\n' "$built" > "$out/results/$name/$check.builtin.json"
+  printf '%s\n' "$bin" > "$out/results/$name/$check.binary.json"
+  findings="$(printf '%s\n' "$built" | tail -n +2 | jq '.errors | length' 2> /dev/null || echo '?')"
+  if [ "$built" != "$again" ]; then
+    # A built-in that disagrees with itself, as a test run can, is held only to its exit code and ok flag.
+    status=unstable
+    [ "$(verdict "$bin")" = "$(verdict "$built")" ] || [ "$(verdict "$bin")" = "$(verdict "$again")" ] || status=differ
+  elif [ "$built" != "$bin" ]; then
+    status=differ
+  fi
+  [ "$status" != differ ] || echo "MISMATCH: check $check on sample $name, see $out/results/$name/$check.{builtin,binary}.json" >&2
+  printf '%s\t%s\t%s\t%s\n' "$name" "$check" "$status" "$findings" > "$out/rows/$name.$check"
+}
+export -f compare run verdict
+export out fitness
+
+# Four pairs run at once, which keeps the wait short as checks and samples grow.
+mkdir -p "$out/rows"
 for sample in "$out"/samples/*; do
-  name="$(basename "$sample")"
-  mkdir -p "$out/results/$name"
+  mkdir -p "$out/results/$(basename "$sample")"
   for check in $("$fitness" check --list); do
-    binary="$out/bin/fitness-check-$check"
-    if [ ! -x "$binary" ]; then
-      printf '%s\t%s\tskipped\t\n' "$name" "$check" >> "$out/results.tsv"
-      continue
-    fi
-    built="$(cd "$sample" && run "$fitness" check "$check")"
-    again="$(cd "$sample" && run "$fitness" check "$check")"
-    bin="$(cd "$sample" && run "$binary" --root "$sample")"
-    printf '%s\n' "$built" > "$out/results/$name/$check.builtin.json"
-    printf '%s\n' "$bin" > "$out/results/$name/$check.binary.json"
-    findings="$(printf '%s\n' "$built" | tail -n +2 | jq '.errors | length' 2> /dev/null || echo '?')"
-    status=match
-    if [ "$built" != "$again" ]; then
-      # A built-in that disagrees with itself, as a test run can, is held only to its exit code and ok flag.
-      status=unstable
-      [ "$(verdict "$bin")" = "$(verdict "$built")" ] || [ "$(verdict "$bin")" = "$(verdict "$again")" ] || status=differ
-    elif [ "$built" != "$bin" ]; then
-      status=differ
-    fi
-    if [ "$status" = differ ]; then
-      mismatches=$((mismatches + 1))
-      echo "MISMATCH: check $check on sample $name, see $out/results/$name/$check.{builtin,binary}.json" >&2
-    fi
-    printf '%s\t%s\t%s\t%s\n' "$name" "$check" "$status" "$findings" >> "$out/results.tsv"
+    printf '%s %s\n' "$(basename "$sample")" "$check"
   done
-done
+done | xargs -P 4 -n 2 bash -c 'compare "$@"' _
+
+printf 'sample\tcheck\tstatus\tfindings\n' > "$out/results.tsv"
+cat "$out"/rows/* | sort >> "$out/results.tsv"
 count() { awk -F'\t' -v s="$1" '$3 == s' "$out/results.tsv" | wc -l | tr -d ' '; }
-echo "check-parity: $(count match) matched, $mismatches differ, $(count unstable) unstable, $(count skipped) skipped; see $out/results.tsv"
-[ "$mismatches" -eq 0 ]
+echo "check-parity: $(count match) matched, $(count differ) differ, $(count unstable) unstable, $(count skipped) skipped; see $out/results.tsv"
+[ "$(count differ)" -eq 0 ]
