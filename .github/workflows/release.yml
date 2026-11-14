@@ -1,7 +1,5 @@
-# Releases, on each push to main, exactly the checks the push can alter.
-# scripts/release-plan.sh picks each check's next tag from the conventional
-# commits since its last one, and scripts/release-publish.sh builds and
-# publishes one check per job.
+# Releases exactly the checks a push to main can alter, then moves each check's major tag and refreshes the index.
+# Planning is scripts/release-plan.sh, and scripts/release-publish.sh builds and publishes one check per job.
 name: Release
 on:
   push:
@@ -65,3 +63,27 @@ jobs:
         env:
           TAG: ${{ matrix.tag }}
         run: printf '### %s (%s)\n' "$TAG" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # Each check's major tag follows its newest release, and the index follows
+  # every release. It runs even when the push released nothing, so a rerun
+  # backfills what an earlier run missed.
+  finish:
+    needs: [plan, publish]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move the major tags
+        run: scripts/release-major.sh
+      - name: Publish the release index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release-index-publish.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

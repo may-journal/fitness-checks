@@ -16,6 +16,33 @@ The engine, hooks, workflows and installer stay in fitness-runner. Its bundle ke
 
 Each check releases on its own line, tagged `fitness-check-<name>-vX.Y.Z`, with its programs for linux and darwin attached. On each push to main, [scripts/release-plan.sh](scripts/release-plan.sh) names the checks the push can alter and picks each one's version from its conventional commits. [scripts/release-publish.sh](scripts/release-publish.sh) then builds and publishes each one. `go.mod` and `go.sum` hold every dependency version.
 
+### Release index
+
+Each check's major tag, `fitness-check-<name>-vN`, follows its newest release of that major, which [scripts/release-major.sh](scripts/release-major.sh) moves after each run. The release `fitness-check-index` holds `index.json`, at `https://github.com/may-journal/fitness-checks/releases/download/fitness-check-index/index.json`, which [scripts/release-index.sh](scripts/release-index.sh) writes from the published releases. A check is its folder name without `fitness-check-`. An artifact is a tar of one program, keyed `<os>-<arch>` for linux and darwin on amd64 and arm64.
+
+```json
+{
+  "format": 1,
+  "repository": "may-journal/fitness-checks",
+  "checks": {
+    "gofmt": {
+      "latest": "1.2.0",
+      "majors": { "1": "1.2.0" },
+      "versions": {
+        "1.2.0": {
+          "tag": "fitness-check-gofmt-v1.2.0",
+          "artifacts": {
+            "linux-arm64": { "url": "https://github.com/.../fitness-check-gofmt-v1.2.0-linux-arm64.tar", "sha256": "0f3a..." }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+An installer reads `majors` for a major, takes `versions[version].artifacts[<os>-<arch>]`, and checks the download against its `sha256`. `format` rises only for a change that breaks a reader.
+
 ## Tests
 
 `go test ./...` builds every package and runs the tests that need no installed engine. [tests/requirements.sh](tests/requirements.sh) runs the requirement tests in `requirements/` as a user meets each check. It installs the fitness-runner engine `go.mod` pins, with this repo's check programs beside it. On a pull request, CI builds and tests only the checks [scripts/changed-checks.sh](scripts/changed-checks.sh) names, then runs that suite.
