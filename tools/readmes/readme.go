@@ -22,20 +22,50 @@ func checkReadme(d checkDoc) []byte {
 	return []byte(note + "\n# " + d.Name + "\n\n" + strings.TrimRight(relativeLinks(d.Body, dir), "\n") + "\n")
 }
 
-// relativeLinks rewrites each Markdown link to a file in this repository as
-// a path relative to dir, a folder in it.
+// relativeLinks rewrites each Markdown link to a file or folder in this
+// repository as a path relative to dir, a folder in it. Code spans and fenced
+// blocks keep their text.
 func relativeLinks(md, dir string) string {
-	parts := strings.Split(md, "]("+repoURL)
+	lines := strings.Split(md, "\n")
+	fenced := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "```") {
+			fenced = !fenced
+		}
+		if !fenced {
+			lines[i] = relativeLine(line, dir)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// relativeLine rewrites the links outside code spans on one line.
+func relativeLine(line, dir string) string {
+	parts := strings.Split(line, "`")
+	for i := 0; i < len(parts); i += 2 {
+		for _, prefix := range repoPrefixes {
+			parts[i] = relativeTo(parts[i], prefix, dir)
+		}
+	}
+	return strings.Join(parts, "`")
+}
+
+// repoPrefixes open a link to a file or a folder in this repository.
+var repoPrefixes = []string{repoURL, strings.Replace(repoURL, "/blob/", "/tree/", 1)}
+
+// relativeTo rewrites each link in text that opens with prefix.
+func relativeTo(text, prefix, dir string) string {
+	parts := strings.Split(text, "]("+prefix)
 	for i := 1; i < len(parts); i++ {
 		parts[i] = relative(dir, parts[i])
 	}
 	return strings.Join(parts, "](")
 }
 
-// relative rewrites the repository path that opens rest, up to its anchor
-// or the link's end, relative to dir.
+// relative rewrites the repository path that opens rest, up to its anchor, a
+// title, or the link's end, relative to dir.
 func relative(dir, rest string) string {
-	end := strings.IndexAny(rest, "#)")
+	end := strings.IndexAny(rest, "#) ")
 	if end < 0 {
 		return rest
 	}

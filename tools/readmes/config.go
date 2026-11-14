@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -37,13 +39,15 @@ func configKeys(root string) (map[string][]configKey, error) {
 		return nil, err
 	}
 	keys := map[string][]configKey{}
-	fset := token.NewFileSet()
 	for _, dir := range []string{filepath.Join(root, "internal"), engine} {
 		err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
-			if err != nil || !packageSource(entry) {
+			if err != nil || !entry.IsDir() {
 				return err
 			}
-			return readTagged(fset, path, keys)
+			if path != dir && skipped(entry.Name()) {
+				return filepath.SkipDir
+			}
+			return readTagged(path, keys)
 		})
 		if err != nil {
 			return nil, err
@@ -52,49 +56,116 @@ func configKeys(root string) (map[string][]configKey, error) {
 	return keys, nil
 }
 
-// enginePkg is the go/pkg folder of the fitness-runner module go.mod pins.
+// skipped reports whether a folder holds fixtures or vendored code, never a
+// check's config.
+func skipped(name string) bool {
+	return name == "testdata" || name == "vendor"
+}
+
+// enginePkg is the go/pkg folder of the fitness-runner module go.mod pins,
+// downloading the module when the cache lacks it.
 func enginePkg(root string) (string, error) {
-	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/may-journal/fitness-runner/go")
+	cmd := exec.Command("go", "mod", "download", "-json", "github.com/may-journal/fitness-runner/go")
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("find the fitness-runner module: %w", err)
+		return "", fmt.Errorf("download the fitness-runner module: %w", err)
 	}
-	return filepath.Join(strings.TrimSpace(string(out)), "pkg"), nil
+	var module struct{ Dir string }
+	if err := json.Unmarshal(out, &module); err != nil || module.Dir == "" {
+		return "", fmt.Errorf("find the fitness-runner module in %q: %v", out, err)
+	}
+	return filepath.Join(module.Dir, "pkg"), nil
 }
 
-// readTagged adds the check-tagged fields of the Go file at path to keys,
-// parsing only a file whose text holds such a tag.
-func readTagged(fset *token.FileSet, path string, keys map[string][]configKey) error {
-	src, err := os.ReadFile(path)
-	if err != nil || !bytes.Contains(src, []byte(`check:"`)) {
+// readTagged adds the check-tagged fields of the package in dir to keys. It
+// parses the package only when one of its files holds such a tag.
+func readTagged(dir string, keys map[string][]configKey) error {
+	fset := token.NewFileSet()
+	files, err := taggedPackage(fset, dir)
+	if err != nil || len(files) == 0 {
 		return err
 	}
-	file, err := parser.ParseFile(fset, path, src, parser.ParseComments)
+	types := structTypes(files)
+	for _, file := range files {
+		if err := taggedFields(fset, file, types, keys); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// taggedPackage parses every package source in dir with comments, or none
+// when no source holds a check tag.
+func taggedPackage(fset *token.FileSet, dir string) ([]*ast.File, error) {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return taggedFields(fset, file, keys)
+	if !slices.ContainsFunc(entries, func(entry os.DirEntry) bool { return holdsTag(dir, entry) }) {
+		return nil, nil
+	}
+	return parseSources(fset, dir, parser.ParseComments)
 }
 
-// structOf is the struct type t names, directly or as an element, so a list of
-// objects shows its keys.
-func structOf(t ast.Expr) (*ast.StructType, bool) {
+// holdsTag reports whether entry is a package source in dir holding a check
+// tag.
+func holdsTag(dir string, entry os.DirEntry) bool {
+	if !packageSource(entry) {
+		return false
+	}
+	src, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+	return err == nil && bytes.Contains(src, []byte(`check:"`))
+}
+
+// structTypes indexes the struct types the files declare by name, so a field
+// of a named struct type shows its keys.
+func structTypes(files []*ast.File) map[string]*ast.StructType {
+	types := map[string]*ast.StructType{}
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			if spec, ok := n.(*ast.TypeSpec); ok {
+				if st, ok := spec.Type.(*ast.StructType); ok {
+					types[spec.Name.Name] = st
+				}
+			}
+			return true
+		})
+	}
+	return types
+}
+
+// structOf is the struct type t names, so a list of objects shows its keys.
+// It looks through slices, pointers and maps, and names types declares.
+func structOf(t ast.Expr, types map[string]*ast.StructType) (*ast.StructType, bool) {
 	switch t := t.(type) {
 	case *ast.StructType:
 		return t, true
-	case *ast.ArrayType:
-		return structOf(t.Elt)
-	case *ast.StarExpr:
-		return structOf(t.X)
-	case *ast.MapType:
-		return structOf(t.Value)
+	case *ast.Ident:
+		st, ok := types[t.Name]
+		return st, ok
+	}
+	if elem := element(t); elem != nil {
+		return structOf(elem, types)
 	}
 	return nil, false
 }
 
+// element is the type a slice, pointer or map holds, or nil.
+func element(t ast.Expr) ast.Expr {
+	switch t := t.(type) {
+	case *ast.ArrayType:
+		return t.Elt
+	case *ast.StarExpr:
+		return t.X
+	case *ast.MapType:
+		return t.Value
+	}
+	return nil
+}
+
 // taggedFields adds each check-tagged field in file to keys.
-func taggedFields(fset *token.FileSet, file *ast.File, keys map[string][]configKey) error {
+func taggedFields(fset *token.FileSet, file *ast.File, types map[string]*ast.StructType, keys map[string][]configKey) error {
 	var err error
 	ast.Inspect(file, func(n ast.Node) bool {
 		field, ok := n.(*ast.Field)
@@ -106,7 +177,7 @@ func taggedFields(fset *token.FileSet, file *ast.File, keys map[string][]configK
 			return true
 		}
 		var key configKey
-		key, err = readKey(fset, field)
+		key, err = readKey(fset, field, types)
 		key.Check = check
 		keys[check] = append(keys[check], key)
 		return false
@@ -115,23 +186,46 @@ func taggedFields(fset *token.FileSet, file *ast.File, keys map[string][]configK
 }
 
 // readKey reads a field's JSON key, doc comment, and nested keys.
-func readKey(fset *token.FileSet, field *ast.Field) (configKey, error) {
-	key := configKey{Key: tag(field, "json"), Doc: fieldDoc(field)}
+func readKey(fset *token.FileSet, field *ast.Field, types map[string]*ast.StructType) (configKey, error) {
+	key := configKey{Key: jsonKey(field), Doc: fieldDoc(field)}
 	if key.Doc == "" {
 		return key, fmt.Errorf("%s: config key %q has no doc comment", fset.Position(field.Pos()), key.Key)
 	}
-	nested, ok := structOf(field.Type)
+	nested, ok := structOf(field.Type, types)
 	if !ok {
 		return key, nil
 	}
-	for _, inner := range nested.Fields.List {
-		sub, err := readKey(fset, inner)
+	var err error
+	key.Fields, err = nestedKeys(fset, nested, types)
+	return key, err
+}
+
+// nestedKeys reads the config keys among a struct's fields.
+func nestedKeys(fset *token.FileSet, nested *ast.StructType, types map[string]*ast.StructType) ([]configKey, error) {
+	var keys []configKey
+	for _, inner := range slices.DeleteFunc(slices.Clone(nested.Fields.List), func(f *ast.Field) bool { return !configField(f) }) {
+		sub, err := readKey(fset, inner, types)
 		if err != nil {
-			return key, err
+			return nil, err
 		}
-		key.Fields = append(key.Fields, sub)
+		keys = append(keys, sub)
 	}
-	return key, nil
+	return keys, nil
+}
+
+// configField reports whether field is a key of the config file: one named,
+// exported field that its json tag does not hide.
+func configField(field *ast.Field) bool {
+	return len(field.Names) == 1 && field.Names[0].IsExported() && tag(field, "json") != "-"
+}
+
+// jsonKey is a field's JSON key: its json tag name, else its Go name, as
+// encoding/json reads it.
+func jsonKey(field *ast.Field) string {
+	if name := tag(field, "json"); name != "" || len(field.Names) != 1 {
+		return name
+	}
+	return field.Names[0].Name
 }
 
 // fieldDoc is a field's doc comment, else its line comment, on one line,
@@ -144,7 +238,7 @@ func fieldDoc(field *ast.Field) string {
 	text = strings.Join(strings.Fields(text), " ")
 	if len(field.Names) == 1 {
 		if rest, ok := strings.CutPrefix(text, field.Names[0].Name+" "); ok {
-			text = "`" + tag(field, "json") + "` " + rest
+			text = "`" + jsonKey(field) + "` " + rest
 		}
 	}
 	return text

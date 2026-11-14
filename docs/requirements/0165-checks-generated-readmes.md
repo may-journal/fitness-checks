@@ -13,7 +13,7 @@ Check READMEs
 ## Requirements
 
 - 0165.1
-    - Given Developer has the committed check READMEs
+    - Given Developer has the committed check READMEs and an empty Go module cache
         - When `scripts/generate-readmes.sh -check` runs
             - Then it passes, since each README is what the script writes
 - 0165.2

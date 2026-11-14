@@ -21,9 +21,6 @@ type checkDoc struct {
 	Name string
 	// Folder is the package folder under cmd.
 	Folder string
-	// Summary is the first sentence of the package doc comment, without its
-	// "Command fitness-check-<name>" opening.
-	Summary string
 	// Body is the whole package doc comment as Markdown, without that
 	// opening.
 	Body string
@@ -40,23 +37,15 @@ func readCheckDoc(dir string) (checkDoc, error) {
 	if err != nil {
 		return checkDoc{}, err
 	}
-	opening := "Command " + folder + " "
+	opening := "Command " + folder
 	rest, ok := strings.CutPrefix(strings.TrimSpace(pkg.Doc), opening)
+	ok = ok && rest != "" && unicode.IsSpace(rune(rest[0]))
+	rest = strings.TrimLeftFunc(rest, unicode.IsSpace)
 	if !ok {
 		return checkDoc{}, fmt.Errorf("cmd/%s: the package doc comment must open with %q", folder, opening)
 	}
 	rest = capitalize(rest)
-	return checkDoc{Name: name, Folder: folder, Summary: synopsis(pkg, rest), Body: markdown(pkg, rest)}, nil
-}
-
-// synopsis is the first doc sentence as plain text, stripping brackets from
-// links Go cuts before reading their definitions.
-func synopsis(pkg *doc.Package, text string) string {
-	summary := pkg.Synopsis(text)
-	for _, def := range pkg.Parser().Parse(text).Links {
-		summary = strings.ReplaceAll(summary, "["+def.Text+"]", def.Text)
-	}
-	return summary
+	return checkDoc{Name: name, Folder: folder, Body: markdown(pkg, rest)}, nil
 }
 
 // markdown renders doc comment text with level-2 headings and no IDs, since

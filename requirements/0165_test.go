@@ -1,3 +1,5 @@
+// cspell:ignore modcacherw
+
 package requirements
 
 import (
@@ -37,15 +39,20 @@ func editDoc0165(t *testing.T, clone string) {
 	mustDo(t, os.WriteFile(path, []byte(edited), 0o644))
 }
 
-// generate0165 runs the clone's generator script with args.
-func generate0165(clone string, args ...string) (string, error) {
-	out, err := exec.Command(filepath.Join(clone, "scripts", "generate-readmes.sh"), args...).CombinedOutput()
+// generate0165 runs the clone's generator script with args and env added.
+func generate0165(clone string, env []string, args ...string) (string, error) {
+	cmd := exec.Command(filepath.Join(clone, "scripts", "generate-readmes.sh"), args...)
+	cmd.Env = append(os.Environ(), env...)
+	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
 
 func Test0165_1(t *testing.T) {
 	t.Parallel()
-	if out, err := generate0165(readmeClone(t), "-check"); err != nil {
+	here, err := filepath.Abs("..")
+	mustDo(t, err)
+	emptyCache := []string{"GOMODCACHE=" + t.TempDir(), "GOFLAGS=-modcacherw"}
+	if out, err := generate0165(here, emptyCache, "-check"); err != nil {
 		t.Errorf("generate-readmes.sh -check: %v\n%s", err, out)
 	}
 }
@@ -54,7 +61,7 @@ func Test0165_2(t *testing.T) {
 	t.Parallel()
 	clone := readmeClone(t)
 	editDoc0165(t, clone)
-	out, err := generate0165(clone, "-check")
+	out, err := generate0165(clone, nil, "-check")
 	if err == nil || !strings.Contains(out, "cmd/fitness-check-gofmt/README.md") {
 		t.Errorf("generate-readmes.sh -check after an edit = %v, want a failure naming gofmt's README:\n%s", err, out)
 	}
@@ -64,7 +71,7 @@ func Test0165_3(t *testing.T) {
 	t.Parallel()
 	clone := readmeClone(t)
 	editDoc0165(t, clone)
-	if out, err := generate0165(clone); err != nil {
+	if out, err := generate0165(clone, nil); err != nil {
 		t.Fatalf("generate-readmes.sh: %v\n%s", err, out)
 	}
 	readme, err := os.ReadFile(filepath.Join(clone, "cmd", "fitness-check-gofmt", "README.md"))
@@ -72,7 +79,7 @@ func Test0165_3(t *testing.T) {
 	if !strings.Contains(string(readme), "# gofmt\n\n") || !strings.Contains(string(readme), readmeSentence0165) {
 		t.Errorf("gofmt's README lacks its title or the new sentence:\n%s", readme)
 	}
-	if out, err := generate0165(clone, "-check"); err != nil {
+	if out, err := generate0165(clone, nil, "-check"); err != nil {
 		t.Errorf("a second -check: %v\n%s", err, out)
 	}
 }
