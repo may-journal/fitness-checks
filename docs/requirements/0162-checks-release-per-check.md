@@ -35,4 +35,4 @@ Pushes to main
 - 0162.6
     - Given Developer builds a release for one check
         - When `scripts/release-build.sh` runs for its tag
-            - Then the output holds an archive and a checksum for linux and darwin on amd64 and arm64, named by tag
+            - Then the output holds a gzip archive and a checksum for linux and darwin on amd64 and arm64, named by tag

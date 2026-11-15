@@ -122,7 +122,7 @@ func Test0162_6(t *testing.T) {
 		t.Fatalf("release-build.sh: %v\n%s", err, got)
 	}
 	for _, platform := range []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64"} {
-		for _, suffix := range []string{".tar", ".tar.sha256"} {
+		for _, suffix := range []string{".tar", ".tar.sha256", ".tar.gz", ".tar.gz.sha256"} {
 			name := "fitness-check-adr-checks-v1.2.3-" + platform + suffix
 			if _, err := os.Stat(filepath.Join(out, name)); err != nil {
 				t.Errorf("the release lacks %s: %v", name, err)
