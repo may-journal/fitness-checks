@@ -14,9 +14,11 @@ fi
 repository="${GITHUB_REPOSITORY:-may-journal/fitness-checks}"
 jq --arg repository "$repository" '
   def number: split(".") | map(tonumber);
-  def artifacts($tag): [.assets[] | select(.name | endswith(".tar"))
-    | {key: (.name | ltrimstr($tag + "-") | rtrimstr(".tar")),
+  def assets($tag; $suffix): [.assets[] | select(.name | endswith($suffix))
+    | {key: (.name | ltrimstr($tag + "-") | rtrimstr($suffix)),
        value: {url: .browser_download_url, sha256: (.digest | ltrimstr("sha256:"))}}] | from_entries;
+  def artifacts($tag): assets($tag; ".tar") as $tar | assets($tag; ".tar.gz") as $gz
+    | $tar | with_entries(.value += (if $gz[.key] then {gz: $gz[.key]} else {} end));
   [.[] | select((.draft | not) and (.prerelease | not)) | . as $release | .tag_name as $tag
     | ($tag | capture("^fitness-check-(?<name>[a-z0-9-]+)-v(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)$")?)
     | select(. != null)

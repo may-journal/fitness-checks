@@ -1,0 +1,34 @@
+# Fails when a check program built for release grows past its baseline in tests/size-baseline.tsv.
+# A real size increase is accepted by running scripts/check-binary-sizes.sh --update in the same change.
+name: Binary size
+on:
+  pull_request:
+    paths:
+      - cmd/**
+      - internal/**
+      - go.mod
+      - go.sum
+      - tests/size-baseline.tsv
+      - scripts/check-binary-sizes.sh
+      - .github/workflows/binary-size.yml
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  size:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Compare the program sizes with the baseline
+        run: scripts/check-binary-sizes.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
