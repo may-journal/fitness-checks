@@ -65,7 +65,7 @@
 // view under `docs/architecture/` or `architecture/` follows its shipped
 // template, such as [04-code.md], with every rule above. A repo's own copy
 // in the views' `templates` folder governs instead, as a named template. The
-// [architecture-contract README] lists each level's form and palette.
+// [architecture-contract docs] lists each level's form and palette.
 //
 // # Behavior
 //
@@ -74,7 +74,7 @@
 //   - With one template, each difference is its own error. With several, one error names them all.
 //
 // [04-code.md]: https://github.com/may-journal/fitness-checks/blob/main/internal/architecture/templates/04-code.md
-// [architecture-contract README]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-architecture-contract/README.md#templates
+// [architecture-contract docs]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-architecture-contract#hdr-Templates
 package main
 
 import _ "embed"

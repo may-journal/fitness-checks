@@ -56,7 +56,7 @@
 //	  "textReadability": { "maxGrade": 18, "maxLix": 60, "minWords": 100 }
 //	}
 //
-// [prose-budget]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-prose-budget/README.md
+// [prose-budget]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-prose-budget
 // [docs/research/0001-prose-cognitive-complexity.md]: https://github.com/may-journal/fitness-runner/blob/main/docs/research/0001-prose-cognitive-complexity.md
 package main
 

@@ -18,7 +18,7 @@
 //	changelog/2026-05-01-0000-readme.md:7: bullet is 1230 characters; keep each under 365
 //	changelog/2026-05-01-0000-readme.md:8: bullet must start with a semantic type (Feat:, Fix:, ...)
 //
-// [entry file]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-changelog/README.md#entry-files
+// [entry file]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog#hdr-Entry_files
 package main
 
 import _ "embed"

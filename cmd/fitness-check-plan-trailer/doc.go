@@ -24,7 +24,7 @@
 // The pre-push gate accepts a qualified Plan only from the pushing repo's
 // own owner, and reads it from the repo it names.
 //
-// [issue-link-once]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-issue-link-once/README.md
+// [issue-link-once]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-issue-link-once
 package main
 
 import _ "embed"

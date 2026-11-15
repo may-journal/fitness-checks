@@ -56,7 +56,7 @@
 // [#782]: https://github.com/may-journal/fitness-runner/issues/782
 // [language module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
 // [lockfiles]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/lockfiles
-// [doc-template]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-doc-template/README.md#what-is-a-template
+// [doc-template]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-doc-template#hdr-What_is_a_template
 package main
 
 import _ "embed"

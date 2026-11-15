@@ -30,7 +30,7 @@
 // The detection is deliberately narrow; widen it only with tests that pin
 // the false-positive line.
 //
-// [prose-budget]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-prose-budget/README.md
+// [prose-budget]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-prose-budget
 package main
 
 import _ "embed"
