@@ -2,7 +2,7 @@
 
 ## Why
 
-Every check builds as its own program, without the engine or another check. So a check builds and releases on its own, and a repo installs only the checks it uses.
+Every check builds as its own program, without the engine or another check. So a check builds and releases on its own, and a repo installs only the checks it uses. A check added here has no bundled copy to replace.
 
 ## Measurement
 
@@ -19,7 +19,7 @@ Checks
 - 0160.2
     - Given Developer builds every check folder
         - When each program runs with `--describe`
-            - Then it prints what the pinned engine's bundled copy of that check prints, protocol 1 included
+            - Then it prints protocol 1, and what the pinned engine's bundled copy prints, unless the check was added here
 - 0160.3
     - Given Developer runs the requirement suite with `tests/requirements.sh`
         - When the installed engine runs every check
