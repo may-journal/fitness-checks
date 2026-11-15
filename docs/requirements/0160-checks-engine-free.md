@@ -19,7 +19,7 @@ Checks
 - 0160.2
     - Given Developer builds every check folder
         - When each program runs with `--describe`
-            - Then it prints its own name with protocol 1
+            - Then it prints its own name, a summary and a scope, with protocol 1
 - 0160.3
     - Given Developer runs the requirement suite with `tests/requirements.sh`
         - When the installed engine runs every check

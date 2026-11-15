@@ -2,6 +2,7 @@ package requirements
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -80,17 +81,31 @@ func describe0160(t *testing.T, program string) map[string]any {
 	return got
 }
 
+// describeProblems0160 lists what is wrong with a check's --describe output.
+func describeProblems0160(name string, got map[string]any) []string {
+	var problems []string
+	if got["protocol"] != float64(1) {
+		problems = append(problems, fmt.Sprintf("%s --describe has protocol %v, want 1", name, got["protocol"]))
+	}
+	if got["name"] != strings.TrimPrefix(name, "fitness-check-") {
+		problems = append(problems, fmt.Sprintf("%s --describe names the check %v", name, got["name"]))
+	}
+	if summary, _ := got["summary"].(string); summary == "" {
+		problems = append(problems, name+" --describe has no summary")
+	}
+	if !slices.Contains([]any{"files", "blob", "git", "github"}, got["scope"]) {
+		problems = append(problems, fmt.Sprintf("%s --describe has scope %v, want files, blob, git or github", name, got["scope"]))
+	}
+	return problems
+}
+
 func Test0160_2(t *testing.T) {
 	t.Parallel()
 	ours := goBuild0160(t, "./cmd/...")
 	for _, folder := range checkFolders0160(t, "..") {
 		name := filepath.Base(folder)
-		got := describe0160(t, filepath.Join(ours, name))
-		if got["protocol"] != float64(1) {
-			t.Errorf("%s --describe has protocol %v, want 1", name, got["protocol"])
-		}
-		if got["name"] != strings.TrimPrefix(name, "fitness-check-") {
-			t.Errorf("%s --describe names the check %v", name, got["name"])
+		for _, problem := range describeProblems0160(name, describe0160(t, filepath.Join(ours, name))) {
+			t.Error(problem)
 		}
 	}
 }
