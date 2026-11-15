@@ -52,7 +52,7 @@ flowchart TB
         javaChecks[(13 Java builds<br/>Req 0078, 0079, 0080, 0081)]:::system
         nodeChecks[(14 Node packages and tests<br/>Req 0022, 0024, 0045, 0047, 0052, 0059, 0060)]:::system
         repoChecks[(15 Repo hygiene<br/>Req 0016, 0025, 0032, 0046, 0053, 0055, 0147)]:::system
-        workflowChecks[(20 Workflows<br/>Req 0086, 0133)]:::system
+        workflowChecks[(20 Workflows<br/>Req 0086, 0133, 0167)]:::system
         bodyChecks[(16 Issue and PR bodies<br/>Req 0012, 0048, 0050, 0051)]:::system
     end
 

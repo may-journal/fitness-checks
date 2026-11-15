@@ -81,6 +81,27 @@ func describe0160(t *testing.T, program string) map[string]any {
 	return got
 }
 
+// bundledDescribe0160 runs the engine's copy of a check with --describe. It
+// reports false for a check the engine never bundled.
+func bundledDescribe0160(engine, name string) (map[string]any, bool) {
+	out, err := exec.Command(filepath.Join(engine, name), "--describe").Output()
+	var got map[string]any
+	return got, err == nil && json.Unmarshal(out, &got) == nil
+}
+
+// sameAsBundled0160 fails unless the engine bundles a check exactly when it was
+// not added here, and then prints what got says.
+func sameAsBundled0160(t *testing.T, engine, name string, got map[string]any) {
+	t.Helper()
+	want, bundled := bundledDescribe0160(engine, name)
+	if added := slices.Contains(added0160, strings.TrimPrefix(name, "fitness-check-")); bundled == added {
+		t.Errorf("%s: the engine's bundled copy is %v, want %v", name, bundled, !added)
+	}
+	if bundled && !maps.Equal(got, want) {
+		t.Errorf("%s --describe = %v, want the bundled check's %v", name, got, want)
+	}
+}
+
 func Test0160_2(t *testing.T) {
 	t.Parallel()
 	ours := goBuild0160(t, "./cmd/...")
@@ -88,20 +109,25 @@ func Test0160_2(t *testing.T) {
 	for _, folder := range checkFolders0160(t, "..") {
 		name := filepath.Base(folder)
 		mustDo(t, os.Symlink(filepath.Join(engine, "fitness"), filepath.Join(engine, name)))
-		got, want := describe0160(t, filepath.Join(ours, name)), describe0160(t, filepath.Join(engine, name))
+		got := describe0160(t, filepath.Join(ours, name))
 		if got["protocol"] != float64(1) {
 			t.Errorf("%s --describe has protocol %v, want 1", name, got["protocol"])
 		}
-		if !maps.Equal(got, want) {
-			t.Errorf("%s --describe = %v, want the bundled check's %v", name, got, want)
-		}
+		sameAsBundled0160(t, engine, name, got)
 	}
 }
+
+// added0160 are the checks added here, which the pinned engine never bundled,
+// so it has no built-in for the program to replace.
+var added0160 = []string{"workflow-scripts"}
 
 // ranOurs0160 reports whether out says the engine started this repo's program
 // for check. For local-branch it says the engine took the program as the
 // declaration, since the judgment lives in the engine.
 func ranOurs0160(out, check string) bool {
+	if slices.Contains(added0160, check) {
+		return strings.Contains(out, "→ "+check+"\n") && strings.Contains(out, "│ "+check+" ")
+	}
 	return strings.Contains(out, "fitness-check-"+check+" replaces the built-in "+check+" check") ||
 		check == "local-branch" && strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
 }
