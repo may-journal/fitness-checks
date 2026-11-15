@@ -20,7 +20,7 @@ for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
     -o "$work/$component" "./cmd/$component"
   archive="$tag-$os-$arch.tar"
   COPYFILE_DISABLE=1 tar -C "$work" -cf "$out/$archive" "$component"
-  gzip -9 -k "$out/$archive"
+  gzip -9 -n -k "$out/$archive"
   (cd "$out" && shasum -a 256 "$archive" > "$archive.sha256" && shasum -a 256 "$archive.gz" > "$archive.gz.sha256")
   rm -rf "$work"
 done

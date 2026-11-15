@@ -10,6 +10,7 @@ on:
       - go.sum
       - tests/size-baseline.tsv
       - scripts/check-binary-sizes.sh
+      - scripts/release-build.sh
       - .github/workflows/binary-size.yml
   push:
     branches: [main]

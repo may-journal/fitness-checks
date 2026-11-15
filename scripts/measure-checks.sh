@@ -14,7 +14,7 @@ mkdir -p "$out/plain" "$out/stripped" "$out/bundle"
 
 # ms prints the milliseconds a command takes to run, with its own output dropped.
 ms() {
-  perl -MTime::HiRes=time -e '$t = time(); open($o, ">&", \*STDOUT); open(STDOUT, ">", "/dev/null"); open(STDERR, ">", "/dev/null"); system(@ARGV); printf $o "%d\n", (time() - $t) * 1000' -- "$@" < /dev/null
+  perl -MTime::HiRes=time -e '$t = time(); open($o, ">&", \*STDOUT); open(STDOUT, ">", "/dev/null"); open(STDERR, ">", "/dev/null"); $ok = system(@ARGV) == 0; printf $o "%d\n", (time() - $t) * 1000; exit($ok ? 0 : 1)' -- "$@" < /dev/null
 }
 
 # The old bundle is the engine with every check built in, and the checks before were built unstripped.
@@ -26,15 +26,16 @@ cp "$out/bundle/fitness" "$out/stripped/"
 printf 'check\tplain_bytes\tstripped_bytes\ttar_bytes\ttargz_bytes\tdescribe_ms\n' > "$out/sizes.tsv"
 for program in "$out"/stripped/fitness-check-*; do
   name="$(basename "$program")"
+  describe="$(ms "$program" --describe)"
   tar -C "$out/stripped" -cf "$out/$name.tar" "$name"
-  gzip -9 -k "$out/$name.tar"
+  gzip -9 -n -k "$out/$name.tar"
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${name#fitness-check-}" "$(wc -c < "$out/plain/$name" | tr -d ' ')" "$(wc -c < "$program" | tr -d ' ')" \
-    "$(wc -c < "$out/$name.tar" | tr -d ' ')" "$(wc -c < "$out/$name.tar.gz" | tr -d ' ')" "$(ms "$program" --describe)" >> "$out/sizes.tsv"
+    "$(wc -c < "$out/$name.tar" | tr -d ' ')" "$(wc -c < "$out/$name.tar.gz" | tr -d ' ')" "$describe" >> "$out/sizes.tsv"
   rm -f "$out/$name.tar" "$out/$name.tar.gz"
 done
 
 # The suite runs each way, with the bundle alone and with the programs beside the engine, after one run that warms the tools.
-(cd "$repo" && "$out/bundle/fitness" --all > /dev/null 2>&1 < /dev/null) || true
+(cd "$repo" && "$out/bundle/fitness" --all > /dev/null 2>&1 < /dev/null) 
 printf 'run\tbundle_ms\tprograms_ms\n' > "$out/timing.tsv"
 for run in $(seq "${MEASURE_RUNS:-3}"); do
   bundle="$(cd "$repo" && ms "$out/bundle/fitness" --all)"

@@ -55,7 +55,7 @@ func Test0167_1(t *testing.T) {
 func Test0167_2(t *testing.T) {
 	t.Parallel()
 	baseline := filepath.Join(t.TempDir(), "baseline.tsv")
-	env := []string{"SIZE_BASELINE=" + baseline}
+	env := []string{"SIZE_BASELINE=" + baseline, "SIZE_BUILD_DIR=" + t.TempDir()}
 	if out, code := run0167(t, env, "check-binary-sizes.sh", "--update"); code != 0 {
 		t.Fatalf("--update exited %d: %s", code, out)
 	}
@@ -64,12 +64,21 @@ func Test0167_2(t *testing.T) {
 	}
 	b, err := os.ReadFile(baseline)
 	mustDo(t, err)
-	// A baseline of 1000 bytes makes the real program more than 10% larger.
-	tiny := regexp.MustCompile(`(?m)^fitness-check-gofmt\t\d+$`).ReplaceAllString(string(b), "fitness-check-gofmt\t1000")
-	mustDo(t, os.WriteFile(baseline, []byte(tiny), 0o644))
-	out, code := run0167(t, env, "check-binary-sizes.sh")
-	if code != 1 || !strings.Contains(out, "SIZE: fitness-check-gofmt") {
-		t.Errorf("a grown program exited %d with %q, want 1 naming fitness-check-gofmt", code, out)
+	grown := regexp.MustCompile(`(?m)^fitness-check-gofmt\t\d+$`).ReplaceAllString(string(b), "fitness-check-gofmt\t1000")
+	shrunk := regexp.MustCompile(`(?m)^fitness-check-gofmt\t\d+$`).ReplaceAllString(string(b), "fitness-check-gofmt\t900000000")
+	stale := string(b) + "fitness-check-gone\t1000\n"
+	for want, text := range map[string]string{"SIZE: fitness-check-gofmt is": grown, "under its baseline": shrunk, "SIZE: fitness-check-gone": stale} {
+		fails0167(t, env, baseline, text, want)
+	}
+}
+
+// fails0167 writes text as the baseline and expects the size check to exit 1
+// with want in its output.
+func fails0167(t *testing.T, env []string, baseline, text, want string) {
+	t.Helper()
+	mustDo(t, os.WriteFile(baseline, []byte(text), 0o644))
+	if out, code := run0167(t, env, "check-binary-sizes.sh"); code != 1 || !strings.Contains(out, want) {
+		t.Errorf("baseline %.40q exited %d with %q, want 1 containing %q", text, code, out, want)
 	}
 }
 
