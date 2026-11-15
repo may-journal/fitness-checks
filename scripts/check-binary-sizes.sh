@@ -17,7 +17,10 @@ if [ -z "$work" ]; then
   trap 'rm -rf "$work"' EXIT
 fi
 mkdir -p "$work"
-# The baseline is for linux on arm64, so every machine measures the same program.
+# The baseline is for linux on arm64 and the go.mod toolchain, so every machine measures the same program.
+gover="$(awk '/^go / { print $2 }' go.mod)"
+case "$gover" in *.*.*) ;; *) gover="$gover.0" ;; esac
+export GOTOOLCHAIN="go$gover"
 if ! ls "$work"/fitness-check-* > /dev/null 2>&1; then
   CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$work/" ./cmd/...
 fi

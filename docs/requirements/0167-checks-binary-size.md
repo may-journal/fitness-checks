@@ -17,7 +17,7 @@ Check programs
         - When the program in its gzip is compared with the same build without `-s -w`
             - Then the program in the gzip is smaller
 - 0167.2
-    - Given Developer has a size baseline, and a program grown or shrunk more than 10% from it or no longer built
+    - Given Developer has a size baseline, and a program grown, shrunk or gone from it by over 10%
         - When `scripts/check-binary-sizes.sh` runs
             - Then it exits 1 naming that check, and with the current sizes it exits 0
 - 0167.3

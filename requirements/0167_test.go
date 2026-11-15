@@ -64,6 +64,9 @@ func Test0167_2(t *testing.T) {
 	}
 	b, err := os.ReadFile(baseline)
 	mustDo(t, err)
+	if rows := strings.Count(string(b), "\nfitness-check-"); rows != len(checkFolders0160(t, "..")) {
+		t.Errorf("the baseline lists %d programs, want one for each check folder", rows)
+	}
 	grown := regexp.MustCompile(`(?m)^fitness-check-gofmt\t\d+$`).ReplaceAllString(string(b), "fitness-check-gofmt\t1000")
 	shrunk := regexp.MustCompile(`(?m)^fitness-check-gofmt\t\d+$`).ReplaceAllString(string(b), "fitness-check-gofmt\t900000000")
 	stale := string(b) + "fitness-check-gone\t1000\n"
