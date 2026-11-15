@@ -2,7 +2,7 @@
 
 ## Why
 
-I review real source only. Build output, plan files, copied code, repeated values, stale pins, unexplained ignore lines and broken workflows never land in the repo.
+I review real source only. Build output, plan files, copied code, repeated values, stale pins, unexplained ignore lines, broken workflows and shell written inside a workflow never land in the repo.
 
 ## Measurement
 
@@ -46,3 +46,7 @@ repo files and settings checked
   - Given Developer has workflow jobs with and without a final step that writes the job summary
     - When the source checks read each workflow job
       - Then a job with steps and no `always()` summary step fails, and invalid YAML fails naming the line
+- 0007.9
+  - Given Developer has workflow and action `run:` steps that call a script, or hold several lines, a pipe, a chain or control flow
+    - When the source checks read each run step
+      - Then a step past one trivial command fails naming file, line and the script to write, and quoted operators pass
