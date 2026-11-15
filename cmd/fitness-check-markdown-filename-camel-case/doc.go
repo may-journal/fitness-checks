@@ -8,7 +8,7 @@
 // `^[a-z][a-zA-Z0-9]*\.md$`, standard root docs and names GitHub requires
 // exempt.
 //
-// [markdown-filename-kebab-case]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-markdown-filename-kebab-case/README.md
+// [markdown-filename-kebab-case]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-markdown-filename-kebab-case
 package main
 
 import _ "embed"

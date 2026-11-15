@@ -47,7 +47,7 @@
 //   - Amends: everything the amended commit changes since its parent.
 //   - Pull requests: CI judges the diff against the merge base with the base branch.
 //
-// [requirements]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md
+// [requirements]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-requirements
 // [language module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
 package main
 

@@ -81,7 +81,7 @@
 //   - One error names the body by the line of its opening brace.
 //   - A commit or pull request run judges a body when one of its changed comments sits in it.
 //
-// [text-readability]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-text-readability/README.md
+// [text-readability]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-text-readability
 package main
 
 import _ "embed"

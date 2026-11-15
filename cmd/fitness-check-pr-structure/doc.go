@@ -25,7 +25,7 @@
 //
 // [PR template]: https://github.com/may-journal/fitness-runner/blob/main/.github/PULL_REQUEST_TEMPLATE.md
 // [pr-check workflow]: https://github.com/may-journal/fitness-runner/blob/main/.github/workflows/README.md
-// [entry file]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-changelog/README.md#entry-files
+// [entry file]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog#hdr-Entry_files
 package main
 
 import _ "embed"

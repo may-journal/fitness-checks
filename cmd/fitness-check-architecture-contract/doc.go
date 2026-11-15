@@ -123,7 +123,7 @@
 //
 // [language module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
 // [internal/architecture/templates]: https://github.com/may-journal/fitness-checks/blob/main/internal/architecture/templates
-// [shipped templates]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-doc-template/README.md#shipped-templates
+// [shipped templates]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-doc-template#hdr-Shipped_templates
 // [Requirement 0070]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0070-checks-architecture-contract.md
 package main
 

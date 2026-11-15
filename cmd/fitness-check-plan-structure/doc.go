@@ -26,7 +26,7 @@
 //
 // [Plan issue template]: https://github.com/may-journal/fitness-runner/blob/main/.github/ISSUE_TEMPLATE/plan.md
 // [issue-check workflow]: https://github.com/may-journal/fitness-runner/blob/main/.github/workflows/README.md
-// [open-questions]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-open-questions/README.md
+// [open-questions]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-open-questions
 package main
 
 import _ "embed"

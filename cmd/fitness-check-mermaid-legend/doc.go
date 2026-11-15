@@ -19,7 +19,7 @@
 // with neither are skipped and don't count toward `filesChecked`.
 //
 // [#28]: https://github.com/may-journal/fitness-runner/issues/28
-// [mermaid-callouts]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-mermaid-callouts/README.md
+// [mermaid-callouts]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-mermaid-callouts
 package main
 
 import _ "embed"

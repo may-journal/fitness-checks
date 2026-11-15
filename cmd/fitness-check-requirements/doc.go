@@ -114,7 +114,7 @@
 // [local checks]: https://github.com/may-journal/fitness-runner/blob/main/docs/local-checks.md
 // [module registry]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
 // [ADR 0004]: https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md
-// [actor]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-architecture-actors/README.md
+// [actor]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-architecture-actors
 // [apple-ui-testing-library]: https://github.com/may-journal/apple-ui-testing-library
 // [Swift module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/swift/library.go
 package main

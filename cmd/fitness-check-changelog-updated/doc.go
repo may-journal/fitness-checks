@@ -33,8 +33,8 @@
 // staged diff. Only the added parts of the entry
 // file in the diff count, with words lowercased and at least 3 long.
 //
-// [entry file]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-changelog/README.md#entry-files
-// [changelog]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-changelog/README.md
+// [entry file]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog#hdr-Entry_files
+// [changelog]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog
 package main
 
 import _ "embed"

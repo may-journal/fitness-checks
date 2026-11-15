@@ -60,8 +60,8 @@
 //
 // [Requirement 0074] has one installed-command test per acceptance.
 //
-// [architecture-contract]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-architecture-contract/README.md
-// [requirements]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md
+// [architecture-contract]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-architecture-contract
+// [requirements]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-requirements
 // [template]: https://github.com/may-journal/fitness-checks/blob/main/internal/architecture/templates/01-system-context.md
 // [Requirement 0074]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0074-checks-architecture-actors.md
 package main

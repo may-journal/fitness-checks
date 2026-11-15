@@ -14,7 +14,7 @@
 // asks nothing of `CHANGELOG.md`. Set `"skip-changelog": true` in
 // `release-please-config.json` so Release Please stops writing it.
 //
-// [entry files]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-changelog/README.md#entry-files
+// [entry files]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog#hdr-Entry_files
 package main
 
 import _ "embed"

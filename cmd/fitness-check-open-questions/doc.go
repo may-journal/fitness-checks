@@ -19,7 +19,7 @@
 // before the page publishes.
 //
 // [AGENTS.md]: https://github.com/may-journal/fitness-runner/blob/main/AGENTS.md#ask-in-chat
-// [plan-structure]: https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-plan-structure/README.md
+// [plan-structure]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-plan-structure
 package main
 
 import _ "embed"
