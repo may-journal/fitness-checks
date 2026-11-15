@@ -19,8 +19,8 @@ Checks
 - 0160.2
     - Given Developer builds every check folder
         - When each program runs with `--describe`
-            - Then it prints what the pinned engine's bundled copy of that check prints, protocol 1 included
+            - Then it prints its own name with protocol 1
 - 0160.3
     - Given Developer runs the requirement suite with `tests/requirements.sh`
         - When the installed engine runs every check
-            - Then it starts this repo's program for each check, or declares `local-branch` alone, which it judges itself, and never runs a built-in one
+            - Then it starts this repo's program for each check, or declares `local-branch` alone, which it judges itself

@@ -2,7 +2,6 @@ package requirements
 
 import (
 	"encoding/json"
-	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,26 +83,25 @@ func describe0160(t *testing.T, program string) map[string]any {
 func Test0160_2(t *testing.T) {
 	t.Parallel()
 	ours := goBuild0160(t, "./cmd/...")
-	engine := goBuild0160(t, "github.com/may-journal/fitness-runner/go/cmd/fitness")
 	for _, folder := range checkFolders0160(t, "..") {
 		name := filepath.Base(folder)
-		mustDo(t, os.Symlink(filepath.Join(engine, "fitness"), filepath.Join(engine, name)))
-		got, want := describe0160(t, filepath.Join(ours, name)), describe0160(t, filepath.Join(engine, name))
+		got := describe0160(t, filepath.Join(ours, name))
 		if got["protocol"] != float64(1) {
 			t.Errorf("%s --describe has protocol %v, want 1", name, got["protocol"])
 		}
-		if !maps.Equal(got, want) {
-			t.Errorf("%s --describe = %v, want the bundled check's %v", name, got, want)
+		if got["name"] != strings.TrimPrefix(name, "fitness-check-") {
+			t.Errorf("%s --describe names the check %v", name, got["name"])
 		}
 	}
 }
 
-// ranOurs0160 reports whether out says the engine started this repo's program
-// for check. For local-branch it says the engine took the program as the
-// declaration, since the judgment lives in the engine.
+// ranOurs0160 reports whether out shows this repo's program for check ran,
+// or for local-branch that the engine took the program as the declaration.
 func ranOurs0160(out, check string) bool {
-	return strings.Contains(out, "fitness-check-"+check+" replaces the built-in "+check+" check") ||
-		check == "local-branch" && strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
+	if check == "local-branch" {
+		return strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
+	}
+	return strings.Contains(out, "→ "+check+"\n")
 }
 
 func Test0160_3(t *testing.T) {
@@ -118,7 +116,7 @@ func Test0160_3(t *testing.T) {
 			out, _ = fitness(t, repo, nil, check)
 		}
 		if !ranOurs0160(out, check) {
-			t.Errorf("the engine ran its built-in %s, not this repo's program", check)
+			t.Errorf("the engine did not run this repo's program for %s", check)
 		}
 	}
 }

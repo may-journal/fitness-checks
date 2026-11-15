@@ -59,9 +59,8 @@ flowchart TB
     results[17 Results table<br/>Req 0003, 0160]:::screen
     ci[(21 CI builds the changed checks<br/>Req 0161)]:::system
     release[(22 Main releases the changed checks<br/>Req 0162, 0163, 0167)]:::system
-    parity[(23 CI compares binaries with built-ins<br/>Req 0164)]:::system
     fix(18 Fix and rerun<br/>Req 0003):::action
-    readmes(24 Read a check's README<br/>Req 0166):::action
+    readmes(23 Read a check's README<br/>Req 0166):::action
 
     dev --> runFitness
     runFitness --> startCheck
@@ -70,7 +69,6 @@ flowchart TB
     results --> fix
     fix --> runFitness
     fix --> ci
-    ci --> parity
     dev --> readmes
     ci --> release
 
@@ -108,5 +106,4 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 20  | Workflow checks.                  | System  | Each workflow ref exists, and each job reports on its run page.             |
 | 21  | CI on a pull request.             | System  | It builds and tests only the checks the change can alter.                   |
 | 22  | Release on a push to main.        | System  | Each check the push can alter gets its own tag, release and programs.      |
-| 23  | Parity run.                       | System  | Each check binary judges sample repos as the engine's built-in does.      |
-| 24  | Read a check's README.            | Action  | Its stub names the check and links its doc comment, its component and pkg.go.dev. |
+| 23  | Read a check's README.            | Action  | Its stub names the check and links its doc comment, its component and pkg.go.dev. |
