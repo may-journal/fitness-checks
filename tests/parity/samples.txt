@@ -1,7 +1,0 @@
-# The sample repos the check binaries and the engine's built-in checks both judge.
-# Each line is a name, a public repo URL and the full commit to judge, so a run is repeatable.
-# A line with script for its URL runs that checked-in script, which writes a repo with deliberate faults.
-fitness-runner https://github.com/may-journal/fitness-runner dd5c31632ff7cf715139f9d700fbdb60a4973517
-apple-ui-testing-library https://github.com/may-journal/apple-ui-testing-library 24380371493d156d8b6c6142a26761a81024f77c
-journey https://github.com/may-journal/journey a0e15b3e1d01a15b2a3aafcfbd5219dfe66305e6
-dirty script tests/parity/make-dirty.sh
