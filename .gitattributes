@@ -1,4 +1,2 @@
-# scripts/generate-readmes.sh writes these from each check's doc comments.
-cmd/fitness-check-*/README.md linguist-generated
 # Word lists the spell check embeds, data rather than code to review.
 internal/spell/dict/*.txt linguist-generated

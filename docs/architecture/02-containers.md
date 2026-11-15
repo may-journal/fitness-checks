@@ -10,10 +10,6 @@ C4Container
         Container(check, "2 Check programs", "Go", "cmd/fitness-check-*")
     }
 
-    System_Boundary(repo, "Repo tools") {
-        Container(readmes, "7 README generator", "Go", "tools/readmes")
-    }
-
     System_Ext(engine, "3 Fitness runner", "engine and shared go/pkg packages")
     System_Ext(consumer, "4 Consumer repo", ".fitnessrc.json and the sources under test")
     System_Ext(peers, "5 Peer tooling", "each language module's tools, and git")
@@ -25,12 +21,9 @@ C4Container
     Rel(check, peers, "D")
     Rel(check, registry, "E")
     Rel(check, engine, "F")
-    Rel(developer, readmes, "G")
-    Rel(readmes, check, "H")
 
     UpdateElementStyle(developer, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
     UpdateElementStyle(check, $bgColor="#0f766e", $borderColor="#115e59", $fontColor="#ffffff")
-    UpdateElementStyle(readmes, $bgColor="#0f766e", $borderColor="#115e59", $fontColor="#ffffff")
     UpdateElementStyle(engine, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
     UpdateElementStyle(consumer, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
     UpdateElementStyle(peers, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
@@ -62,12 +55,9 @@ Numbers on nodes and letters on arrows match the callout table. Each container n
 | 4   | Optional `.fitnessrc.json` with per-check options, and the files checks scan.        | Config and the code under test live with the app.     |
 | 5   | Tool-wrapper checks exec these when installed.                                       | Peer tools are found at runtime, never bundled.       |
 | 6   | dependency-currency queries the registry over HTTPS.                                 | No npm binary needed; offline degrades to pass.       |
-| 7   | The README generator, run by `scripts/generate-readmes.sh`, never shipped.           | Each README is written from its check's `doc.go`.     |
 | A   | The developer runs `fitness` or a hook.                                              | One front door.                                       |
 | B   | The engine starts each check program as its own process.                             | Checks cannot share state.                            |
 | C   | Each check reads the config and the tree, staged or full.                            | The working directory is the app under test.          |
 | D   | Checks find peer tools the way their language module does, then on PATH.             | A missing tool reports info with an install hint.     |
 | E   | Abbreviated registry metadata, honoring the registry `.npmrc` sets.                  | Currency judged without shelling to npm.              |
 | F   | Each check links the engine's public packages and answers in its protocol.           | Both sides speak one versioned contract.              |
-| G   | The developer runs the generator after editing a doc comment.                        | CI fails a README left stale.                         |
-| H   | The generator reads each check package's doc comment.                                | The README repeats nothing by hand.                   |
