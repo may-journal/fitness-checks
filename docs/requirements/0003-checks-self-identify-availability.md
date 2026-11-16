@@ -2,7 +2,7 @@
 
 ## Why
 
-Every check decides for itself, as its own program, whether it can judge a repo. So any repo runs every check, new ones included, with nothing to configure.
+Every check decides for itself, as its own program, whether it can judge a repo. So any repo runs every check, new ones such as swift-storybook-requirements included, with nothing to configure.
 
 ## Measurement
 
