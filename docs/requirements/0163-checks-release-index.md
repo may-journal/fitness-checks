@@ -21,9 +21,9 @@ Checks
         - When `scripts/release-plan.sh` runs after a `fix` to that check
             - Then it plans 1.0.1, never reading the major tag as the last release
 - 0163.3
-    - Given Developer has releases that include a draft, a prerelease, a release that is no check and two versions of one check
+    - Given Developer has a draft, a prerelease, a non-check release and two versions of one check
         - When `scripts/release-index.sh` reads them
-            - Then the index holds the published check releases with `latest`, `majors` and each artifact's URL and sha256
+            - Then the index holds the published checks with `latest`, `majors` and each artifact URL and sha256
 - 0163.4
     - Given Developer has a release whose major tag is missing, and GitHub refuses a tag move as forbidden
         - When `scripts/release-major.sh` runs
@@ -40,3 +40,7 @@ Checks
     - Given Developer has two releases of a check, only the newer with a describe line that sets `files`, `exclude` and `requires`
         - When `scripts/release-index.sh` reads them
             - Then the newer version holds those fields and no empty or other describe field, and the older holds none
+- 0163.8
+    - Given Developer has a published index holding one version, and a release list with a newer one
+        - When `scripts/release-index.sh` builds, with that index, then with an unreadable, empty or field-less one
+            - Then it downloads only the new version, then both each time
