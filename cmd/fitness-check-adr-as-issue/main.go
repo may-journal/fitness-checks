@@ -5,16 +5,25 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/adr"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/conf"
+	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "adr-as-issue", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "adr-as-issue",
+			Scope:    checkkit.ScopeFiles,
+			Files:    match.Any(match.Fold(match.Exts(mdx.Exts...)), match.Base(conf.FileName)),
+			Exclude:  match.Under(".github/"),
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

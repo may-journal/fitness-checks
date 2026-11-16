@@ -23,6 +23,7 @@ func main() {
 			Name:             "commit-attribution",
 			Scope:            checkkit.ScopeGit,
 			ContextInlineArg: "--message",
+			Requires:         []checkkit.Requirement{checkkit.RequiresHistory},
 		},
 		Run: run,
 	})

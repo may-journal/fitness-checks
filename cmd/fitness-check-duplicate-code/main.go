@@ -28,8 +28,12 @@ const (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "duplicate-code", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "duplicate-code",
+			Scope:    checkkit.ScopeFiles,
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

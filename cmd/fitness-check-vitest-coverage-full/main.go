@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/lang/node/vitestconf"
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/sharedconf"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -33,8 +34,14 @@ const fitnessVitestConfig = "vitest.config.mjs"
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "vitest-coverage-full", Scope: checkkit.ScopeFiles, Stage: checkkit.StageTests},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "vitest-coverage-full",
+			Scope:    checkkit.ScopeFiles,
+			Stage:    checkkit.StageTests,
+			Needs:    match.Base(node.Manifest),
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

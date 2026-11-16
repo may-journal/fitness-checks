@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/describe"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/golang/toolchain"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "go-vet", Scope: checkkit.ScopeFiles, Stage: checkkit.StageTests},
+		Describe: describe.GoModule("go-vet"),
 		Run:      run,
 	})
 }

@@ -8,7 +8,11 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: storybook.Name, Scope: checkkit.ScopeFiles},
-		Run:      storybook.Run,
+		Describe: checkkit.Describe{
+			Name:     storybook.Name,
+			Scope:    checkkit.ScopeFiles,
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: storybook.Run,
 	})
 }

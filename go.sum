@@ -1,2 +1,6 @@
 github.com/may-journal/fitness-runner/go v1.69.4 h1:YhtbS7dyjWJuZQxJsFJ6COFeAVmA5C8dUyJRc2gcHEo=
 github.com/may-journal/fitness-runner/go v1.69.4/go.mod h1:9JvAdgveP39npsTCGPBiEkHkXZ2hfSHAhwOEcXpdNHk=
+github.com/may-journal/fitness-runner/go v1.70.0 h1:n5gf14MipaaHKegpKTeRjpLKnfHnSHr57opszCUxIOw=
+github.com/may-journal/fitness-runner/go v1.70.0/go.mod h1:9JvAdgveP39npsTCGPBiEkHkXZ2hfSHAhwOEcXpdNHk=
+github.com/may-journal/fitness-runner/go v1.71.0 h1:RgztlY74pAwAL+f+QYl/CcPz0CPGJuHRBI/GhhRBPoQ=
+github.com/may-journal/fitness-runner/go v1.71.0/go.mod h1:9JvAdgveP39npsTCGPBiEkHkXZ2hfSHAhwOEcXpdNHk=

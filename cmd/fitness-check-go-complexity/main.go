@@ -7,8 +7,10 @@ import (
 	"go/token"
 	"sort"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/golang"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
@@ -19,8 +21,12 @@ var defaultMax = golang.Defaults.Complexity.Max
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "go-complexity", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "go-complexity",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Any(match.Exts(golang.Ext), match.Base(conf.FileName)),
+		},
+		Run: run,
 	})
 }
 

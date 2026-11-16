@@ -36,3 +36,7 @@ Checks
     - Given Developer has a release whose major tag exists, and GitHub refuses to move it
         - When `scripts/release-major.sh` runs
             - Then it exits 1 naming the tag, and never tries to create it
+- 0163.7
+    - Given Developer has two releases of a check, only the newer with a describe line that sets `files`, `exclude` and `requires`
+        - When `scripts/release-index.sh` reads them
+            - Then the newer version holds those fields and no empty or other describe field, and the older holds none

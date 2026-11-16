@@ -11,16 +11,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "mermaid-level-bleed", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "mermaid-level-bleed",
+			Scope:    checkkit.ScopeFiles,
+			Files:    match.Exts(mdx.Exts...),
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

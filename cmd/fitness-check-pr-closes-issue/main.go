@@ -21,8 +21,14 @@ func main() {
 		return
 	}
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "pr-closes-issue", Scope: checkkit.ScopeBlob, Blob: true, ContextInlineArg: "--body"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "pr-closes-issue",
+			Scope:            checkkit.ScopeBlob,
+			Blob:             true,
+			ContextInlineArg: "--body",
+			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
+		},
+		Run: run,
 	})
 }
 

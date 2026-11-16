@@ -38,8 +38,12 @@ var distSpecifierRe = regexp.MustCompile(`(^|/)dist/|\.\./dist`)
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: name, Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     name,
+			Scope:    checkkit.ScopeFiles,
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

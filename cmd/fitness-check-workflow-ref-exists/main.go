@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -22,8 +23,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "workflow-ref-exists", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "workflow-ref-exists",
+			Scope:    checkkit.ScopeFiles,
+			Files:    match.Under(workflowDir),
+			Requires: []checkkit.Requirement{checkkit.RequiresGitHub},
+		},
+		Run: run,
 	})
 }
 

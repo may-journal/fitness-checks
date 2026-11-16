@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/frontmatter"
@@ -14,8 +15,12 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "no-fitness-front-matter", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "no-fitness-front-matter",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Exts(mdx.WithMDX...),
+		},
+		Run: run,
 	})
 }
 

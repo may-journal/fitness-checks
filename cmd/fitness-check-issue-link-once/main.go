@@ -16,8 +16,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "issue-link-once", Scope: checkkit.ScopeGit, ContextInlineArg: "--message"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "issue-link-once",
+			Scope:            checkkit.ScopeGit,
+			ContextInlineArg: "--message",
+			Requires:         []checkkit.Requirement{checkkit.RequiresHistory, checkkit.RequiresGitHub},
+		},
+		Run: run,
 	})
 }
 

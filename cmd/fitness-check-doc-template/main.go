@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/architecture/templates"
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mdtemplate"
@@ -18,8 +19,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "doc-template", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "doc-template",
+			Scope:    checkkit.ScopeFiles,
+			Files:    match.Exts(mdx.Exts...),
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

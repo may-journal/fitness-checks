@@ -12,8 +12,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "semantic-commit", Scope: checkkit.ScopeGit, ContextInlineArg: "--message"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "semantic-commit",
+			Scope:            checkkit.ScopeGit,
+			ContextInlineArg: "--message",
+			Requires:         []checkkit.Requirement{checkkit.RequiresHistory},
+		},
+		Run: run,
 	})
 }
 

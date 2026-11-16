@@ -184,7 +184,7 @@ func sees(t *testing.T, out string, gotCode, code int, want ...string) {
 }
 
 // resultRow matches a results-table line: name, status, files, time.
-var resultRow = regexp.MustCompile(`^│ (\S+)\s+│ (passed|failed|info)\s+│`)
+var resultRow = regexp.MustCompile(`^│ (\S+)\s+│ (passed|failed|info|skipped)\s+│`)
 
 // row returns the results-table line for check, or "". The table shortens
 // long names with "…", as a reader sees them.
@@ -203,10 +203,11 @@ func names(cell, check string) bool {
 	return cell == check || cut && strings.HasPrefix(check, short)
 }
 
-// passedWithNoFiles asserts check's row shows a pass that judged 0 files.
+// passedWithNoFiles asserts check's row shows a pass that judged 0 files, or
+// a skip. The engine skips a check that declares it applies to nothing here.
 func passedWithNoFiles(t *testing.T, out, check string) {
 	t.Helper()
-	if !regexp.MustCompile(`│ passed\s+│ 0\s+│`).MatchString(row(out, check)) {
+	if !regexp.MustCompile(`│ (passed\s+│ 0|skipped\s+│ -)\s+│`).MatchString(row(out, check)) {
 		t.Errorf("%s must pass with 0 files, got row %q", check, row(out, check))
 	}
 }

@@ -31,6 +31,8 @@ Each check's major tag, `fitness-check-<name>-vN`, follows its newest release of
       "versions": {
         "1.2.0": {
           "tag": "fitness-check-gofmt-v1.2.0",
+          "files": "\\.(go)$",
+          "exclude": "(^|/)(testdata|vendor)/",
           "artifacts": {
             "linux-arm64": { "url": "https://github.com/.../fitness-check-gofmt-v1.2.0-linux-arm64.tar", "sha256": "0f3a...", "gz": { "url": "https://github.com/.../fitness-check-gofmt-v1.2.0-linux-arm64.tar.gz", "sha256": "9c1d..." } }
           }
@@ -42,6 +44,8 @@ Each check's major tag, `fitness-check-<name>-vN`, follows its newest release of
 ```
 
 An installer reads `majors` for a major, takes `versions[version].artifacts[<os>-<arch>]`, and checks the download against its `sha256`. `format` rises only for a change that breaks a reader. An artifact may also hold `gz`, the gzip of its tar with its own `url` and `sha256`. An installer that knows it may fetch that instead.
+
+A version may also hold `files`, `exclude`, `needs` and `requires`, copied from its `<tag>.describe.json` release asset. They say which files reach the check and what else it requires, as fitness-runner's `checkkit.Describe` defines them. An engine can then fetch only the checks a run reaches. A version released before them holds none, which an engine reads as a check every file reaches.
 
 ## Tests
 

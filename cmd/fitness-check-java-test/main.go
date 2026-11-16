@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/may-journal/fitness-checks/internal/describe"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/java/tests"
@@ -8,7 +9,7 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "java-test", Scope: checkkit.ScopeFiles, Stage: checkkit.StageTests},
+		Describe: describe.JavaBuild("java-test", checkkit.StageTests),
 		Run:      tests.Run,
 	})
 }

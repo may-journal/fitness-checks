@@ -70,8 +70,12 @@ func gitStateFileExists(root, ref string) bool {
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "changelog-updated", Scope: checkkit.ScopeGit},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "changelog-updated",
+			Scope:    checkkit.ScopeGit,
+			Requires: []checkkit.Requirement{checkkit.RequiresDiff},
+		},
+		Run: run,
 	})
 }
 
