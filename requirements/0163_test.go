@@ -235,3 +235,61 @@ func Test0163_6(t *testing.T) {
 		t.Errorf("run = %v with %q, want an error naming the tag and no POST for an existing tag", err, out)
 	}
 }
+
+// reuse0163 lists two gofmt releases with describe assets as files in dir.
+// A missing file fails the script.
+func reuse0163(t *testing.T, dir string, old bool) string {
+	t.Helper()
+	asset := func(version string, exists bool) string {
+		path := filepath.Join(dir, version+".describe.json")
+		if exists {
+			mustDo(t, os.WriteFile(path, []byte(`{"files":"\\.(`+version+`)$"}`), 0o644))
+		}
+		tag := "fitness-check-gofmt-v" + version
+		return `{"tag_name":"` + tag + `","draft":false,"prerelease":false,"assets":[{"name":"` + tag + `.describe.json","browser_download_url":"file://` + path + `"}]}`
+	}
+	file := filepath.Join(dir, "releases.json")
+	mustDo(t, os.WriteFile(file, []byte("["+asset("1.0.0", old)+","+asset("1.1.0", true)+"]"), 0o644))
+	return file
+}
+
+func fields0163(t *testing.T, out string) map[string]any {
+	t.Helper()
+	var index struct {
+		Checks map[string]struct {
+			Versions map[string]map[string]any `json:"versions"`
+		} `json:"checks"`
+	}
+	mustDo(t, json.Unmarshal([]byte(out), &index))
+	got := map[string]any{}
+	for version, fields := range index.Checks["gofmt"].Versions {
+		got[version] = fields["files"]
+	}
+	return got
+}
+
+func Test0163_8(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	published := filepath.Join(dir, "published.json")
+	mustDo(t, os.WriteFile(published, []byte(`{"checks":{"gofmt":{"versions":{"1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","files":"kept"}}}}}`), 0o644))
+	// The 1.0.0 describe file is missing, so a download of it would fail the script.
+	releases := reuse0163(t, dir, false)
+	got := fields0163(t, script0163(t, "..", "release-index.sh", releases, "", published))
+	if want := map[string]any{"1.0.0": "kept", "1.1.0": `\.(1.1.0)$`}; !reflect.DeepEqual(got, want) {
+		t.Errorf("fields with a published index = %v, want %v", got, want)
+	}
+	releases = reuse0163(t, dir, true)
+	unreadable := filepath.Join(dir, "unreadable.json")
+	mustDo(t, os.WriteFile(unreadable, []byte("not json"), 0o644))
+	empty := filepath.Join(dir, "empty.json")
+	bare := filepath.Join(dir, "bare.json")
+	mustDo(t, os.WriteFile(empty, nil, 0o644))
+	mustDo(t, os.WriteFile(bare, []byte(`{"checks":{"gofmt":{"versions":{"1.0.0":{"tag":"fitness-check-gofmt-v1.0.0"}}}}}`), 0o644))
+	for name, index := range map[string]string{"unreadable": unreadable, "missing (empty)": empty, "field-less entry": bare} {
+		got = fields0163(t, script0163(t, "..", "release-index.sh", releases, "", index))
+		if want := map[string]any{"1.0.0": `\.(1.0.0)$`, "1.1.0": `\.(1.1.0)$`}; !reflect.DeepEqual(got, want) {
+			t.Errorf("fields with a %s index = %v, want %v", name, got, want)
+		}
+	}
+}
