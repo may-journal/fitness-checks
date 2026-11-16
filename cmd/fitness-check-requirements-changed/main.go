@@ -13,8 +13,14 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "requirements-changed", Scope: checkkit.ScopeGit, ContextInlineArg: "--message", Tests: true},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "requirements-changed",
+			Scope:            checkkit.ScopeGit,
+			ContextInlineArg: "--message",
+			Tests:            true,
+			Requires:         []checkkit.Requirement{checkkit.RequiresRepo, checkkit.RequiresDiff},
+		},
+		Run: run,
 	})
 }
 

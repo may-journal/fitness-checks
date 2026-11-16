@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 )
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "mermaid-callout-why", Scope: checkkit.ScopeFiles, Blob: true},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "mermaid-callout-why",
+			Scope: checkkit.ScopeFiles,
+			Blob:  true,
+			Files: match.Exts(mdx.WithMDX...),
+		},
+		Run: run,
 	})
 }
 

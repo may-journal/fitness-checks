@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/lang/node/biome"
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/sharedconf"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -57,8 +58,12 @@ const ignoreNothing = "/dev/null"
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "prettier", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "prettier",
+			Scope: checkkit.ScopeFiles,
+			Needs: match.Base(node.Manifest, prettierIgnoreFile),
+		},
+		Run: run,
 	})
 }
 

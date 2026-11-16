@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -22,8 +23,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "markdown-no-bold-italic", Scope: checkkit.ScopeFiles, Blob: true},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "markdown-no-bold-italic",
+			Scope: checkkit.ScopeFiles,
+			Blob:  true,
+			Files: match.Exts(mdx.Exts...),
+		},
+		Run: run,
 	})
 }
 

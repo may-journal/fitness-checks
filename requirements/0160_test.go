@@ -111,12 +111,12 @@ func Test0160_2(t *testing.T) {
 }
 
 // ranOurs0160 reports whether out shows this repo's program for check ran,
-// or for local-branch that the engine took the program as the declaration.
+// or skipped by its own --describe. For local-branch, the program declares.
 func ranOurs0160(out, check string) bool {
 	if check == "local-branch" {
 		return strings.Contains(out, "fitness-check-"+check+" declares the "+check+" check, which fitness judges itself")
 	}
-	return strings.Contains(out, "→ "+check+"\n")
+	return strings.Contains(out, "→ "+check+"\n") || strings.Contains(row(out, check), "skipped")
 }
 
 func Test0160_3(t *testing.T) {

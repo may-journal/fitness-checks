@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/may-journal/fitness-checks/internal/describe"
 	"github.com/may-journal/fitness-checks/internal/lang/golang/coverage"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -16,7 +17,10 @@ import (
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{Describe: checkkit.Describe{Name: "go-test-coverage", Scope: checkkit.ScopeFiles, Stage: checkkit.StageTests}, Run: run})
+	program.Main(docSource, checkkit.Check{
+		Describe: describe.GoModule("go-test-coverage"),
+		Run:      run,
+	})
 }
 func run(root string, args []string) (checkkit.Result, error) {
 	options, err := parse(root, args)

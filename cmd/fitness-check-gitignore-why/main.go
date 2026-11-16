@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 )
@@ -15,8 +16,12 @@ const noComment = "has no explanatory # comment on the line above"
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "gitignore-why", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "gitignore-why",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Base(".gitignore"),
+		},
+		Run: run,
 	})
 }
 

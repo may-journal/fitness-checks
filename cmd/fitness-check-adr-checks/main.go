@@ -6,16 +6,24 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/adr"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/repocheck"
 )
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "adr-checks", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "adr-checks",
+			Scope:    checkkit.ScopeFiles,
+			Files:    match.Any(match.Under(repocheck.Folder+"/"+repocheck.ADRPrefix), match.Base(conf.FileName)),
+			Needs:    match.Under(repocheck.Folder + "/"),
+			Requires: []checkkit.Requirement{checkkit.RequiresDiff},
+		},
+		Run: run,
 	})
 }
 

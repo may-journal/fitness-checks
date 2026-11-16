@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/golang"
@@ -20,8 +21,13 @@ const batch = 200
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "gofmt", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:    "gofmt",
+			Scope:   checkkit.ScopeFiles,
+			Files:   match.Exts(golang.Ext),
+			Exclude: match.Dir("testdata", "vendor"),
+		},
+		Run: run,
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -15,8 +16,12 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "node-version", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "node-version",
+			Scope: checkkit.ScopeFiles,
+			Needs: match.Base(node.Manifest),
+		},
+		Run: run,
 	})
 }
 

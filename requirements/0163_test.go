@@ -138,6 +138,35 @@ func Test0163_3(t *testing.T) {
 	}
 }
 
+func Test0163_7(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	releases, describes := filepath.Join(dir, "releases.json"), filepath.Join(dir, "describes.json")
+	mustDo(t, os.WriteFile(releases, []byte(releases0163), 0o644))
+	mustDo(t, os.WriteFile(describes, []byte(`{"fitness-check-gofmt-v1.10.0":
+		{"name":"gofmt","scope":"files","files":"\\.(go)$","exclude":"(^|/)vendor/","needs":"","requires":["repo"]}}`), 0o644))
+	var index struct {
+		Checks map[string]struct {
+			Versions map[string]map[string]any `json:"versions"`
+		} `json:"checks"`
+	}
+	mustDo(t, json.Unmarshal([]byte(script0163(t, "..", "release-index.sh", releases, describes)), &index))
+	versions := index.Checks["gofmt"].Versions
+	got := map[string]any{}
+	for _, key := range []string{"files", "exclude", "needs", "requires", "name", "scope"} {
+		if v, ok := versions["1.10.0"][key]; ok {
+			got[key] = v
+		}
+	}
+	want := map[string]any{"files": `\.(go)$`, "exclude": "(^|/)vendor/", "requires": []any{"repo"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("1.10.0 copies %v from its describe line, want only %v", got, want)
+	}
+	if _, ok := versions["1.0.0"]["files"]; ok {
+		t.Errorf("1.0.0 has no describe line, so it must hold no files: %v", versions["1.0.0"])
+	}
+}
+
 // calls0163 returns the gh calls the stand-in logged for the bare remote.
 func calls0163(t *testing.T, bare string) string {
 	t.Helper()

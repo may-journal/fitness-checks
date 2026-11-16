@@ -16,8 +16,13 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "requirements", Scope: checkkit.ScopeFiles, Tests: true},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "requirements",
+			Scope:    checkkit.ScopeFiles,
+			Tests:    true,
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
+		},
+		Run: run,
 	})
 }
 

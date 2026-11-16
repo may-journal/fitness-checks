@@ -11,9 +11,11 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/lang/node/biome"
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/sharedconf"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/node"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
@@ -33,8 +35,13 @@ const ignoredFileNotice = "File ignored because of a matching ignore pattern"
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "eslint", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "eslint",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Any(match.Exts(node.LintableExts...), match.Base(conf.FileName)),
+			Needs: match.Base(node.Manifest),
+		},
+		Run: run,
 	})
 }
 

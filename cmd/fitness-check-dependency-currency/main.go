@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -43,8 +44,13 @@ const requestTimeout = 10 * time.Second
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "dependency-currency", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:     "dependency-currency",
+			Scope:    checkkit.ScopeFiles,
+			Needs:    match.Base(node.Manifest),
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo, checkkit.RequiresNetwork},
+		},
+		Run: run,
 	})
 }
 

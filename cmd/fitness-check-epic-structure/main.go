@@ -13,8 +13,14 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "epic-structure", Scope: checkkit.ScopeBlob, Blob: true, ContextInlineArg: "--body"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "epic-structure",
+			Scope:            checkkit.ScopeBlob,
+			Blob:             true,
+			ContextInlineArg: "--body",
+			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
+		},
+		Run: run,
 	})
 }
 

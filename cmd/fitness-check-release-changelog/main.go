@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 )
@@ -21,8 +22,13 @@ var semverPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "release-changelog", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "release-changelog",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Exact(manifestPath, versionPath),
+			Needs: match.Exact(manifestPath),
+		},
+		Run: run,
 	})
 }
 
