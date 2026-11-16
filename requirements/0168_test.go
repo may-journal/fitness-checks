@@ -32,12 +32,19 @@ photos opened
             - Then it has no badge
 `
 
+// storybookShown is the fixture app's page file that shows both
+// acceptances, so a test's own pages are all that it judges.
+const storybookShown = "App/Shown.swift"
+
 // storybookCheck runs swift-storybook-requirements on happyRepo with the
-// fixture requirement doc and files written over it. An empty body deletes
-// a fixture file.
+// fixture requirement doc, storybookShown, and files written over them. An
+// empty body deletes a fixture file.
 func storybookCheck(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	app := map[string]string{"docs/requirements/0001-badge.md": storybookDoc}
+	app := map[string]string{
+		"docs/requirements/0001-badge.md": storybookDoc,
+		storybookShown:                    "let shown = [\n    BookPage(title: \"0001.1 shown\") { BadgeView() },\n    BookPage(title: \"0001.2 shown\") { BadgeView() },\n]\n",
+	}
 	maps.Copy(app, files)
 	return fitness(t, example(t, "happyRepo", app), nil, "swift-storybook-requirements")
 }
@@ -54,7 +61,7 @@ func Test0168_1(t *testing.T) {
 	pages := "let pages = [\n    BookPage(title: \"0001.2 empty\") { BadgeView() },\n]\n"
 	out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": view, "App/Pages.swift": pages})
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWith(t, out, "swift-storybook-requirements", "2")
+	passedWith(t, out, "swift-storybook-requirements", "3")
 }
 
 func Test0168_2(t *testing.T) {
@@ -100,10 +107,25 @@ func Test0168_7(t *testing.T) {
 	view := storybookView("// #Preview { BadgeView() }\n/* #Preview { BadgeView() } */\nlet note = \"#Preview { BadgeView() }\"\n")
 	out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": view})
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWith(t, out, "swift-storybook-requirements", "2")
+	out, code = storybookCheck(t, map[string]string{storybookShown: ""})
+	sees(t, out, code, 0, "All 1 checks passed")
 	passedWithNoFiles(t, out, "swift-storybook-requirements")
 	out, code = storybookCheck(t, map[string]string{"App/BadgeView.swift": storybookView("#Preview { BadgeView() }\n"), "docs/requirements/0001-badge.md": ""})
 	sees(t, out, code, 0, "All 1 checks passed")
 	if strings.Contains(out, "page has no name") {
 		t.Errorf("want no finding without requirement docs:\n%s", out)
+	}
+}
+
+func Test0168_8(t *testing.T) {
+	t.Parallel()
+	out, code := storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": storybookView("")})
+	sees(t, out, code, 1, "docs/requirements/0001-badge.md:15 - acceptance 0001.1 has no Storybook page; add one named \"0001.1 <label>\"",
+		"docs/requirements/0001-badge.md:19 - acceptance 0001.2 has no Storybook page")
+	out, code = storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n")})
+	sees(t, out, code, 1, "docs/requirements/0001-badge.md:19 - acceptance 0001.2 has no Storybook page")
+	if strings.Contains(out, "acceptance 0001.1") {
+		t.Errorf("want no finding for the acceptance a page names:\n%s", out)
 	}
 }

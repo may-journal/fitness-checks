@@ -1,6 +1,6 @@
 // Package storybook judges the swift-storybook-requirements check. Every
-// Storybook page a Swift app declares is named by the acceptance it shows.
-// A page is a `#Preview` or a `BookPage`.
+// Storybook page a Swift app declares is named by the acceptance it shows,
+// and every acceptance has a page. A page is a `#Preview` or a `BookPage`.
 package storybook
 
 import (
@@ -58,26 +58,53 @@ const (
 func (p page) at() string { return fmt.Sprintf("%s:%d", p.file, p.line) }
 
 // Run judges the repo at root, passing with no files judged when it has no
-// requirement docs or no Swift pages. It reads every Swift file, even in a
-// scoped run, since names repeat and IDs go missing across files.
+// requirement docs or no Swift files. It reads every Swift file, even in a
+// scoped run, since names repeat and pages go missing across files.
 func Run(root string, _ []string) (checkkit.Result, error) {
 	docs := requirement.DocPaths(root)
-	if len(docs) == 0 {
+	files := walkfs.FilesByExt(root, swift.Ext)
+	if len(docs) == 0 || len(files) == 0 {
 		return checkkit.Pass(0), nil
 	}
-	files := walkfs.FilesByExt(root, swift.Ext)
 	pages, err := readPages(root, files)
-	if err != nil || len(pages) == 0 {
+	if err != nil {
 		return checkkit.Pass(0), err
 	}
 	return verdict(len(files), judgeAgainst(root, docs, pages)), nil
 }
 
-// judgeAgainst judges pages against the acceptances the docs define. A doc
-// it cannot read is a finding too.
+// judgeAgainst judges pages against the acceptances the docs define, then
+// each acceptance no page names. A doc it cannot read is a finding too.
 func judgeAgainst(root string, docs []string, pages []page) []string {
 	loaded, _, skipped := requirement.Load(root, docs)
-	return append(skipped, judge(pages, acceptances(loaded))...)
+	findings := append(skipped, judge(pages, acceptances(loaded))...)
+	return append(findings, missingPages(loaded, pages)...)
+}
+
+// missingPages returns a finding at each acceptance that no page's literal
+// name starts with, where its doc declares it.
+func missingPages(docs []requirement.Document, pages []page) []string {
+	shown := shownIDs(pages)
+	var out []string
+	for _, d := range docs {
+		for _, a := range d.Acceptances {
+			if !shown[a.ID] {
+				out = append(out, fmt.Sprintf("%s:%d - acceptance %s has no Storybook page; add one named %q", d.Path, a.Line, a.ID, a.ID+" <label>"))
+			}
+		}
+	}
+	return out
+}
+
+// shownIDs is the set of acceptance IDs that page literal names start with.
+func shownIDs(pages []page) map[string]bool {
+	shown := map[string]bool{}
+	for _, p := range pages {
+		if m := pageName.FindStringSubmatch(p.name); p.kind == literal && m != nil {
+			shown[m[1]] = true
+		}
+	}
+	return shown
 }
 
 // verdict passes with no findings, else fails with them.

@@ -1,8 +1,9 @@
-// Command fitness-check-swift-storybook-requirements fails a Storybook page
-// in a Swift app that is not named by a requirement acceptance ([#79]). The
-// Storybook package in common-swift reads each page's acceptance to badge
-// new and changed pages from that acceptance's git history ([common-swift
-// #53]), so a page named any other way would drop out unnoticed.
+// Command fitness-check-swift-storybook-requirements fails each Swift
+// Storybook page not named by a requirement acceptance, and each acceptance
+// with no page ([#79]). The Storybook package in common-swift reads each
+// page's acceptance to badge new and changed pages from that acceptance's
+// git history ([common-swift #53]). A page named any other way, or an
+// acceptance with no page, would drop out unnoticed.
 //
 // # Pages
 //
@@ -26,13 +27,23 @@
 //
 //	App/BadgeView.swift:12 - page "day" does not start with an acceptance ID; name it such as "0001.1 day"
 //
-// A repo with no Swift pages, or no requirement docs, passes with zero files.
-// Every Swift file is read in every run, since names repeat across files.
+// # Acceptances
+//
+// Every acceptance a doc in `docs/requirements` declares needs a page whose
+// plain literal name starts with its ID. This holds even in an app with no
+// pages yet. The failure names the doc line that declares it:
+//
+//	docs/requirements/0006-lock.md:17 - acceptance 0006.3 has no Storybook page; add one named "0006.3 <label>"
+//
+// A repo with no Swift files, or no requirement docs, passes with zero files.
+// Every Swift file is read in every run, since names repeat and pages go
+// missing across files.
 //
 // # Apart from other checks
 //
-// This check owns only the page names. It shares helpers, the Swift lexer
-// and the requirement doc reader, and no judgment with any other check.
+// This check owns only the page names and the pages each acceptance needs.
+// It shares helpers, the Swift lexer and the requirement doc reader, and no
+// judgment with any other check.
 //
 // # Requirements
 //

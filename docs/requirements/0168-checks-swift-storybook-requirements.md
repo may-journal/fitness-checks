@@ -2,7 +2,7 @@
 
 ## Why
 
-Every Storybook page in my Swift app is named by the requirement acceptance it shows. So the catalog can badge new and changed pages from that acceptance's history.
+Every Storybook page in my Swift app is named by the requirement acceptance it shows, and every acceptance has a page. So the catalog can badge new and changed pages from that acceptance's history.
 
 ## Measurement
 
@@ -37,6 +37,10 @@ Storybook pages in a Swift app with requirement docs
         - When swift-storybook-requirements runs
             - Then it fails naming each name as written
 - 0168.7
-    - Given Developer has unnamed previews only in comments and strings, or a Swift app with no requirement docs
+    - Given Developer has unnamed previews only in comments and strings, no Swift files, or a Swift app with no requirement docs
         - When swift-storybook-requirements runs
             - Then it passes
+- 0168.8
+    - Given Developer has a Swift app with an acceptance that no page names, even with no pages at all
+        - When swift-storybook-requirements runs
+            - Then it fails naming the doc line that declares it, and a page name to add

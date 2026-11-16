@@ -1,6 +1,6 @@
 # swift-storybook-requirements
 
-Fails a Storybook page in a Swift app that is not named by a requirement acceptance (#79).
+Fails each Swift Storybook page not named by a requirement acceptance, and each acceptance with no page (#79).
 
 - [Architecture](../../docs/architecture/03-components.md)
 - [Source](doc.go)
