@@ -37,7 +37,7 @@ func main() {
 			Name:  "text-readability",
 			Scope: checkkit.ScopeFiles,
 			Blob:  true,
-			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.Base(conf.FileName)),
+			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt(), match.Base(conf.FileName)),
 		},
 		Run: run,
 	})

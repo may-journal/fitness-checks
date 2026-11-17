@@ -25,6 +25,12 @@ func Exts(exts ...string) string {
 	return "\\.(" + alternatives(exts, func(e string) string { return strings.TrimPrefix(e, ".") }) + ")$"
 }
 
+// NoExt matches a path whose file name has no dot, such as a shell script
+// the comments package knows by its shebang alone.
+func NoExt() string {
+	return "(^|/)[^/.]+$"
+}
+
 // Base matches a path whose file name is one of names, in any folder.
 func Base(names ...string) string {
 	return "(^|/)(" + alternatives(names, nil) + ")$"

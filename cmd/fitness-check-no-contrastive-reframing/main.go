@@ -16,7 +16,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:  "no-contrastive-reframing",
 			Scope: checkkit.ScopeFiles,
-			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern()),
+			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt()),
 		},
 		Run: run,
 	})

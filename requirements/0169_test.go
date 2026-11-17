@@ -127,6 +127,8 @@ func Test0169_3(t *testing.T) {
 	reaches0169(t, "pr-structure", checkkit.IssueBodyPath("Plan"), false)
 	reaches0169(t, "plan-structure", checkkit.IssueBodyPath("Epic"), false)
 	reaches0169(t, "semantic-commit", checkkit.HistoryPath, true)
+	reaches0169(t, "semantic-commit", checkkit.PullBodyPath, false)
+	reaches0169(t, "comment-structure", checkkit.PullBodyPath, false)
 }
 
 func Test0169_4(t *testing.T) {
@@ -139,6 +141,8 @@ func Test0169_4(t *testing.T) {
 	}
 	for _, check := range []string{"prose-budget", "text-readability", "no-contrastive-reframing"} {
 		reaches0169(t, check, "pkg/run.go", true)
+		reaches0169(t, check, "scripts/deploy", true)
+		reaches0169(t, check, checkkit.CommitMessagePath, false)
 	}
 	reaches0169(t, "no-contrastive-reframing", checkkit.PullBodyPath, false)
 }

@@ -23,8 +23,8 @@ Checks
 - 0169.3
     - Given Developer has the PR, issue, comment and commit message checks
         - When their patterns meet each virtual body path, piped text, the commit message path and a Go file
-            - Then each body check reaches its own body and piped text, each message check its message, and none a Go file
+            - Then a body check reaches its body and piped text, a message check its message, and neither another body or Go file
 - 0169.4
     - Given Developer has the prose checks
-        - When their patterns meet a Markdown doc, a PR body, a comment, piped text, a stylesheet and a Go file
-            - Then the body readers reach the Markdown and bodies, the comment readers reach the Go file, and none reaches the stylesheet
+        - When their patterns meet a Markdown doc, each body, piped text, a stylesheet, a Go file and a script with no extension
+            - Then the body readers reach the Markdown and bodies, the comment readers reach the Go file and script, and none reaches the stylesheet
