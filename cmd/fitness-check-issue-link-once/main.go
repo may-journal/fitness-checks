@@ -19,6 +19,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "issue-link-once",
 			Scope:            checkkit.ScopeGit,
+			Files:            checkkit.GitPattern,
 			ContextInlineArg: "--message",
 			Requires:         []checkkit.Requirement{checkkit.RequiresHistory, checkkit.RequiresGitHub},
 		},

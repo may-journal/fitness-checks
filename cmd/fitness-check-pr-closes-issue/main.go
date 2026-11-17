@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -24,7 +25,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "pr-closes-issue",
 			Scope:            checkkit.ScopeBlob,
-			Blob:             true,
+			Files:            match.Exact(checkkit.PullBodyPath, checkkit.BlobPath),
 			ContextInlineArg: "--body",
 			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
 		},

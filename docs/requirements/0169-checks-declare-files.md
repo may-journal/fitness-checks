@@ -20,3 +20,11 @@ Checks
     - Given Developer has the gofmt, markdown-links, workflow-reporting and eslint checks
         - When their patterns meet a Go file, a vendored Go file, a Markdown doc, a workflow and a package.json
             - Then each reaches the files it judges and no other, and eslint needs the package.json
+- 0169.3
+    - Given Developer has the PR, issue, comment and commit message checks
+        - When their patterns meet each virtual body path, piped text, the commit message path and a Go file
+            - Then each body check reaches its own body and piped text, each message check its message, and none a Go file
+- 0169.4
+    - Given Developer has the prose checks
+        - When their patterns meet a Markdown doc, a PR body, a comment, piped text, a stylesheet and a Go file
+            - Then the body readers reach the Markdown and bodies, the comment readers reach the Go file, and none reaches the stylesheet

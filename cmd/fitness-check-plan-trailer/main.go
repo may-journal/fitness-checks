@@ -12,7 +12,7 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "plan-trailer", Scope: checkkit.ScopeGit, ContextInlineArg: "--message"},
+		Describe: checkkit.Describe{Name: "plan-trailer", Scope: checkkit.ScopeGit, Files: checkkit.GitPattern, ContextInlineArg: "--message"},
 		Run:      run,
 	})
 }

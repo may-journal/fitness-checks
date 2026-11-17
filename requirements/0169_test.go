@@ -104,3 +104,41 @@ func Test0169_2(t *testing.T) {
 		t.Errorf("eslint must need a package.json and nothing else")
 	}
 }
+
+func Test0169_3(t *testing.T) {
+	t.Parallel()
+	for check, path := range map[string]string{
+		"pr-structure":       checkkit.PullBodyPath,
+		"pr-closes-issue":    checkkit.PullBodyPath,
+		"plan-structure":     checkkit.IssueBodyPath("Plan"),
+		"epic-structure":     checkkit.IssueBodyPath("Epic"),
+		"issue-checklist":    checkkit.IssueBodyPath("Plan"),
+		"comment-structure":  checkkit.CommentBodyPath,
+		"semantic-commit":    checkkit.CommitMessagePath,
+		"plan-trailer":       checkkit.CommitMessagePath,
+		"commit-attribution": checkkit.CommitMessagePath,
+		"issue-link-once":    checkkit.CommitMessagePath,
+	} {
+		reaches0169(t, check, path, true)
+		reaches0169(t, check, "pkg/run.go", false)
+		reaches0169(t, check, checkkit.BlobPath, !strings.HasPrefix(path, ".git/"))
+	}
+	reaches0169(t, "issue-checklist", checkkit.IssueBodyPath(""), true)
+	reaches0169(t, "pr-structure", checkkit.IssueBodyPath("Plan"), false)
+	reaches0169(t, "plan-structure", checkkit.IssueBodyPath("Epic"), false)
+	reaches0169(t, "semantic-commit", checkkit.HistoryPath, true)
+}
+
+func Test0169_4(t *testing.T) {
+	t.Parallel()
+	for _, check := range []string{"prose-budget", "text-readability", "markdown-no-bold-italic", "mermaid-syntax", "open-questions"} {
+		for _, path := range []string{"docs/guide.md", checkkit.PullBodyPath, checkkit.CommentBodyPath, checkkit.BlobPath} {
+			reaches0169(t, check, path, true)
+		}
+		reaches0169(t, check, "web/app.css", false)
+	}
+	for _, check := range []string{"prose-budget", "text-readability", "no-contrastive-reframing"} {
+		reaches0169(t, check, "pkg/run.go", true)
+	}
+	reaches0169(t, "no-contrastive-reframing", checkkit.PullBodyPath, false)
+}

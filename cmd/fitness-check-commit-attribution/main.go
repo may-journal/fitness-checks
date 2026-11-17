@@ -22,6 +22,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "commit-attribution",
 			Scope:            checkkit.ScopeGit,
+			Files:            checkkit.GitPattern,
 			ContextInlineArg: "--message",
 			Requires:         []checkkit.Requirement{checkkit.RequiresHistory},
 		},

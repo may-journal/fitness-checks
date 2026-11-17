@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -9,7 +10,7 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "plan-structure", Scope: checkkit.ScopeBlob, Blob: true, ContextInlineArg: "--body"},
+		Describe: checkkit.Describe{Name: "plan-structure", Scope: checkkit.ScopeBlob, Files: match.Exact(checkkit.IssueBodyPath("Plan"), checkkit.BlobPath), ContextInlineArg: "--body"},
 		Run:      run,
 	})
 }

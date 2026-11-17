@@ -3,6 +3,7 @@ package main
 import (
 	"regexp"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -12,8 +13,12 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "no-contrastive-reframing", Scope: checkkit.ScopeFiles},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:  "no-contrastive-reframing",
+			Scope: checkkit.ScopeFiles,
+			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern()),
+		},
+		Run: run,
 	})
 }
 

@@ -15,6 +15,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "semantic-commit",
 			Scope:            checkkit.ScopeGit,
+			Files:            checkkit.GitPattern,
 			ContextInlineArg: "--message",
 			Requires:         []checkkit.Requirement{checkkit.RequiresHistory},
 		},
