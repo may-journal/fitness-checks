@@ -28,6 +28,7 @@ func main() {
 			Files:            match.Exact(checkkit.PullBodyPath, checkkit.BlobPath),
 			ContextInlineArg: "--body",
 			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
+			MinFitness:       match.VirtualSince,
 		},
 		Run: run,
 	})

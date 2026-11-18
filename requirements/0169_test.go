@@ -122,6 +122,9 @@ func Test0169_3(t *testing.T) {
 		reaches0169(t, check, path, true)
 		reaches0169(t, check, "pkg/run.go", false)
 		reaches0169(t, check, checkkit.BlobPath, !strings.HasPrefix(path, ".git/"))
+		if all, err := described0169(); err == nil && all[check].MinFitness != "1.75.0" {
+			t.Errorf("%s needs fitness %q, want 1.75.0, the first with virtual paths", check, all[check].MinFitness)
+		}
 	}
 	reaches0169(t, "issue-checklist", checkkit.IssueBodyPath(""), true)
 	reaches0169(t, "pr-structure", checkkit.IssueBodyPath("Plan"), false)
@@ -147,12 +150,11 @@ func Test0169_4(t *testing.T) {
 	reaches0169(t, "no-contrastive-reframing", checkkit.PullBodyPath, false)
 }
 
-// patternsExit0169 pipes line to scripts/describe-patterns and returns
+// patternsExit0169 pipes line to the describe-patterns program and returns
 // what it printed and its exit code.
-func patternsExit0169(t *testing.T, line string) (string, int) {
+func patternsExit0169(t *testing.T, program, line string) (string, int) {
 	t.Helper()
-	cmd := exec.Command("go", "run", "./scripts/describe-patterns")
-	cmd.Dir = ".."
+	cmd := exec.Command(program, "fitness-check-x-v1.0.0")
 	cmd.Stdin = strings.NewReader(line)
 	out, err := cmd.CombinedOutput()
 	if exit, ok := err.(*exec.ExitError); ok {
@@ -164,13 +166,21 @@ func patternsExit0169(t *testing.T, line string) (string, int) {
 
 func Test0169_5(t *testing.T) {
 	t.Parallel()
-	out, code := patternsExit0169(t, `{"name":"broken","files":"(oops"}`)
-	if code != 1 || !strings.Contains(out, `files pattern "(oops"`) {
+	program := filepath.Join(t.TempDir(), "describe-patterns")
+	build := exec.Command("go", "build", "-o", program, "./scripts/describe-patterns")
+	build.Dir = ".."
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("go build: %v\n%s", err, out)
+	}
+	out, code := patternsExit0169(t, program, `{"name":"broken","files":"(oops"}`)
+	if code != 1 || !strings.Contains(out, `fitness-check-x-v1.0.0: files pattern "(oops"`) {
 		t.Errorf("a broken files pattern exited %d: %s", code, out)
 	}
-	gofmt, err := exec.Command("go", "run", "../cmd/fitness-check-gofmt", "--describe").Output()
+	all, err := described0169()
 	mustDo(t, err)
-	if out, code := patternsExit0169(t, string(gofmt)); code != 0 {
+	gofmt, err := json.Marshal(all["gofmt"])
+	mustDo(t, err)
+	if out, code := patternsExit0169(t, program, string(gofmt)); code != 0 {
 		t.Errorf("gofmt's describe line exited %d: %s", code, out)
 	}
 }

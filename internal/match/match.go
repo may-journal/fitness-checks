@@ -25,8 +25,12 @@ func Exts(exts ...string) string {
 	return "\\.(" + alternatives(exts, func(e string) string { return strings.TrimPrefix(e, ".") }) + ")$"
 }
 
-// NoExt matches a path whose file name has no dot, such as a shell script
-// the comments package knows by its shebang alone.
+// VirtualSince is the oldest fitness release whose runs hold the virtual
+// paths checkkit names, so a check matching only those needs it.
+const VirtualSince = "1.75.0"
+
+// NoExt matches any file name with no dot, such as LICENSE or a shell
+// script the comments package knows by its shebang.
 func NoExt() string {
 	return "(^|/)[^/.]+$"
 }

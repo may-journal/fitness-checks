@@ -13,8 +13,14 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "issue-checklist", Scope: checkkit.ScopeBlob, Files: match.Any(match.Under(issueBodies), match.Exact(checkkit.BlobPath)), ContextInlineArg: "--body"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "issue-checklist",
+			Scope:            checkkit.ScopeBlob,
+			Files:            match.Any(match.Under(issueBodies), match.Exact(checkkit.BlobPath)),
+			ContextInlineArg: "--body",
+			MinFitness:       match.VirtualSince,
+		},
+		Run: run,
 	})
 }
 

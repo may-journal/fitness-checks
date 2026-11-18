@@ -10,8 +10,14 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{Name: "pr-structure", Scope: checkkit.ScopeBlob, Files: match.Exact(checkkit.PullBodyPath, checkkit.BlobPath), ContextInlineArg: "--body"},
-		Run:      run,
+		Describe: checkkit.Describe{
+			Name:             "pr-structure",
+			Scope:            checkkit.ScopeBlob,
+			Files:            match.Exact(checkkit.PullBodyPath, checkkit.BlobPath),
+			ContextInlineArg: "--body",
+			MinFitness:       match.VirtualSince,
+		},
+		Run: run,
 	})
 }
 

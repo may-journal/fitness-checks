@@ -20,6 +20,7 @@ func main() {
 			Files:            match.Exact(checkkit.IssueBodyPath("Epic"), checkkit.BlobPath),
 			ContextInlineArg: "--body",
 			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
+			MinFitness:       match.VirtualSince,
 		},
 		Run: run,
 	})

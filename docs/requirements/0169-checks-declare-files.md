@@ -23,7 +23,7 @@ Checks
 - 0169.3
     - Given Developer has the PR, issue, comment and commit message checks
         - When their patterns meet each virtual body path, piped text, the commit message path and a Go file
-            - Then a body check reaches its body and piped text, a message check its message, and neither another body or Go file
+            - Then a body check reaches its body and piped text, a message check its message, neither a Go file, and each needs fitness 1.75.0
 - 0169.4
     - Given Developer has the prose checks
         - When their patterns meet a Markdown doc, each body, piped text, a stylesheet, a Go file and a script with no extension
@@ -31,4 +31,4 @@ Checks
 - 0169.5
     - Given Developer has a describe line whose `files` pattern does not compile, and a check's own describe line
         - When `scripts/describe-patterns`, which `scripts/release-build.sh` runs before a release, reads each
-            - Then it exits 1 naming the field and pattern of the first, and exits 0 for the second
+            - Then it exits 1 naming the release, field and pattern of the first, and exits 0 for the second
