@@ -7,39 +7,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/diagrams"
 	"github.com/may-journal/fitness-checks/internal/program"
-	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
-	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{
-			Name:  "mermaid-syntax",
-			Scope: checkkit.ScopeFiles,
-			Blob:  true,
-			Files: match.Exts(mermaid.DocExts...),
-		},
-		Run: run,
-	})
-}
-
-func run(root string, args []string) (checkkit.Result, error) {
-	if res, handled, err := bodycheck.RunDoc(root, args, func(_, content string) []string {
-		return validateDoc("(description)", content)
-	}); err != nil || handled {
-		return res, err
-	}
-	errors, filesChecked, err := mermaid.RunDiagramCheck(root, validateDoc)
-	if err != nil {
-		return checkkit.Result{}, err
-	}
-	if len(errors) > 0 {
-		return checkkit.Fail(filesChecked, errors...), nil
-	}
-	return checkkit.Pass(filesChecked), nil
+	program.Main(docSource, diagrams.Check("mermaid-syntax", mermaid.DocExts, mermaid.RunDiagramCheck, validateDoc))
 }
 
 // validateDoc parses every mermaid diagram in content and names each

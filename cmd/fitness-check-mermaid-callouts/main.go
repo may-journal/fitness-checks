@@ -5,9 +5,8 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/diagrams"
 	"github.com/may-journal/fitness-checks/internal/program"
-	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
@@ -15,23 +14,14 @@ import (
 
 func main() {
 	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{
-			Name:  "mermaid-callouts",
-			Scope: checkkit.ScopeFiles,
-			Blob:  true,
-			Files: match.Exts(mdx.WithMDX...),
-		},
-		Run: run,
+		Describe: diagrams.Describe("mermaid-callouts", mdx.WithMDX),
+		Run:      run,
 	})
 }
 
 func run(root string, args []string) (checkkit.Result, error) {
-	if res, handled, err := bodycheck.RunDoc(root, args, func(_, content string) []string {
-		return validateDoc("(description)", content)
-	}); err != nil {
-		return checkkit.Result{}, err
-	} else if handled {
-		return res, nil
+	if res, handled, err := diagrams.Description(root, args, validateDoc); err != nil || handled {
+		return res, err
 	}
 	notes, err := fixDocs(root, args)
 	if err != nil {
@@ -48,10 +38,7 @@ func judge(root string) (checkkit.Result, error) {
 	if err != nil {
 		return checkkit.Result{}, err
 	}
-	if len(errors) == 0 {
-		return checkkit.Pass(filesChecked), nil
-	}
-	return checkkit.Fail(filesChecked, errors...), nil
+	return diagrams.Verdict(filesChecked, errors), nil
 }
 
 // doublingRule names the letter sequence in errors.

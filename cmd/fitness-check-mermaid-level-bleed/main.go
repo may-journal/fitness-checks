@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/diagrams"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -37,26 +38,13 @@ var levelFile = regexp.MustCompile(`(?:^|/)architecture/(\d+)[^/]*\.md$`)
 // descriptionHeader matches a table header cell naming the description column.
 var descriptionHeader = regexp.MustCompile(`(?i)^description$`)
 
-// jsWS is the JavaScript \s class as an RE2 class body, copied from pkg/mermaid's unexported twin.
-const jsWS = `\t\n\v\f\r \x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}`
-
 // jsSpaceRun matches one or more JavaScript whitespace characters.
-var jsSpaceRun = regexp.MustCompile(`[` + jsWS + `]+`)
-
-// isJSSpace reports whether r is in the JavaScript \s class.
-func isJSSpace(r rune) bool {
-	switch r {
-	case '\t', '\n', '\v', '\f', '\r', ' ',
-		0x00A0, 0x1680, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF:
-		return true
-	}
-	return r >= 0x2000 && r <= 0x200A
-}
+var jsSpaceRun = regexp.MustCompile(`[` + diagrams.JSWhitespace + `]+`)
 
 // normalizeDescription lowercases and whitespace-collapses one cell — the
 // port of `.trim().toLowerCase().replace(/\s+/g, ' ')`.
 func normalizeDescription(cell string) string {
-	text := strings.ToLower(strings.TrimFunc(cell, isJSSpace))
+	text := strings.ToLower(diagrams.TrimJS(cell))
 	return jsSpaceRun.ReplaceAllString(text, " ")
 }
 
@@ -171,9 +159,5 @@ func run(root string, _ []string) (checkkit.Result, error) {
 	if err != nil {
 		return checkkit.Result{}, err
 	}
-	errors := bleedErrors(levels)
-	if len(errors) > 0 {
-		return checkkit.Fail(len(levels), errors...), nil
-	}
-	return checkkit.Pass(len(levels)), nil
+	return diagrams.Verdict(len(levels), bleedErrors(levels)), nil
 }

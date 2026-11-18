@@ -4,42 +4,14 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/diagrams"
 	"github.com/may-journal/fitness-checks/internal/program"
-	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
-	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{
-			Name:  "mermaid-callout-why",
-			Scope: checkkit.ScopeFiles,
-			Blob:  true,
-			Files: match.Exts(mdx.WithMDX...),
-		},
-		Run: run,
-	})
-}
-
-func run(root string, args []string) (checkkit.Result, error) {
-	if res, handled, err := bodycheck.RunDoc(root, args, func(_, content string) []string {
-		return validateDoc("(description)", content)
-	}); err != nil {
-		return checkkit.Result{}, err
-	} else if handled {
-		return res, nil
-	}
-	errors, filesChecked, err := mermaid.RunDocCheck(root, validateDoc)
-	if err != nil {
-		return checkkit.Result{}, err
-	}
-	if len(errors) > 0 {
-		return checkkit.Fail(filesChecked, errors...), nil
-	}
-	return checkkit.Pass(filesChecked), nil
+	program.Main(docSource, diagrams.Check("mermaid-callout-why", mdx.WithMDX, mermaid.RunDocCheck, validateDoc))
 }
 
 // whyCell matches a header cell naming the Why column — the TS WHY regex.

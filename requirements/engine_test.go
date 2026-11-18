@@ -35,8 +35,8 @@ func branchAnswer(t *testing.T, repo, title, body string) response {
 	base, err := exec.Command("git", "-C", repo, "rev-parse", "HEAD").Output()
 	mustDo(t, err)
 	data, err := json.Marshal(map[string]any{
-		"number": 1, "title": title, "body": body, "head": "work", "source": repo0014,
-		"base": "main", "baseSHA": strings.TrimSpace(string(base)), "url": "https://github.com/" + repo0014 + "/pull/1", "draft": true,
+		"number": 1, "title": title, "body": body, "head": "work", "source": exampleRepo,
+		"base": "main", "baseSHA": strings.TrimSpace(string(base)), "url": "https://github.com/" + exampleRepo + "/pull/1", "draft": true,
 	})
 	mustDo(t, err)
 	return response{Match: []string{"pulls?state=open&head=" + url.QueryEscape("may-journal:work")}, Stdout: string(data) + "\n"}
@@ -47,7 +47,7 @@ func branchRepo(t *testing.T, files map[string]string) string {
 	t.Helper()
 	repo := example(t, "happyRepo", files)
 	git(t, repo, "branch", "-M", "work")
-	git(t, repo, "remote", "add", "origin", "https://github.com/"+repo0014+".git")
+	git(t, repo, "remote", "add", "origin", "https://github.com/"+exampleRepo+".git")
 	git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
 	return repo
 }
@@ -90,22 +90,22 @@ func installerEnv(t *testing.T) []string {
 	return slices.Concat([]string{"FITNESS_INSTALL_DIR=" + dir}, lookups.env, fiPrivateCache(t))
 }
 
-// issue0014 is what gh prints for issue n read through fitness's filter:
+// ghIssue is what gh prints for issue n read through fitness's filter:
 // its body and label names.
-func issue0014(t *testing.T, n int, body string, labels ...string) response {
+func ghIssue(t *testing.T, n int, body string, labels ...string) response {
 	t.Helper()
 	out, err := json.Marshal(map[string]any{"body": body, "labels": append([]string{}, labels...)})
 	mustDo(t, err)
-	return response{Match: []string{"repos/" + repo0014 + "/issues/" + itoa(n)}, Stdout: string(out) + "\n"}
+	return response{Match: []string{"repos/" + exampleRepo + "/issues/" + itoa(n)}, Stdout: string(out) + "\n"}
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
 
-// judge0014 runs pr-check on a pull_request event with title and body,
+// judgeBody runs pr-check on a pull_request event with title and body,
 // GitHub answering from issues and the PR leaving the changelog alone.
-func judge0014(t *testing.T, title, body string, issues ...response) (string, int) {
+func judgeBody(t *testing.T, title, body string, issues ...response) (string, int) {
 	t.Helper()
-	out, code, _ := rerun0014(t, title, body, issues...)
+	out, code, _ := rerunBody(t, title, body, issues...)
 	return out, code
 }
 
@@ -147,15 +147,15 @@ func occurrences(path, want string) int {
 // passing is a local check's verdict that judged one file and found nothing.
 const passing = `{"ok": true, "errors": [], "filesChecked": 1}`
 
-// plan0014 is a Plan that follows the template, with one task.
-func plan0014(task string) string {
+// planTemplate is a Plan that follows the template, with one task.
+func planTemplate(task string) string {
 	return "> One clear pitch for this Plan.\n\n## Background\n\nThis Plan is a test fixture.\n\n## What needs to happen\n\n" + task + "\n"
 }
 
-// pr0014 is a PR description that follows the template, links the entry
-// stamped stamp0014, and closes issue n.
-func pr0014(n int) string {
-	return prBody0014(link0014("CHANGELOG.md#"+strings.ReplaceAll(stamp0014, ".", "")), n)
+// prClosing is a PR description that follows the template, links the entry
+// stamped entryStamp, and closes issue n.
+func prClosing(n int) string {
+	return prBody(changelogLink("CHANGELOG.md#"+strings.ReplaceAll(entryStamp, ".", "")), n)
 }
 
 // readme is happyRepo's README, for Givens that add to it.
@@ -169,8 +169,8 @@ func remote(t *testing.T, repo string) {
 	git(t, repo, "remote", "add", "origin", bare)
 }
 
-// repo0014 is the repository the Actions event comes from.
-const repo0014 = "may-journal/example"
+// exampleRepo is the repository the Actions event comes from.
+const exampleRepo = "may-journal/example"
 
 // shellCheck is a repo with one shell check, name, and a README.
 // The check answers --describe with describe, else ignores the handshake, and prints verdict; an empty verdict hangs.
@@ -298,24 +298,24 @@ func issueGitHub(n, marker, verdicts string, labels ...string) []response {
 // kindIssue is the issue number every 0082 event and saved response names.
 const kindIssue = "21"
 
-// link0014 is a `## Changelog` item linking target on the PR's branch.
-func link0014(target string) string {
-	return "- [CHANGELOG entry](https://github.com/" + repo0014 + "/blob/feature/" + target + ")"
+// changelogLink is a `## Changelog` item linking target on the PR's branch.
+func changelogLink(target string) string {
+	return "- [CHANGELOG entry](https://github.com/" + exampleRepo + "/blob/feature/" + target + ")"
 }
 
-// prBody0014 is a PR description with changelog as its `## Changelog`
+// prBody is a PR description with changelog as its `## Changelog`
 // section, closing issue n.
-func prBody0014(changelog string, n int) string {
+func prBody(changelog string, n int) string {
 	return fmt.Sprintf("> One clear summary of the change.\n\n## Background\n\nThis change is a test fixture.\n\n## Changelog\n\n%s\n\nCloses #%d\n", changelog, n)
 }
 
-// rerun0014 runs pr-check on a saved pull_request event carrying title and
+// rerunBody runs pr-check on a saved pull_request event carrying title and
 // body, as "Re-run job" replays it, GitHub answering from saved first.
-func rerun0014(t *testing.T, title, body string, saved ...response) (string, int, replays) {
+func rerunBody(t *testing.T, title, body string, saved ...response) (string, int, replays) {
 	t.Helper()
-	rp := standIn(t, map[string][]response{"gh": append(saved, noChangelog0014)})
+	rp := standIn(t, map[string][]response{"gh": append(saved, noChangelog)})
 	pr := map[string]any{"number": 1, "title": title, "body": body}
-	env := event0014(t, "pull_request", map[string]any{"action": "edited", "pull_request": pr})
+	env := actionsEvent(t, "pull_request", map[string]any{"action": "edited", "pull_request": pr})
 	out, code := fitness(t, example(t, "happyRepo", nil), append(rp.env, env...), "pr-check")
 	return out, code, rp
 }
@@ -353,18 +353,18 @@ func rlReleases(t *testing.T, status int, version string) *rlLookups {
 	return lookups
 }
 
-// stamp0014 is the dated changelog entry a fixture PR adds and links.
-const stamp0014 = "2026.10.10.0900"
+// entryStamp is the dated changelog entry a fixture PR adds and links.
+const entryStamp = "2026.10.10.0900"
 
-// event0014 saves an Actions event payload and returns the environment
+// actionsEvent saves an Actions event payload and returns the environment
 // a workflow step sees: event name, payload path, and repository.
-func event0014(t *testing.T, event string, payload any) []string {
+func actionsEvent(t *testing.T, event string, payload any) []string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "event.json")
 	data, err := json.Marshal(payload)
 	mustDo(t, err)
 	mustDo(t, os.WriteFile(path, data, 0o644))
-	return []string{"GITHUB_EVENT_NAME=" + event, "GITHUB_EVENT_PATH=" + path, "GITHUB_REPOSITORY=" + repo0014}
+	return []string{"GITHUB_EVENT_NAME=" + event, "GITHUB_EVENT_PATH=" + path, "GITHUB_REPOSITORY=" + exampleRepo}
 }
 
 // fiFile returns the text of a file the installer wrote.
@@ -405,8 +405,8 @@ func installOnly(t *testing.T) string {
 	return strings.TrimSpace(lines[len(lines)-1])
 }
 
-// noChangelog0014 is GitHub listing no CHANGELOG.md change in a PR.
-var noChangelog0014 = response{Match: []string{"/files"}}
+// noChangelog is GitHub listing no CHANGELOG.md change in a PR.
+var noChangelog = response{Match: []string{"/files"}}
 
 // rlDefault matches the version --help names as the installer's default.
 var rlDefault = regexp.MustCompile(`exact release version, or explicit latest \(default "([^"]+)"\)`)
