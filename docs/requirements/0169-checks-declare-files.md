@@ -28,3 +28,7 @@ Checks
     - Given Developer has the prose checks
         - When their patterns meet a Markdown doc, each body, piped text, a stylesheet, a Go file and a script with no extension
             - Then the body readers reach the Markdown and bodies, the comment readers reach the Go file and script, and none reaches the stylesheet
+- 0169.5
+    - Given Developer has a describe line whose `files` pattern does not compile, and a check's own describe line
+        - When `scripts/describe-patterns`, which `scripts/release-build.sh` runs before a release, reads each
+            - Then it exits 1 naming the field and pattern of the first, and exits 0 for the second

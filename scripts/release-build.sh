@@ -30,3 +30,5 @@ for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
   rm -rf "$work"
 done
 [ -s "$out/$tag.describe.json" ] || go run "./cmd/$component" --describe > "$out/$tag.describe.json"
+# A pattern that does not compile would make the engine reject the check, so it stops the release here.
+go run ./scripts/describe-patterns < "$out/$tag.describe.json"

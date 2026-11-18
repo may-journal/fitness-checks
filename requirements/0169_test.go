@@ -146,3 +146,31 @@ func Test0169_4(t *testing.T) {
 	}
 	reaches0169(t, "no-contrastive-reframing", checkkit.PullBodyPath, false)
 }
+
+// patternsExit0169 pipes line to scripts/describe-patterns and returns
+// what it printed and its exit code.
+func patternsExit0169(t *testing.T, line string) (string, int) {
+	t.Helper()
+	cmd := exec.Command("go", "run", "./scripts/describe-patterns")
+	cmd.Dir = ".."
+	cmd.Stdin = strings.NewReader(line)
+	out, err := cmd.CombinedOutput()
+	if exit, ok := err.(*exec.ExitError); ok {
+		return string(out), exit.ExitCode()
+	}
+	mustDo(t, err)
+	return string(out), 0
+}
+
+func Test0169_5(t *testing.T) {
+	t.Parallel()
+	out, code := patternsExit0169(t, `{"name":"broken","files":"(oops"}`)
+	if code != 1 || !strings.Contains(out, `files pattern "(oops"`) {
+		t.Errorf("a broken files pattern exited %d: %s", code, out)
+	}
+	gofmt, err := exec.Command("go", "run", "../cmd/fitness-check-gofmt", "--describe").Output()
+	mustDo(t, err)
+	if out, code := patternsExit0169(t, string(gofmt)); code != 0 {
+		t.Errorf("gofmt's describe line exited %d: %s", code, out)
+	}
+}

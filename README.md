@@ -14,7 +14,7 @@ The engine, hooks, workflows and installer stay in fitness-runner. Its bundle ke
 
 ## Releases
 
-Each check releases on its own line, tagged `fitness-check-<name>-vX.Y.Z`, with its programs for linux and darwin attached. On each push to main, [scripts/release-plan.sh](scripts/release-plan.sh) names the checks the push can alter and picks each one's version from its conventional commits. [scripts/release-publish.sh](scripts/release-publish.sh) then builds and publishes each one. `go.mod` and `go.sum` hold every dependency version.
+Each check releases on its own line, tagged `fitness-check-<name>-vX.Y.Z`, with its programs for linux and darwin attached. On each push to main, [scripts/release-plan.sh](scripts/release-plan.sh) names the checks the push can alter and picks each one's version from its conventional commits. [scripts/release-publish.sh](scripts/release-publish.sh) then builds and publishes each one, stopping when [scripts/describe-patterns](scripts/describe-patterns/main.go) finds a describe pattern that does not compile. `go.mod` and `go.sum` hold every dependency version.
 
 ### Release index
 
