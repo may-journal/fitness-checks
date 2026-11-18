@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
@@ -16,9 +17,10 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "epic-structure",
 			Scope:            checkkit.ScopeBlob,
-			Blob:             true,
+			Files:            match.Exact(checkkit.IssueBodyPath("Epic"), checkkit.BlobPath),
 			ContextInlineArg: "--body",
 			Requires:         []checkkit.Requirement{checkkit.RequiresGitHub},
+			MinFitness:       match.VirtualSince,
 		},
 		Run: run,
 	})

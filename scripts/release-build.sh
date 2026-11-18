@@ -11,6 +11,8 @@ component="${tag%-v*}"
 [ -d "cmd/$component" ] || { echo "release-build: no folder cmd/$component for tag $tag" >&2; exit 1; }
 rm -rf "$out"
 mkdir -p "$out"
+# A pattern or requirement the engine rejects stops the release before any build.
+go run "./cmd/$component" --describe | go run ./scripts/describe-patterns "$tag"
 
 host="$(go env GOOS)/$(go env GOARCH)"
 for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do

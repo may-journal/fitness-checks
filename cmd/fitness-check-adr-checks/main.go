@@ -21,7 +21,7 @@ func main() {
 			Scope:    checkkit.ScopeFiles,
 			Files:    match.Any(match.Under(repocheck.Folder+"/"+repocheck.ADRPrefix), match.Base(conf.FileName)),
 			Needs:    match.Under(repocheck.Folder + "/"),
-			Requires: []checkkit.Requirement{checkkit.RequiresDiff},
+			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
 		},
 		Run: run,
 	})

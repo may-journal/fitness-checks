@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
@@ -19,8 +20,10 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:             "issue-link-once",
 			Scope:            checkkit.ScopeGit,
+			Files:            checkkit.GitPattern,
 			ContextInlineArg: "--message",
 			Requires:         []checkkit.Requirement{checkkit.RequiresHistory, checkkit.RequiresGitHub},
+			MinFitness:       match.VirtualSince,
 		},
 		Run: run,
 	})
