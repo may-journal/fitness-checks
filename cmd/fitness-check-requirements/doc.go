@@ -46,7 +46,7 @@
 //
 //   - IDs: the file name's `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004].
 //   - Acceptance IDs: the title ID plus `.N`, unique in its doc.
-//   - Reuse: git history records every ID a commit removed. A doc or acceptance that brings one back fails.
+//   - Reuse: git history records every ID a commit removed. Bringing one back fails, unless the renumber map lists it as moved.
 //   - Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
 //   - Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.
 //   - Acceptance: one Given, one When, and one Then, nested in order; the Given starts with an [actor].
@@ -63,6 +63,27 @@
 //   - Missing docs: a repo with such code and none in `docs/requirements` fails.
 //   - Full and scoped runs judge every doc and test file, including unchanged files in pull requests that change only unrelated files.
 //   - Ownership is a repository-wide invariant: an unmapped repo stays red until every test owns a requirement.
+//
+// # Renumbering
+//
+// A repo that renumbers its docs checks in `docs/requirements/renumber.txt`.
+// Each line names one moved doc or acceptance and its new home. Blank lines
+// and lines starting with `#` are skipped.
+//
+//	# 0142 Offline Sync folded into 0005
+//	0142 -> 0005
+//	0143.3 -> 0005.2
+//
+// The check follows the map:
+//
+//   - Moves: an ID the map lists, or an acceptance of a listed doc, moved. Its number is free to reuse.
+//   - Deletions: a removed ID with no entry is still deleted, and bringing it back still fails.
+//   - Entries: both sides are doc numbers, or both are acceptance IDs. Any other line fails, and so does an old ID listed twice.
+//   - Targets: an entry whose new ID no doc defines fails, so every moved requirement stays traceable.
+//   - Pairs: a moved doc and its renamed tests change together, as Pairs below says.
+//
+// The map records where requirements went. It silences no finding: each new
+// ID is judged like any other.
 //
 // # Swift tests
 //

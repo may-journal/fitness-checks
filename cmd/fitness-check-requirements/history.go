@@ -16,11 +16,12 @@ type history struct {
 // historyLine matches an added or removed title or acceptance line in a diff.
 var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 
-// readHistory replays every commit that touched docsDir, oldest first, and is empty with a note saying why when git fails.
+// readHistory replays every commit that touched a doc in docsDir, oldest first, and is empty with a note saying why when git fails.
+// Only docs count, so a `# 0001` comment in the renumber map never reads as a title.
 func readHistory(root string) (h history, note string) {
 	h = history{removed: map[string]bool{}}
 	out, err := exec.Command("git", "-C", root, "log", "--reverse", "--no-color", "--no-ext-diff",
-		"-U0", "--format=%x00", "-p", "--", docsDir).Output()
+		"-U0", "--format=%x00", "-p", "--", docsDir+"*.md").Output()
 	if err != nil {
 		if why := gitFailure(err); !noHistory.MatchString(why) {
 			return h, "requirement IDs were not checked against git history: " + why

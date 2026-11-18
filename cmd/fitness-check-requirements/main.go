@@ -67,7 +67,13 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 	if historyNote != "" {
 		notes = append(notes, historyNote)
 	}
-	errs = append(errs, idErrors(docs, hist)...)
+	moves, moveErrs, err := readRenumbering(root)
+	if err != nil {
+		return errs, notes, err
+	}
+	errs = append(errs, moveErrs...)
+	errs = append(errs, moves.targetErrors(docs)...)
+	errs = append(errs, idErrors(docs, hist, moves)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, tests, written, proven)...)
 	errs = append(errs, orphanChecks(docs, proven)...)
@@ -139,14 +145,15 @@ func missingDocs(paths []string) []string {
 	return []string{docsDir + " has no requirement docs; add NNNN-kebab-title.md files from the template in the fitness-check-requirements README"}
 }
 
-// idErrors flags a requirement ID that two docs share, and any doc or
-// acceptance ID that history shows was removed before.
-func idErrors(docs []requirement.Document, hist history) []string {
+// idErrors flags a requirement ID that two docs share. It also flags any doc
+// or acceptance ID that history shows was removed, unless the renumber map
+// moved it.
+func idErrors(docs []requirement.Document, hist history, moves renumbering) []string {
 	var errs []string
 	owners := map[string][]string{}
 	for _, d := range docs {
 		owners[d.ID] = append(owners[d.ID], d.Path)
-		errs = append(errs, reusedErrors(d, hist)...)
+		errs = append(errs, reusedErrors(d, hist, moves)...)
 	}
 	for _, id := range sortedKeys(owners) {
 		if len(owners[id]) > 1 {
@@ -156,12 +163,13 @@ func idErrors(docs []requirement.Document, hist history) []string {
 	return errs
 }
 
-// reusedErrors flags the doc's IDs that a past commit deleted.
-func reusedErrors(d requirement.Document, hist history) []string {
+// reusedErrors flags the doc's IDs that a past commit deleted, unless the
+// renumber map moved them.
+func reusedErrors(d requirement.Document, hist history, moves renumbering) []string {
 	var errs []string
 	for _, id := range d.IDs() {
-		if hist.removed[id.ID] {
-			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so take the next free number"))
+		if hist.removed[id.ID] && !moves.moved(id.ID) {
+			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so take the next free number or list its move in "+renumberFile))
 		}
 	}
 	return errs

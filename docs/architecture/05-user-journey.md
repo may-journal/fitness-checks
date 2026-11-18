@@ -47,7 +47,7 @@ flowchart TB
         markdownChecks[(8 Markdown files<br/>Req 0033, 0034, 0036, 0037, 0123, 0159)]:::system
         mermaidChecks[(9 Mermaid diagrams<br/>Req 0038, 0039, 0040, 0041, 0042, 0043, 0084)]:::system
         architectureChecks[(10 Architecture views<br/>Req 0070, 0072, 0073, 0074, 0075, 0076, 0154)]:::system
-        requirementChecks[(11 Requirements and tests<br/>Req 0005, 0065, 0130, 0132, 0151)]:::system
+        requirementChecks[(11 Requirements and tests<br/>Req 0005, 0065, 0130, 0132, 0151, 0170)]:::system
         goSwiftChecks[(12 Go and Swift code<br/>Req 0026, 0027, 0028, 0029, 0030, 0057, 0097, 0168)]:::system
         javaChecks[(13 Java builds<br/>Req 0078, 0079, 0080, 0081)]:::system
         nodeChecks[(14 Node packages and tests<br/>Req 0022, 0024, 0045, 0047, 0052, 0059, 0060)]:::system
