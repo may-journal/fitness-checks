@@ -18,6 +18,9 @@ const renumberFile = docsDir + "renumber.txt"
 // number, or an acceptance ID to an acceptance ID.
 var renumberEntry = regexp.MustCompile(`^(\d{4})(\.\d+)?\s*->\s*(\d{4})(\.\d+)?$`)
 
+// byteOrderMark is the UTF-8 mark some editors save at a file's start.
+const byteOrderMark = "\xef\xbb\xbf"
+
 // move is one map entry and the line that states it.
 type move struct {
 	from, to string
@@ -31,17 +34,16 @@ type renumbering struct {
 }
 
 // readRenumbering reads and parses the map. A repo with no map moved
-// nothing.
-func readRenumbering(root string) (renumbering, []string, error) {
+// nothing, and a map it cannot read fails as a finding.
+func readRenumbering(root string) (renumbering, []string) {
 	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(renumberFile)))
 	if errors.Is(err, fs.ErrNotExist) {
 		data, err = nil, nil
 	}
 	if err != nil {
-		return renumbering{}, nil, err
+		return renumbering{from: map[string]bool{}}, []string{renumberFile + " cannot be read: " + err.Error()}
 	}
-	r, errs := parseRenumbering(string(data))
-	return r, errs, nil
+	return parseRenumbering(strings.TrimPrefix(string(data), byteOrderMark))
 }
 
 // parseRenumbering reads each entry of the map's text, skipping blank lines
@@ -66,21 +68,28 @@ func parseRenumbering(text string) (renumbering, []string) {
 func (r *renumbering) add(line string, n int) string {
 	m := renumberEntry.FindStringSubmatch(line)
 	if m == nil || (m[2] == "") != (m[4] == "") {
-		return "write each entry as `old -> new`, both doc numbers such as 0142 -> 0005 or both acceptance IDs such as 0142.3 -> 0005.2"
+		return "write each entry as `old -> new`, both doc numbers such as 0142 -> 0005 or both acceptance IDs such as 0142.3 -> 0005.2, with comments on their own `#` line"
 	}
-	from := m[1] + m[2]
+	from, to := m[1]+m[2], m[3]+m[4]
+	if from == to {
+		return from + " maps to itself; list only IDs that moved"
+	}
 	if r.from[from] {
 		return from + " is listed twice; a moved ID has one new home"
 	}
 	r.from[from] = true
-	r.moves = append(r.moves, move{from: from, to: m[3] + m[4], line: n})
+	r.moves = append(r.moves, move{from: from, to: to, line: n})
 	return ""
 }
 
-// moved reports whether the map lists id, or the doc an acceptance id
-// belongs to. Its removal was then a move, and its number is free again.
-func (r renumbering) moved(id string) bool {
-	return r.from[id] || (strings.Contains(id, ".") && r.from[id[:4]])
+// covered is 1 when the map lists id, or the doc an acceptance id belongs
+// to, and 0 otherwise. One removal was then a move, so the number is free
+// again until a later commit really deletes it.
+func (r renumbering) covered(id string) int {
+	if r.from[id] || (strings.Contains(id, ".") && r.from[id[:4]]) {
+		return 1
+	}
+	return 0
 }
 
 // targetErrors fails each entry whose new ID no doc defines, so every moved

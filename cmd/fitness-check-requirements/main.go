@@ -67,10 +67,7 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 	if historyNote != "" {
 		notes = append(notes, historyNote)
 	}
-	moves, moveErrs, err := readRenumbering(root)
-	if err != nil {
-		return errs, notes, err
-	}
+	moves, moveErrs := readRenumbering(root)
 	errs = append(errs, moveErrs...)
 	errs = append(errs, moves.targetErrors(docs)...)
 	errs = append(errs, idErrors(docs, hist, moves)...)
@@ -146,8 +143,8 @@ func missingDocs(paths []string) []string {
 }
 
 // idErrors flags a requirement ID that two docs share. It also flags any doc
-// or acceptance ID that history shows was removed, unless the renumber map
-// moved it.
+// or acceptance ID that history shows was removed more often than the
+// renumber map moved it.
 func idErrors(docs []requirement.Document, hist history, moves renumbering) []string {
 	var errs []string
 	owners := map[string][]string{}
@@ -163,12 +160,12 @@ func idErrors(docs []requirement.Document, hist history, moves renumbering) []st
 	return errs
 }
 
-// reusedErrors flags the doc's IDs that a past commit deleted, unless the
-// renumber map moved them.
+// reusedErrors flags the doc's IDs that a past commit deleted, past the one
+// removal the renumber map records as a move.
 func reusedErrors(d requirement.Document, hist history, moves renumbering) []string {
 	var errs []string
 	for _, id := range d.IDs() {
-		if hist.removed[id.ID] && !moves.moved(id.ID) {
+		if hist.removed[id.ID] > moves.covered(id.ID) {
 			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so take the next free number or list its move in "+renumberFile))
 		}
 	}

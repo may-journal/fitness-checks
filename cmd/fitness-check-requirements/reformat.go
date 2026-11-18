@@ -53,7 +53,7 @@ func sameWording(text map[string]string, before, after string) bool {
 
 // docsAtBase maps each of docs to its path at base, read from one listing
 // of base's docs. A doc renamed since base maps to the base doc of its
-// number, since a number is never reused.
+// number, since a number names one doc at a time.
 func docsAtBase(root, base string, docs []string) map[string]string {
 	out, _ := exec.Command("git", "-C", root, "ls-tree", "--name-only", base, docsDir).Output()
 	listed := strings.Fields(string(out))

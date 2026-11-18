@@ -9,8 +9,8 @@ import (
 
 // history is what past commits say about requirement IDs.
 type history struct {
-	// removed holds every ID a commit took out entirely.
-	removed map[string]bool
+	// removed counts the times commits took each ID out entirely.
+	removed map[string]int
 }
 
 // historyLine matches an added or removed title or acceptance line in a diff.
@@ -19,7 +19,7 @@ var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 // readHistory replays every commit that touched a doc in docsDir, oldest first, and is empty with a note saying why when git fails.
 // Only docs count, so a `# 0001` comment in the renumber map never reads as a title.
 func readHistory(root string) (h history, note string) {
-	h = history{removed: map[string]bool{}}
+	h = history{removed: map[string]int{}}
 	out, err := exec.Command("git", "-C", root, "log", "--reverse", "--no-color", "--no-ext-diff",
 		"-U0", "--format=%x00", "-p", "--", docsDir+"*.md").Output()
 	if err != nil {
@@ -70,7 +70,7 @@ func (h history) apply(live, net map[string]int) {
 		before := live[id]
 		live[id] += n
 		if before > 0 && live[id] <= 0 {
-			h.removed[id] = true
+			h.removed[id]++
 		}
 	}
 }

@@ -29,6 +29,8 @@ func Test0170_3(t *testing.T) {
 		"0001 => 0003\n":               renumberMap + ":1: write each entry as `old -> new`",
 		"0002 -> 0001.1\n":             renumberMap + ":1: write each entry as `old -> new`",
 		"0002 -> 0001\n0002 -> 0001\n": renumberMap + ":2: 0002 is listed twice",
+		"\xef\xbb\xbf0001 -> 0001\n":   renumberMap + ":1: 0001 maps to itself",
+		"0002 -> 0001 # folded\n":      renumberMap + ":1: write each entry as `old -> new`, both doc numbers such as 0142 -> 0005 or both acceptance IDs such as 0142.3 -> 0005.2, with comments on their own `#` line",
 		"\n0002.1 -> 0001.7\n":         renumberMap + ":2: 0002.1 -> 0001.7 points at 0001.7, which no doc defines",
 	} {
 		out, code := fitness(t, example(t, "happyRepo", with(pairedRepo(), map[string]string{renumberMap: body})), nil, "requirements")
@@ -47,6 +49,15 @@ func Test0170_4(t *testing.T) {
 	sees(t, out, code, 1, "Test0001_1 names 0001.1, which no requirement defines")
 	out, code = stagedRun(t, pairedRepo(), with(moved, map[string]string{pairedTest: "", "reqs/0003_test.go": testFile("reqs", "Test0003_1")}))
 	sees(t, out, code, 0)
+}
+
+func Test0170_5(t *testing.T) {
+	t.Parallel()
+	repo := folded0170(t)
+	commit(t, repo, with(reborn0170, map[string]string{renumberMap: "0002 -> 0001\n"}), "docs(requirements): add 0002 again")
+	commit(t, repo, map[string]string{"docs/requirements/0002-adds-again.md": "", "reqs/0002_test.go": ""}, "docs(requirements): drop 0002")
+	out, code := staged(t, repo, reborn0170)
+	sees(t, out, code, 1, "0002 was deleted before", "0002.1 was deleted before")
 }
 
 // renumberMap is where a repo lists each moved requirement ID.

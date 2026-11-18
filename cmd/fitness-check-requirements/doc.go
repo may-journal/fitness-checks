@@ -78,7 +78,9 @@
 //
 //   - Moves: an ID the map lists, or an acceptance of a listed doc, moved. Its number is free to reuse.
 //   - Deletions: a removed ID with no entry is still deleted, and bringing it back still fails.
-//   - Entries: both sides are doc numbers, or both are acceptance IDs. Any other line fails, and so does an old ID listed twice.
+//   - Once: an entry covers one removal. A reused number that a later commit deletes is deleted.
+//   - Entries: both sides are doc numbers, or both are acceptance IDs. Other lines fail, as do repeats and self-moves.
+//   - Unreadable: a map the check cannot read fails, naming why.
 //   - Targets: an entry whose new ID no doc defines fails, so every moved requirement stays traceable.
 //   - Pairs: a moved doc and its renamed tests change together, as Pairs below says.
 //
