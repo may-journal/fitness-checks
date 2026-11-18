@@ -1,22 +1,57 @@
 package requirements
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
 
-// issueChecklist runs `fitness-install -- issue-checklist` on an issue body.
-func issueChecklist(t *testing.T, body string) (string, int) {
+	"github.com/may-journal/fitness-checks/internal/program"
+)
+
+// stubTargets are the stub's relative links, as a check folder resolves them.
+var stubTargets = []string{"../../docs/architecture/03-components.md", "doc.go"}
+
+// stub0012 is the README every check folder holds, given its name and the
+// summary its doc comment opens with, as --describe prints it.
+func stub0012(name, summary string) string {
+	return "# " + name + "\n\n" + summary + "\n\n" +
+		"- [Architecture](" + stubTargets[0] + ")\n" +
+		"- [Source](" + stubTargets[1] + ")\n" +
+		"- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-" + name +
+		") or `fitness-check-" + name + " --describe`\n"
+}
+
+// readFolder0012 reads file in folder, or reports why it could not.
+func readFolder0012(t *testing.T, folder, file string) (string, bool) {
 	t.Helper()
-	repo := example(t, "happyRepo", map[string]string{"issue.md": body})
-	return fitness(t, repo, nil, "issue-checklist", "--body-file", "issue.md")
+	data, err := os.ReadFile(filepath.Join(folder, file))
+	if err != nil {
+		t.Errorf("%s: %v", folder, err)
+		return "", false
+	}
+	return string(data), true
 }
 
 func Test0012_1(t *testing.T) {
 	t.Parallel()
-	out, code := issueChecklist(t, "- [x] Write the doc.\n- [ ] Write the tests.\n")
-	sees(t, out, code, 1, `unchecked item: "Write the tests."`)
+	for _, folder := range checkFolders0008(t, "..") {
+		name := strings.TrimPrefix(filepath.Base(folder), "fitness-check-")
+		source, okDoc := readFolder0012(t, folder, "doc.go")
+		readme, okReadme := readFolder0012(t, folder, "README.md")
+		if want := stub0012(name, program.Summary(source)); okDoc && okReadme && readme != want {
+			t.Errorf("%s/README.md is not the stub:\n%s\nwant:\n%s", folder, readme, want)
+		}
+	}
 }
 
 func Test0012_2(t *testing.T) {
 	t.Parallel()
-	out, code := issueChecklist(t, "- [x] Write the doc.\n- [x] Write the tests.\n")
-	sees(t, out, code, 0, "issue-checklist")
+	for _, folder := range checkFolders0008(t, "..") {
+		for _, target := range stubTargets {
+			if _, err := os.Stat(filepath.Join(folder, target)); err != nil {
+				t.Errorf("%s/README.md links %s, which does not resolve: %v", folder, target, err)
+			}
+		}
+	}
 }

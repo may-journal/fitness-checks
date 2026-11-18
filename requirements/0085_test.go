@@ -1,5 +1,3 @@
-// cspell:ignore antml
-
 package requirements
 
 import (
@@ -7,84 +5,90 @@ import (
 	"testing"
 )
 
-// commentStructure runs comment-structure on comment, saved over happyRepo
-// with files, as --body-file.
-func commentStructure(t *testing.T, comment string, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", with(files, map[string]string{"comment.md": comment})), nil,
-		"comment-structure", "--body-file", "comment.md")
+// inFunctions writes each Go, Swift and TypeScript body, its comment from line 4, inside a function.
+func inFunctions(goBody, swiftBody, tsBody string) map[string]string {
+	return map[string]string{
+		"app/run.go":    "package main\n\nfunc run(a int) int {\n" + goBody + "\treturn a\n}\n",
+		"app/Run.swift": "import Foundation\n\nfunc run(a: Int) -> Int {\n" + swiftBody + "    return a\n}\n",
+		"app/run.ts":    "export {};\n\nexport function run(a: number): number {\n" + tsBody + "  return a;\n}\n",
+	}
 }
 
-// words is n words of plain prose.
-func words(n int) string {
-	return strings.TrimSpace(strings.Repeat("word ", n)) + "."
+// atEachFunction names line 4 of each inFunctions file, followed by message.
+func atEachFunction(message string) []string {
+	return []string{"app/Run.swift:4: " + message, "app/run.go:4: " + message, "app/run.ts:4: " + message}
 }
-
-// numbered is a numbered diagram and its matching callout table.
-const numbered = "```mermaid\nflowchart TD\n  A[1 Start]:::s --> B[2 End]:::s\n  classDef s fill:#eef\n```\n\n" +
-	"| # | Element | Description | Why |\n| - | - | - | - |\n| 1 | Start | First. | Begins. |\n| 2 | End | Last. | Ends. |\n"
-
-// overBudget has 120 prose words, and more inside a table and code.
-var overBudget = words(120) + "\n\n| A | B |\n| - | - |\n| " + words(30) + " | x |\n\n```\n" + words(30) + "\n```\n"
 
 func Test0085_1(t *testing.T) {
 	t.Parallel()
-	out, code := commentStructure(t, overBudget, nil)
-	sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams; the budget is 100")
+	out, code := proseBudget(t, inFunctions(
+		"\t// x := compute(a)\n\t// if x > 0 {\n\t// \treturn x\n\t// }\n",
+		"    // let x = compute(a)\n    // print(x)\n",
+		"  // const x = compute(a);\n  // console.log(x);\n"))
+	sees(t, out, code, 1,
+		"app/run.go:4: commented-out-code: 3 of 3 lines are code; delete it, since git keeps old code",
+		"app/Run.swift:4: commented-out-code: 2 of 2 lines are code; delete it",
+		"app/run.ts:4: commented-out-code: 2 of 2 lines are code; delete it")
 }
 
 func Test0085_2(t *testing.T) {
 	t.Parallel()
-	out, code := commentStructure(t, overBudget, map[string]string{".fitnessrc.json": `{"comment": {"maxWords": 150}}`})
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := proseBudget(t, inFunctions(
+		"\ti := 0\n\t// increment i\n\ti++\n",
+		"    var i = 0\n    // increment i\n    i += 1\n",
+		"  let i = 0;\n  // increment i\n  i++;\n"))
+	sees(t, out, code, 1,
+		"app/run.go:5: restates-code: every word repeats the next code line; delete it or say why",
+		"app/Run.swift:5: restates-code: every word repeats the next code line",
+		"app/run.ts:5: restates-code: every word repeats the next code line")
 }
 
 func Test0085_3(t *testing.T) {
 	t.Parallel()
-	table := "| A | B |\n| - | - |\n| 1 | 2 |\n"
-	out, code := commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
-	sees(t, out, code, 1, "(comment): 2 tables besides callout tables; the budget is 1")
+	files := inComments("🚀 Launches the rocket once on start.")
+	files["app/banner.go"] = "package main\n\n// ==========\nvar x = 1\n"
+	out, code := proseBudget(t, files)
+	sees(t, out, code, 1, append(atEachFile(`decoration: a comment holds the emoji "🚀"; delete it`),
+		`app/banner.go:3: decoration: a comment holds the banner "=========="; delete it`)...)
 }
 
 func Test0085_4(t *testing.T) {
 	t.Parallel()
-	out, code := commentStructure(t, "Flow.\n\n```mermaid\nflowchart TD\n  A --> B\n```\n", nil)
-	sees(t, out, code, 1, "(comment): line 3: mermaid diagram has no numbered callouts")
-	legend := strings.Replace(numbered, "\n\n|", "\n\n```mermaid\nflowchart LR\n  k[Step]:::s\n  classDef s fill:#eef\n```\n\n|", 1)
-	out, code = commentStructure(t, legend, nil)
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := proseBudget(t, inComments("Previously read the cache on every run."))
+	sees(t, out, code, 1, atEachFile(`change-narration: "Previously" narrates a change; say what holds today, since git keeps history`)...)
 }
 
 func Test0085_5(t *testing.T) {
 	t.Parallel()
-	out, code := commentStructure(t, "The parser works.\n\nEdit 2: it handles tabs too.\n", nil)
-	sees(t, out, code, 1, `(comment): line 3: "Edit 2:": change-log note; edit the text in place and drop the note`)
-	out, code = commentStructure(t, "The cache is updated after every push.\n", nil)
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := proseBudget(t, inComments("Basically retries once on a cold cache."))
+	sees(t, out, code, 1, atEachFile(`hedging: "Basically" hedges; drop the word or state the fact`)...)
 }
 
 func Test0085_6(t *testing.T) {
 	t.Parallel()
-	out, code := commentStructure(t, "Done.\n\n<system-reminder>\n\nRan on claude-opus-4-1 today.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
-	sees(t, out, code, 1, `(comment): line 3: "<system-reminder": agent frame; post only the finished text`,
-		`(comment): line 5: "claude-opus-4-1": model identifier; name the agent, not the model`,
-		`(comment): line 7: "<!-- fitness:": carries a fitness marker; only fitness writes those, so remove it`)
-	out, code = commentStructure(t, "Pinned to `claude-opus-4-1` in config.\n", nil)
-	sees(t, out, code, 0, "All 1 checks passed")
+	files := inComments("Retries just once, since the first call warms the cache.")
+	files["app/state.go"] = "package main\n\n// Maps each state → its next state on every tick.\nvar next = map[int]int{}\n"
+	files["app/expiry.ts"] = "export {};\n\n// The cache no longer expires once it holds a value.\nexport const keep = true;\n"
+	files["app/store.go"] = "package main\n\n// Returns the previously stored value.\nfunc stored() int { return 0 }\n"
+	files["README.md"] = readme + "\nIt basically worked previously. 🚀\n\n-----\n"
+	out, code := proseBudget(t, files)
+	sees(t, out, code, 0)
 }
 
 func Test0085_7(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", nil)
-	for _, body := range []string{planBody("- [ ] Write the tests."), epicBody("1. #22\n2. #23, after #22")} {
-		out, code := piped(t, repo, body, nil, "--blob", "-")
-		sees(t, out, code, 0, "Skipped (does not apply to this text): comment-structure")
+	repo := example(t, "happyRepo", map[string]string{
+		"app/run.go": "package main\n\n// Basically runs the old code.\nfunc old() {}\n\n// Runs the main loop until it ends.\nfunc main() {}\n",
+	})
+	write(t, repo, map[string]string{
+		"app/run.go": "package main\n\n// Basically runs the old code.\nfunc old() {}\n\n// Runs the main loop, simply until it ends.\nfunc main() {}\n",
+	})
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "prose-budget")
+	sees(t, out, code, 1, `app/run.go:6: hedging: "simply" hedges`)
+	if strings.Contains(out, "app/run.go:3:") {
+		t.Errorf("the hook judged a comment the change left alone:\n%s", out)
 	}
-}
-
-func Test0085_8(t *testing.T) {
-	t.Parallel()
-	out, code := fitness(t, example(t, "happyRepo", nil), nil, "comment-structure")
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "comment-structure")
+	out, code = fitness(t, repo, nil, "--all", "prose-budget")
+	sees(t, out, code, 1, `app/run.go:3: hedging: "Basically" hedges`, `app/run.go:6: hedging: "simply" hedges`)
 }

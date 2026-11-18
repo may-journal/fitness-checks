@@ -77,10 +77,10 @@
 //
 // # Requirements
 //
-// [Requirement 0075] has one installed-command test per acceptance.
+// [Requirement 0025] has one installed-command test per acceptance.
 //
 // [language module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
-// [Requirement 0075]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0075-checks-architecture-components.md
+// [Requirement 0025]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0025-checks-architecture-components.md
 package main
 
 import _ "embed"

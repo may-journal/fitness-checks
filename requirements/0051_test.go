@@ -1,74 +1,87 @@
 package requirements
 
 import (
-	"strings"
+	"regexp"
 	"testing"
 )
 
-// prStructureSummary is a real one-line blockquote summary.
-const prStructureSummary = "> Ship the thing so a reader gets the value.\n\n"
+// goVetMod is a minimal go.mod for a Given's module.
+const goVetMod = "module m\n\ngo 1.21\n"
 
-// prStructureBackground is a filled `## Background` section.
-const prStructureBackground = "## Background\n\nWhy this exists.\n\n"
+// goVetBad is Go source the compiler accepts but go vet flags.
+const goVetBad = "package m\n\nimport \"fmt\"\n\nfunc F() { fmt.Printf(\"%d\\n\", \"x\") }\n"
 
-// prStructureChangelog is a `## Changelog` section with one bullet.
-const prStructureChangelog = "## Changelog\n\n- Feat: the new behavior\n"
+// goVetFinding is what go vet reports for goVetBad.
+const goVetFinding = `m.go:5:24: fmt.Printf format %d has arg "x" of wrong type string`
 
-// prStructure runs `fitness-install -- pr-structure --body-file pr.md` on
-// happyRepo with body as the PR description.
-func prStructure(t *testing.T, body string) (string, int) {
+// goVetModule returns the files of a module in dir holding src.
+func goVetModule(dir, src string) map[string]string {
+	return map[string]string{dir + "/go.mod": goVetMod, dir + "/m.go": src}
+}
+
+// goVet runs `fitness-install -- go-vet` in repo with env added.
+func goVet(t *testing.T, repo string, env ...string) (string, int) {
 	t.Helper()
-	repo := example(t, "happyRepo", map[string]string{"pr.md": body})
-	return fitness(t, repo, nil, "pr-structure", "--body-file", "pr.md")
+	return fitness(t, repo, env, "go-vet")
 }
 
 func Test0051_1(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog)
-	sees(t, out, code, 0, "pr-structure")
+	out, code := goVet(t, example(t, "happyRepo", goVetModule(".", goVetBad)))
+	sees(t, out, code, 1, "✖ "+goVetFinding)
 }
 
 func Test0051_2(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, prStructureBackground+prStructureChangelog)
-	sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
+	out, code := goVet(t, example(t, "happyRepo", goVetModule("api", goVetBad)))
+	sees(t, out, code, 1, "✖ api: "+goVetFinding)
 }
 
 func Test0051_3(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, "> REPLACE-ME\n\n"+prStructureBackground+prStructureChangelog)
-	sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
+	out, code := goVet(t, example(t, "happyRepo", goVetModule("api", "package m\n\nfunc F() int { return 1 }\n")))
+	sees(t, out, code, 0, "All 1 checks passed")
+	if !regexp.MustCompile(`│ passed\s+│ 1\s+│`).MatchString(row(out, "go-vet")) {
+		t.Errorf("go-vet must pass counting 1 module, got row %q", row(out, "go-vet"))
+	}
 }
 
 func Test0051_4(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, prStructureSummary+prStructureChangelog)
-	sees(t, out, code, 1, "Missing `## Background` section")
+	out, code := goVet(t, example(t, "happyRepo", map[string]string{"main.go": goVetBad}))
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-vet")
 }
 
 func Test0051_5(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, prStructureSummary+prStructureBackground+"## Changelog\n\nNothing yet.\n")
-	sees(t, out, code, 1, "`## Changelog` has no list item (- …)")
+	files := goVetModule("testdata/fixture", goVetBad)
+	for name, body := range goVetModule("vendor/dep", goVetBad) {
+		files[name] = body
+	}
+	out, code := goVet(t, example(t, "happyRepo", files))
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-vet")
 }
 
 func Test0051_6(t *testing.T) {
 	t.Parallel()
-	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog+"\n## Testing\n\nRan it.\n")
-	sees(t, out, code, 1, "Unexpected `## Testing` section — a PR has only Background and Changelog")
+	repo := example(t, "happyRepo", goVetModule("api", goVetBad))
+	write(t, repo, map[string]string{"README.md": readme + "\nMore text.\n"})
+	git(t, repo, "add", "README.md")
+	out, code := goVet(t, repo)
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-vet")
 }
 
 func Test0051_7(t *testing.T) {
 	t.Parallel()
-	fence := strings.Repeat("`", 3)
-	sample := "\n" + fence + "markdown\n## Testing\n" + fence + "\n"
-	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog+sample)
-	sees(t, out, code, 0, "pr-structure")
+	out, code := goVet(t, example(t, "happyRepo", goVetModule("api", goVetBad)), pathWithout(t, "go"))
+	showsInfo(t, out, code, "go-vet", "Go not installed: see https://go.dev/dl")
 }
 
 func Test0051_8(t *testing.T) {
 	t.Parallel()
-	out, code := fitness(t, example(t, "happyRepo", nil), nil, "pr-structure")
-	sees(t, out, code, 0, "pr-structure")
-	passedWithNoFiles(t, out, "pr-structure")
+	out, code := goVet(t, example(t, "happyRepo", goVetModule(".", goVetBad)), crashingGo(t, "vet", "go: unexpected internal error"))
+	showsInfo(t, out, code, "go-vet", "go vet ./... exited 2 without a finding: go: unexpected internal error")
 }

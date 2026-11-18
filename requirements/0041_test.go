@@ -1,89 +1,80 @@
 package requirements
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-// tableGap runs `fitness-install -- mermaid-diagram-table-gap <args>` on
-// happyRepo with files written over it.
-func tableGap(t *testing.T, files map[string]string, args ...string) (string, int) {
+// changelogRun runs `fitness-install -- changelog` on happyRepo with files
+// written over it.
+func changelogRun(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"mermaid-diagram-table-gap"}, args...)...)
+	return fitness(t, example(t, "happyRepo", files), nil, "changelog")
 }
 
-// tableGapDoc joins parts into a doc, one blank line between each.
-func tableGapDoc(parts ...string) string {
-	return "# Doc\n\n" + strings.Join(parts, "\n\n") + "\n"
+// entryFileText is an entry file under stamp with three typed bullets, the
+// first one item, below the front matter older entries carry.
+func entryFileText(stamp, item string) string {
+	return "---\nrelatedConfigurations: ['../.fitnessrc.json']\n---\n\n" + bareEntryText(stamp, item)
 }
 
-// The numbered diagram, its legend, the caption, and a matching callout
-// table that each Given arranges around the diagram-to-table gap.
-const (
-	tableGapDiagram = "```mermaid\nContainer(app, \"1\", \"UI\")\nRel(app, api, \"2\")\n```"
-	tableGapLegend  = "```mermaid\nPerson(p, \"Person\")\nSystem(s, \"System\")\n```"
-	tableGapCaption = "Numbers on nodes and arrows match the callout table."
-	tableGapTable   = "| # | Description | Why |\n| --- | --- | --- |\n| 1 | the app | because |\n| 2 | talks to | because |"
-	tableGapProse   = "Four containers sit inside one app."
-)
-
-// tableGapError is the message a reader sees for prose at line in file.
-func tableGapError(file, line string) string {
-	return file + ": prose between the diagram and its callout table (line " + line + ") — move detail into the callout table"
+// bareEntryText is entryFileText without front matter, which is optional.
+func bareEntryText(stamp, item string) string {
+	return "### " + stamp + "\n\n- " + item + "\n- Test: cover it.\n- Docs: describe it.\n"
 }
 
-func Test0041_1(t *testing.T) {
-	t.Parallel()
-	out, code := tableGap(t, map[string]string{"doc.md": tableGapDoc(tableGapDiagram, tableGapProse, tableGapTable)})
-	sees(t, out, code, 1, tableGapError("doc.md", "8"))
-}
-
-func Test0041_2(t *testing.T) {
-	t.Parallel()
-	doc := tableGapDoc(tableGapDiagram, tableGapLegend, tableGapProse, tableGapTable)
-	out, code := tableGap(t, map[string]string{"doc.md": doc})
-	sees(t, out, code, 1, tableGapError("doc.md", "13"))
-}
-
-func Test0041_3(t *testing.T) {
-	t.Parallel()
-	out, code := tableGap(t, map[string]string{
-		"a.md": tableGapDoc(tableGapDiagram, tableGapLegend, tableGapCaption, tableGapTable),
-		"b.md": tableGapDoc(tableGapDiagram, "Numbers on classes and relationships match the callout table.", tableGapTable),
-		"c.md": tableGapDoc(tableGapDiagram, `Numbers match the callout table. "Screen" is a terminal state.`, tableGapTable),
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0041_4(t *testing.T) {
-	t.Parallel()
-	doc := tableGapDoc(tableGapDiagram, tableGapLegend, tableGapCaption, tableGapProse, tableGapTable)
-	out, code := tableGap(t, map[string]string{"doc.md": doc})
-	sees(t, out, code, 1, tableGapError("doc.md", "15"))
-	if strings.Contains(read(out), read(tableGapError("doc.md", "13"))) {
-		t.Errorf("the caption at line 13 must not be flagged:\n%s", out)
+// withEntries is files over happyRepo holding each named entry file.
+func withEntries(entries map[string]string) map[string]string {
+	files := map[string]string{}
+	for name, body := range entries {
+		files["changelog/"+name+".md"] = body
 	}
+	return files
 }
 
-func Test0041_5(t *testing.T) {
+// upstreamChangelog is a CHANGELOG.md as an upstream project keeps it:
+// undated, typed sections of numbered items under a version heading.
+const upstreamChangelog = "# Changelog\n\n## v2.0.0\n\n### Added\n\n1. Catalog-level publishing\n2. Plugin hooks\n\n### Removed\n1. Old lint tools\n"
+
+func Test0041_21(t *testing.T) {
 	t.Parallel()
-	out, code := tableGap(t, map[string]string{
-		"a.md": tableGapDoc("Intro prose before the diagram.", tableGapDiagram, tableGapCaption, tableGapTable, "Trailing prose after the table."),
-		"b.md": tableGapDoc("Prose above.", "```mermaid\nContainer(app, \"UI\")\n```", "Prose below."),
+	out, code := changelogRun(t, withEntries(map[string]string{
+		"undated-change":               entryFileText("2026.10.11.0900", "Feat: undated change."),
+		"2026-10-11-0800-moved-change": entryFileText("2026.10.11.1000", "Fix: moved change."),
+	}))
+	sees(t, out, code, 1,
+		"changelog/undated-change.md must be named changelog/2026-10-11-0900-undated-change.md: its heading's date, then the change",
+		"changelog/2026-10-11-0800-moved-change.md must be named changelog/2026-10-11-1000-moved-change.md")
+}
+
+func Test0041_22(t *testing.T) {
+	t.Parallel()
+	out, code := changelogRun(t, withEntries(map[string]string{
+		"2026-10-11-0900-good-change":  entryFileText("2026.10.11.0900", "Feat: good change."),
+		"2026-10-11-1000-two-headings": entryFileText("2026.10.11.1000", "Fix: one.") + "\n" + entryFileText("2026.10.11.1100", "Fix: two."),
+		"2026-10-11-1200-undated":      "### Added\n\n- Feat: one.\n- Fix: two.\n- Docs: three.\n",
+	}))
+	sees(t, out, code, 1,
+		"changelog/2026-10-11-1000-two-headings.md must hold one ### yyyy.mm.dd.HHMM heading and its bullets, nothing else",
+		"changelog/2026-10-11-1200-undated.md must hold one ### yyyy.mm.dd.HHMM heading")
+}
+
+func Test0041_23(t *testing.T) {
+	t.Parallel()
+	files := withEntries(map[string]string{
+		"2026-10-10-0900-older-change": entryFileText("2026.10.10.0900", "Fix: older change."),
+		"2026-10-11-0900-newer-change": bareEntryText("2026.10.11.0900", "Feat: newer change."),
 	})
+	files["CHANGELOG.md"] = upstreamChangelog
+	files["package.json"] = `{"name": "app", "private": true, "version": "2.0.1"}` + "\n"
+	files["package-lock.json"] = `{"name": "app", "version": "2.0.0"}` + "\n"
+	out, code := changelogRun(t, files)
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWith(t, out, "changelog", "2")
 }
 
-func Test0041_6(t *testing.T) {
+func Test0041_24(t *testing.T) {
 	t.Parallel()
-	out, code := tableGap(t, map[string]string{"doc.md": tableGapDoc("Just prose, nothing to see here.")})
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "mermaid-diagram-table-gap")
-}
-
-func Test0041_7(t *testing.T) {
-	t.Parallel()
-	body := strings.Join([]string{tableGapDiagram, tableGapProse, tableGapTable}, "\n\n") + "\n"
-	out, code := tableGap(t, map[string]string{"body.md": body}, "--body-file", "body.md")
-	sees(t, out, code, 1, tableGapError("(description)", "6"))
+	for _, changelog := range []string{upstreamChangelog, ""} {
+		out, code := changelogRun(t, map[string]string{"CHANGELOG.md": changelog})
+		sees(t, out, code, 0, "All 1 checks passed")
+		passedWithNoFiles(t, out, "changelog")
+	}
 }

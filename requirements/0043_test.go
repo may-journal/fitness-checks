@@ -1,118 +1,160 @@
 package requirements
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 )
 
-// levelBleed runs `fitness-install -- mermaid-level-bleed` on happyRepo with
-// files written over it.
-func levelBleed(t *testing.T, files map[string]string) (string, int) {
+// changelogStaged commits happyRepo, stages staged over it, and runs
+// `fitness-install -- changelog-updated` as a pre-commit hook would.
+func changelogStaged(t *testing.T, staged map[string]string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "mermaid-level-bleed")
+	repo := example(t, "happyRepo", nil)
+	write(t, repo, staged)
+	git(t, repo, "add", "-A")
+	return fitness(t, repo, nil, "changelog-updated")
 }
 
-// levelBleedDoc is a C4 level doc with one diagram and a callout table of
-// [#, Description] rows.
-func levelBleedDoc(descriptions ...string) string {
-	lines := []string{"# Level", "", "```mermaid", `Rel(a, b, "1")`, "```", "", "| # | Description |", "| --- | --- |"}
-	for i, d := range descriptions {
-		lines = append(lines, "| "+strconv.Itoa(i+1)+" | "+d+" |")
+// changelogBase is happyRepo's changelog.
+const changelogBase = "---\nrelatedConfigurations: ['.fitnessrc.json']\n---\n\n# Changelog\n\n## Changes\n\n" +
+	"### 2026.10.08.1400\n\n- Docs: add the readme.\n- Docs: add the changelog.\n- Docs: add the license note.\n"
+
+// changelogEntry is happyRepo's changelog with a new section, holding one
+// bullet item, on top.
+func changelogEntry(stamp, item string) string {
+	return strings.Replace(changelogBase, "## Changes\n\n", "## Changes\n\n### "+stamp+"\n\n- "+item+"\n\n", 1)
+}
+
+// changelogStamp is the heading of a new entry.
+const changelogStamp = "2026.10.12.0900"
+
+// changelogFeature is a staged source change the entry should mention.
+const changelogFeature = "Added runner feature for validation.\n"
+
+// changelogStagedEntry is happyRepo's staged feature with its entry file
+// under stamp, its first bullet item.
+func changelogStagedEntry(stamp, item string) map[string]string {
+	files := withEntries(map[string]string{"2026-10-12-0900-runner-feature": entryFileText(stamp, item)})
+	files["src.txt"] = changelogFeature
+	return files
+}
+
+func Test0043_19(t *testing.T) {
+	t.Parallel()
+	out, code := changelogStaged(t, map[string]string{"src.txt": changelogFeature})
+	sees(t, out, code, 1, "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes")
+}
+
+func Test0043_20(t *testing.T) {
+	t.Parallel()
+	for _, changelog := range []string{
+		changelogEntry(changelogStamp, "Feat: added runner feature for validation."),
+		strings.Replace(changelogBase, "- Docs: add the readme.", "- Docs: add the readme file.", 1),
+		"",
+	} {
+		files := changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation.")
+		files["CHANGELOG.md"] = changelog
+		out, code := changelogStaged(t, files)
+		sees(t, out, code, 0, "All 1 checks passed")
 	}
-	return strings.Join(lines, "\n") + "\n"
-}
-
-// levelBleedRepeat is the message for file repeating text from level.
-func levelBleedRepeat(file, text string, level int) string {
-	return file + `: description "` + text + `" repeats level ` + strconv.Itoa(level) +
-		" verbatim — lower levels should add level-specific rationale"
-}
-
-func Test0043_1(t *testing.T) {
-	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"docs/architecture/01-context.md":    levelBleedDoc("User reads the timeline"),
-		"docs/architecture/02-containers.md": levelBleedDoc("User reads the timeline", "New detail"),
-	})
-	sees(t, out, code, 1, levelBleedRepeat("docs/architecture/02-containers.md", "user reads the timeline", 1))
-}
-
-func Test0043_2(t *testing.T) {
-	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/01-context.md":    levelBleedDoc("The whole system", ""),
-		"architecture/02-containers.md": levelBleedDoc("The macOS app", ""),
-	})
+	repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": ""})
+	write(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."))
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "changelog-updated")
 	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0043_3(t *testing.T) {
 	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/01-context.md": levelBleedDoc("The app"),
-		"architecture/02-app.md":     levelBleedDoc("The  APP", "the app", "New detail"),
-	})
-	want := levelBleedRepeat("architecture/02-app.md", "the app", 1)
-	sees(t, out, code, 1, want)
-	if n := strings.Count(read(out), read(want)); n != 1 {
-		t.Errorf("the repeat must be reported once, got %d:\n%s", n, out)
-	}
-}
-
-func Test0043_4(t *testing.T) {
-	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/01-context.md":    levelBleedDoc("Shared line"),
-		"architecture/02-containers.md": levelBleedDoc("Something else"),
-		"architecture/03-components.md": levelBleedDoc("Shared line"),
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0043_5(t *testing.T) {
-	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/2-app.md":   levelBleedDoc("The engine"),
-		"architecture/10-deep.md": levelBleedDoc("The engine"),
-	})
-	sees(t, out, code, 1, levelBleedRepeat("architecture/10-deep.md", "the engine", 2))
+	out, code := changelogStaged(t, changelogStagedEntry(changelogStamp, "Fix: minor tweak."))
+	sees(t, out, code, 1,
+		"Changelog entry file additions should mention at least 3 words from your staged changes (found 0: )",
+		"e.g. use words like: added, runner, feature, for, validation")
 }
 
 func Test0043_6(t *testing.T) {
 	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/overview.md":    levelBleedDoc("Anything"),
-		"not-architecture/01-x.md":    levelBleedDoc("Anything"),
-		"not-architecture/02-x.md":    levelBleedDoc("Anything"),
-		"docs/01-context-notes.md":    levelBleedDoc("Anything"),
-		"docs/02-container-notes.md":  levelBleedDoc("Anything"),
-		"architecture/sub/01-deep.md": levelBleedDoc("Anything"),
-	})
+	repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
+	git(t, repo, "checkout", "-q", "-b", "side")
+	commit(t, repo, map[string]string{
+		"src.txt":      changelogFeature,
+		"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
+	}, "feat: add runner")
+	git(t, repo, "checkout", "-q", "-")
+	commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
+	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
+	out, code := fitness(t, repo, nil, "changelog-updated")
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "mermaid-level-bleed")
 }
 
-func Test0043_7(t *testing.T) {
-	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/01-context.md": "| # | Label | DESCRIPTION |\n| --- | --- | --- |\n| 1 | Same label | The system |\n",
-		"architecture/02-app.md":     "| # | Label | Description |\n| --- | --- | --- |\n| 1 | Same label | The system |\n",
-	})
-	sees(t, out, code, 1, levelBleedRepeat("architecture/02-app.md", "the system", 1))
-	if strings.Contains(out, "same label") {
-		t.Errorf("only the Description column may be compared:\n%s", out)
-	}
+// changelogBranch is happyRepo, with files over it, on a branch off
+// origin/main whose first commit added first for the staged feature.
+func changelogBranch(t *testing.T, files, first map[string]string) string {
+	t.Helper()
+	repo := example(t, "happyRepo", files)
+	git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+	git(t, repo, "checkout", "-q", "-b", "work")
+	first["src.txt"] = changelogFeature
+	commit(t, repo, first, "feat: add runner")
+	return repo
 }
 
-func Test0043_8(t *testing.T) {
+// changelogFirst is the stamp of the branch's first entry.
+const changelogFirst = "2026.01.02.0900"
+
+// changelogSecond stages a second change in repo, with entry, and runs
+// changelog-updated on it.
+func changelogSecond(t *testing.T, repo string, entry map[string]string) (string, int) {
+	t.Helper()
+	entry["src.txt"] = changelogFeature + "Added runner option for validation.\n"
+	write(t, repo, entry)
+	git(t, repo, "add", "-A")
+	return fitness(t, repo, nil, "changelog-updated")
+}
+
+func Test0043_14(t *testing.T) {
 	t.Parallel()
-	out, code := levelBleed(t, map[string]string{
-		"architecture/01-context.md": "| # | Text | Notes |\n| --- | --- | --- |\n| 1 | Same | x |\n",
-		"architecture/02-app.md":     "| # | Text | Notes |\n| --- | --- | --- |\n| 1 | same | x |\n",
+	first := entryFileText(changelogFirst, "Feat: added runner feature for validation.")
+	repo := changelogBranch(t, nil, map[string]string{"changelog/2026-01-02-0900-runner-feature.md": first})
+	second := withEntries(map[string]string{"2026-10-12-0900-runner-option": entryFileText(changelogStamp, "Feat: added runner option for validation.")})
+	out, code := changelogSecond(t, repo, second)
+	sees(t, out, code, 1, "this branch already has its entry changelog/2026-01-02-0900-runner-feature.md",
+		"instead of a new entry: changelog/2026-10-12-0900-runner-option.md")
+}
+
+func Test0043_18(t *testing.T) {
+	t.Parallel()
+	files := withEntries(map[string]string{"runner-feature": entryFileText(changelogStamp, "Feat: added runner feature for validation.")})
+	files["src.txt"] = changelogFeature
+	out, code := changelogStaged(t, files)
+	sees(t, out, code, 1, "changelog/runner-feature.md must be named changelog/2026-10-12-0900-runner-feature.md: its heading's date, then the change")
+}
+
+func Test0043_21(t *testing.T) {
+	t.Parallel()
+	const released = "changelog/2026-10-01-0900-runner-feature.md"
+	old := entryFileText("2026.10.01.0900", "Feat: added runner feature for validation.")
+	repo := example(t, "happyRepo", map[string]string{released: old})
+	git(t, repo, "tag", "v1.0.0")
+	write(t, repo, map[string]string{
+		released:  old + "- Feat: added runner option for validation.\n",
+		"src.txt": changelogFeature + "Added runner option for validation.\n",
 	})
-	sees(t, out, code, 1, levelBleedRepeat("architecture/02-app.md", "same", 1))
-	if strings.Contains(out, `"x"`) {
-		t.Errorf("only the second column may be compared:\n%s", out)
-	}
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "changelog-updated")
+	sees(t, out, code, 1, released+" shipped in v1.0.0, so its notes are published; leave it as it is and add a new changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file instead")
+}
+
+func Test0043_22(t *testing.T) {
+	t.Parallel()
+	const released = "changelog/2026-10-01-0900-old-feature.md"
+	item := "Feat: added old feature."
+	repo := example(t, "happyRepo", map[string]string{released: entryFileText("2026.10.01.0900", item)})
+	git(t, repo, "tag", "v1.0.0")
+	files := changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation.")
+	files[released] = bareEntryText("2026.10.01.0900", item)
+	write(t, repo, files)
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "changelog-updated")
+	sees(t, out, code, 0, "All 1 checks passed")
 }

@@ -1,142 +1,190 @@
-// cspell:ignore mvnw gradlew
-
 package requirements
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 )
 
-// Misspellings are built from pieces so this file's own spell check passes.
-var (
-	cspellTypo        = "qu" + "ik"
-	cspellRepoWord    = "bor" + "wn"
-	cspellSharedWord  = "zz" + "zq" + "qqv"
-	cspellBinaryWord  = "xq" + "zzt"
-	cspellBinaryOther = "vb" + "nmm"
-	cspellBodyTypo    = "mis" + "pe" + "led"
+const (
+	acCheck     = "architecture-contract"
+	acRoot      = "architecture/"
+	acContext   = "01-system-context.md"
+	acContainer = "02-containers.md"
+	acComponent = "03-components.md"
+	acCode      = "04-code.md"
+	acJourney   = "05-user-journey.md"
+	acEvidence  = "#L3)"
 )
 
-// cspellRun runs `fitness-install -- cspell <args>` on happyRepo with files
-// written over it and committed.
-func cspellRun(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"cspell"}, args...)...)
+// acView writes a view as people already do, with a heading, a diagram and its
+// callout table, and nothing added for the check. The diagram's Nth line is line
+// N+3, and the first row sits on line count+8.
+func acView(diagram string, rows ...string) string {
+	body := "# View\n\n```mermaid\n" + diagram + "\n```\n\n| # | Description | Why |\n| --- | --- | --- |\n"
+	for i, row := range rows {
+		body += "| " + strconv.Itoa(i+1) + " | " + row + " | Shared by later checks. |\n"
+	}
+	return body
 }
 
-// cspellInstalled is where an installed shared package keeps its cspell.json.
-const cspellInstalled = "node_modules/@mayjournal/fitness-shared/config/cspell.json"
+// acFixture is a small complete architecture under root. up leads from the
+// root back to the repository, for links.
+func acFixture(root string) map[string]string {
+	up := strings.Repeat("../", strings.Count(root, "/"))
+	return map[string]string{
+		root + acContext: acView("C4Context\nPerson(user, \"1 User\")\nSystem(app, \"2 App\")\nRel(user, app, \"3\")",
+			"A person who uses the app.", "The system.", "Uses it.") +
+			"\n```mermaid\nC4Context\ntitle Legend\nPerson(p, \"Person\")\n```\n",
+		root + acContainer: acView("C4Container\nPerson(user, \"1 User\")\nSystem_Boundary(app, \"2 App\") {\nContainer(service, \"3 Service\", \"Go\", \"src/cmd/service\", $tags=\"v1\")\n}\nRel(user, service, \"4\")\nUpdateElementStyle(user, $fontColor=\"red\")",
+			"Same person.", "The system.", "Runs requests.", "Calls it."),
+		root + acComponent: acView("C4Component\nContainer_Boundary(service, \"1 Service (src/cmd/service)\") {\nComponent(entry, \"2 Entry\", \"Go\")\nComponent(store, \"3 Store\", \"Go\", \"src/store\")\n}\nRel(entry, store, \"4\")",
+			"The service.", "`src/cmd/service/main.go` starts it.", "Keeps records.", "Saves through the store, see [source]("+up+"src/cmd/service/main.go"+acEvidence+"."),
+		root + acCode: acView("classDiagram\nclass Record[\"1 Record\"] {\n+ID\n}\nclass save[\"2 save()\"]\nsave --> Record : 3",
+			"A saved record.", "Writes one record.", "Save returns the record.") +
+			"\n```mermaid\nclassDiagram\nclass Example\nParent <|-- Child : inherits\n```\n",
+		root + acJourney: "## Legend\n\n```mermaid\nflowchart TB\nperson((1 Person)):::persona\nclassDef persona fill:#fff\n```\n\n| # | Description | Why |\n| --- | --- | --- |\n| 1 | Persona | A legend row. |\n\n" +
+			acView("flowchart TB\nuser((1 User)):::persona\nopen(2 Open the app):::action\ndone[3 Record saved]:::screen\nuser --> open\nopen -->|saves| done\nclassDef persona fill:#fff",
+				"Same person.", "Opens it, `0001.1`.", "Shows the record, see [0001]("+up+"docs/requirements/0001-open.md)."),
+		"src/cmd/service/main.go": "package main\n\nfunc main() {}\n",
+		"src/store/store.go":      "package store\n",
+		"src/store/store_test.go": "package store\n",
+		"tools/check.sh":          "#!/bin/sh\nexit 0\n",
+		acDoc:                     acDocWith("User opens the app"),
+	}
+}
+
+func acRun(t *testing.T, files map[string]string, env ...string) (string, int) {
+	t.Helper()
+	return fitness(t, example(t, "happyRepo", files), env, acCheck)
+}
+
+// acEdit replaces old with new in one view of the default fixture.
+func acEdit(view, old, new string) map[string]string {
+	files := acFixture(acRoot)
+	files[acRoot+view] = strings.Replace(files[acRoot+view], old, new, 1)
+	return files
+}
+
+func Test0021_11(t *testing.T) {
+	t.Parallel()
+	for _, files := range []map[string]string{nil, {
+		"vite.config.ts":                        "export default {};\n",
+		"tools/check.sh":                        "#!/bin/sh\nexit 0\n",
+		"src/store/store_test.go":               "package store\n",
+		"src/app.test.ts":                       "export {};\n",
+		"src/__tests__/app.ts":                  "export {};\n",
+		"pom.xml":                               javaPom(""),
+		"src/test/java/AppTest.java":            "class AppTest {}\n",
+		"src/integrationTest/java/AppFlow.java": "class AppFlow {}\n",
+	}} {
+		out, code := acRun(t, files)
+		sees(t, out, code, 0)
+		passedWithNoFiles(t, out, acCheck)
+	}
+}
 
 func Test0021_2(t *testing.T) {
 	t.Parallel()
-	out, code := cspellRun(t, map[string]string{
-		"cspell.json":   `{"words":["fitnessrc","` + cspellRepoWord + `"]}` + "\n",
-		cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
-		"notes.md":      cspellRepoWord + " and " + cspellSharedWord + "\n@jasonvanderslice from Vanderbot\n",
-	})
-	sees(t, out, code, 1, "notes.md:1:11 - Unknown word ("+cspellSharedWord+")")
-	if strings.Contains(out, "Unknown word ("+cspellRepoWord+")") {
-		t.Errorf("the repo's own word must be accepted:\n%s", out)
+	for _, root := range []string{acRoot, "docs/architecture/"} {
+		files := acFixture(root)
+		out, code := acRun(t, files)
+		sees(t, out, code, 0)
+		passedWith(t, out, acCheck, "5")
+		files[root+acContext] = strings.NewReplacer("\"1 User\"", "\"21 User\"", "\"2 App\"", "\"22 App\"", "\"3\"", "\"23\"", "| 1 |", "| 21 |", "| 2 |", "| 22 |", "| 3 |", "| 23 |").Replace(files[root+acContext])
+		out, code = acRun(t, files)
+		sees(t, out, code, 0)
+		files[root+acContext] = acView("---\ntitle: Context\n---\nflowchart LR\naccTitle: Context\nuser((1 User)):::persona\nUpdateApp[2 App]:::system\nuser -->|3| UpdateApp\nclassDef persona fill:#fff", "A person.", "The system.", "Uses it.")
+		out, code = acRun(t, files)
+		sees(t, out, code, 0)
 	}
-	if strings.Contains(out, "Unknown word (jasonvanderslice)") || strings.Contains(out, "Unknown word (Vanderbot)") {
-		t.Errorf("the owner and agent names must be accepted:\n%s", out)
+}
+
+func Test0021_10(t *testing.T) {
+	t.Parallel()
+	for _, file := range []string{"src/main.go", "Sources/App/App.swift", "src/app.ts", "src/app.js", "src/main/java/App.java"} {
+		out, code := acRun(t, map[string]string{file: "// The app.\n"})
+		sees(t, out, code, 1, "docs/architecture/ has no views, but product code such as "+file+" needs them; add the five views",
+			"actors (01-system-context.md), containers (02-containers.md), components (03-components.md), code (04-code.md), and journey (05-user-journey.md)")
+	}
+	files := acFixture(acRoot)
+	delete(files, acRoot+acJourney)
+	out, code := acRun(t, files)
+	sees(t, out, code, 1, "architecture/01-system-context.md:1: missing architecture view 05-user-journey.md")
+	files = acFixture(acRoot)
+	files[acRoot+acCode] = "# View\n\nNo diagram yet.\n"
+	out, code = acRun(t, files)
+	sees(t, out, code, 1, "architecture/04-code.md:1: view has no diagram outside its legends")
+}
+
+func Test0021_4(t *testing.T) {
+	t.Parallel()
+	cases := []struct{ view, old, new, want string }{
+		{acContext, "System(app, \"2 App\")", "System(user, \"2 App\")", "architecture/01-system-context.md:6: duplicate ID user; first at architecture/01-system-context.md:5"},
+		{acContext, "System(app,", "System(2app,", "architecture/01-system-context.md:6: invalid ID \"2app\""},
+		{acContext, "Rel(user, app,", "Rel(user, ghost,", "architecture/01-system-context.md:7: unresolved ID ghost"},
+		{acCode, "save --> Record", "save --> Missing", "architecture/04-code.md:9: unresolved ID Missing"},
+		{acComponent, "Container_Boundary(service, \"1 Service (src/cmd/service)\") {\n", "", "architecture/03-components.md:5: component entry needs an enclosing boundary"},
+		{acCode, "classDiagram", "sequenceDiagram", "architecture/04-code.md:3: unsupported Mermaid form \"sequenceDiagram\""},
+		{acContext, "Rel(user, app, \"3\")", "Rel(user, app, \"3\")\nShape(user, \"9\")", "architecture/01-system-context.md:8: unsupported C4 macro \"Shape\""},
+		{acContainer, "Person(user, \"1 User\")", "Person(user, \"1 Customer\")", "architecture/02-containers.md:5: actor user is named \"Customer\" here and \"User\" at architecture/01-system-context.md:5"},
+		{acContainer, "System_Boundary", "Person(member, \"5 User\")\nSystem_Boundary", "architecture/02-containers.md:6: actor name \"User\" is ambiguous: member here and user at architecture/01-system-context.md:5"},
+	}
+	for _, c := range cases {
+		out, code := acRun(t, acEdit(c.view, c.old, c.new))
+		sees(t, out, code, 1, c.want)
 	}
 }
 
 func Test0021_5(t *testing.T) {
 	t.Parallel()
-	out, code := cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
-	sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file, so remove ignorePaths and fix the findings instead")
+	out, code := acRun(t, acEdit(acComponent, "Component(entry, \"2 Entry\", \"Go\")", "Component(entry, \"2 Entry\", \"Go\", \"src/store/store.go\")"))
+	sees(t, out, code, 1, "architecture/03-components.md:7: overlapping source claims: store claims src/store and entry claims src/store/store.go at architecture/03-components.md:6")
+	out, code = acRun(t, acEdit(acComponent, "\"src/store\"", "\"src/stores\""))
+	sees(t, out, code, 1, "architecture/03-components.md:7: unresolved source path src/stores")
 }
 
-func Test0021_11(t *testing.T) {
+func Test0021_6(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{
-		".gitattributes":       "*.gen linguist-generated\n",
-		"deps/pkg.gen":         cspellSharedWord + "\n",
-		"blob.bin":             cspellBinaryWord + "\x00" + cspellBinaryOther,
-		"package-lock.json":    `{"packages":{"node_modules/` + cspellTypo + `":{}}}` + "\n",
-		"web/yarn.lock":        cspellRepoWord + "@1.0.0\n",
-		"pnpm-lock.yaml":       cspellBodyTypo + ": 1.0.0\n",
-		"go.sum":               "example.com/" + cspellBinaryOther + " v1.0.0 h1:abc=\n",
-		"App/Package.resolved": `{"identity":"` + cspellBinaryWord + `"}` + "\n",
-		"lib/gradle.lockfile":  "com.example:" + cspellTypo + ":1.0=compileClasspath\n",
-		"mvnw":                 "url=" + cspellTypo + "\n",
-		"app/gradlew.bat":      "set " + cspellRepoWord + "=1\n",
-		".mvn/wrapper/MavenWrapperDownloader.java": "class Downloader { String " + cspellRepoWord + "; }\n",
-		"gradle/wrapper/gradle-wrapper.properties": "distributionUrl=" + cspellBodyTypo + "\n",
-	})
-	write(t, repo, map[string]string{"untracked.md": "the " + cspellRepoWord + " fox\n"})
-	out, code := fitness(t, repo, nil, "cspell")
-	sees(t, out, code, 0, "All 1 checks passed")
+	for anchor, want := range map[string]string{"#L900)": "src/cmd/service/main.go#L900", "#line3)": "src/cmd/service/main.go#line3", "#L3-L1)": "src/cmd/service/main.go#L3-L1"} {
+		out, code := acRun(t, acEdit(acComponent, acEvidence, anchor))
+		sees(t, out, code, 1, "architecture/03-components.md:17: unresolved evidence "+want)
+	}
+	out, code := acRun(t, acEdit(acComponent, "service/main.go"+acEvidence, "service/gone.go"+acEvidence))
+	sees(t, out, code, 1, "architecture/03-components.md:17: unresolved evidence src/cmd/service/gone.go#L3")
 }
 
 func Test0021_7(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"old.md": "the " + cspellTypo + " fox\n", "gone.md": "clean words\n"})
-	write(t, repo, map[string]string{"new.md": "the " + cspellRepoWord + " fox\n"})
-	git(t, repo, "add", "new.md")
-	git(t, repo, "rm", "-q", "gone.md")
-	out, code := fitness(t, repo, nil, "cspell")
-	sees(t, out, code, 1, "new.md:1:5 - Unknown word ("+cspellRepoWord+")")
-	if strings.Contains(out, cspellTypo) || strings.Contains(out, "gone.md") {
-		t.Errorf("only the staged file on disk may be checked:\n%s", out)
+	out, code := acRun(t, acEdit(acJourney, "`0001.1`", "`0001.9`"))
+	sees(t, out, code, 1, "architecture/05-user-journey.md:28: unresolved requirement 0001.9 in docs/requirements")
+	out, code = acRun(t, acEdit(acJourney, "0001-open.md", "0002-open.md"))
+	sees(t, out, code, 1, "architecture/05-user-journey.md:29: unresolved requirement 0002 in docs/requirements")
+	files := acFixture(acRoot)
+	files[acDoc] = strings.ReplaceAll(files[acDoc], "opens\n-\n", "opens\n")
+	out, code = acRun(t, files)
+	sees(t, out, code, 0)
+	if strings.Contains(out, acDoc) {
+		t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
 	}
 }
 
-func Test0021_13(t *testing.T) {
+func Test0021_9(t *testing.T) {
 	t.Parallel()
-	// 2,500 filler lines are 65,000 bytes, so the block opens just before
-	// cspell's 64 KB chunk boundary and closes after it.
-	filler := strings.Repeat("good words in a long file\n", 2500)
-	long := "the " + cspellTypo + " fox\n" + filler +
-		"cspell:disable\n" + filler[:2600] + "the " + cspellBodyTypo + " fox\ncspell:enable\n" +
-		filler + "the " + cspellRepoWord + " fox\n"
-	out, code := cspellRun(t, map[string]string{
-		"notes.md": "good words\nthe " + cspellTypo + " fox\n",
-		"long.md":  long,
-	})
-	first := "long.md:1:5 - Unknown word (" + cspellTypo + ")"
-	last := "long.md:5105:5 - Unknown word (" + cspellRepoWord + ")"
-	sees(t, out, code, 1, "notes.md:2:5 - Unknown word ("+cspellTypo+")", first, last)
-	if strings.Contains(out, cspellBodyTypo) || strings.Index(out, first) > strings.Index(out, last) {
-		t.Errorf("only the words outside the block may be named, in line order:\n%s", out)
+	drifts := []struct {
+		check, want string
+		files       map[string]string
+		changed     []string
+	}{
+		{acCheck, "architecture/03-components.md:17: unresolved evidence src/cmd/service/main.go#L900", acEdit(acComponent, acEvidence, "#L900)"), []string{"README.md", "src/store/store.go", acRoot + acContext}},
+		{accCheck, "src/cmd/api/main.go:1: Go command api" + accNoOwner, with(acFixture(acRoot), map[string]string{"src/cmd/api/main.go": "package main\n"}), []string{"README.md", "src/store/store.go", acRoot + acContainer}},
+		{aoCheck, "src/api/api.go" + aoNoOwner, with(aoFixture(), map[string]string{"src/api/api.go": "package api\n"}), []string{"README.md", aoStore, aoView}},
 	}
-}
-
-func Test0021_8(t *testing.T) {
-	t.Parallel()
-	out, code := cspellRun(t, map[string]string{"body.md": "a " + cspellBodyTypo + " word\n"}, "--body-file", "body.md")
-	sees(t, out, code, 1, "(description):1:3 - Unknown word ("+cspellBodyTypo+")")
-}
-
-func Test0021_12(t *testing.T) {
-	t.Parallel()
-	out, code := cspellRun(t, map[string]string{
-		cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
-		"notes.md":      cspellSharedWord + " is a shared word\n",
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
-	out, code = cspellRun(t, map[string]string{"notes.md": "mayjournal is a shared word, and addrinfo a language one\n"})
-	sees(t, out, code, 0, "All 1 checks passed")
-	out, code = cspellRun(t, map[string]string{"body.md": "sync `fastlane/Appfile`, `fastlane/Fastfile`, `fastlane/Gymfile`\n"}, "--body-file", "body.md")
-	sees(t, out, code, 0, "All 1 checks passed")
-	out, code = cspellRun(t, map[string]string{"static-preview.yml": "run: touch \"$PAGES/.nojekyll\"\n"})
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0021_10(t *testing.T) {
-	t.Parallel()
-	files := map[string]string{
-		"cspell.json": `{"words":["fitnessrc"],"flagWords":["green apple"]}` + "\n",
-		"notes.md":    "a Green  Apple and green" + "apple\n",
-		"body.md":     "no green\napple here\n",
+	for _, d := range drifts {
+		repo := example(t, "happyRepo", d.files)
+		for _, changed := range d.changed {
+			out, code := fitness(t, repo, []string{"FITNESS_CHANGED_FILES=" + changed}, d.check)
+			sees(t, out, code, 1, d.want)
+		}
 	}
-	out, code := cspellRun(t, files)
-	sees(t, out, code, 1, "notes.md:1:3 - Forbidden word (green apple)", "body.md:1:4 - Forbidden word (green apple)")
-	if strings.Contains(out, "cspell.json:") {
-		t.Errorf("the cspell.json listing flagWords must not be flagged:\n%s", out)
-	}
-	out, code = cspellRun(t, files, "--body-file", "body.md")
-	sees(t, out, code, 1, "(description):1:4 - Forbidden word (green apple)")
 }

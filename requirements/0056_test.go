@@ -1,165 +1,230 @@
 package requirements
 
 import (
+	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
 
-// semanticCommit runs `fitness-install -- semantic-commit <args>` on
-// happyRepo, whose HEAD subject is "docs(readme): add readme".
-func semanticCommit(t *testing.T, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", nil), nil, append([]string{"semantic-commit"}, args...)...)
+// prettierJS is a formatted project with its own Prettier config, which
+// keeps single quotes.
+func prettierJS(files map[string]string) map[string]string {
+	return with(map[string]string{
+		"package.json":     "{}\n",
+		".prettierrc.json": `{ "singleQuote": true }` + "\n",
+		"app.js":           prettierFormatted,
+	}, files)
 }
 
-// semanticCommitTypes is the type list the check prints in every failure.
-const semanticCommitTypes = "(types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert)"
+// prettierFormatted and prettierMessy are one statement, formatted and not.
+const (
+	prettierFormatted = "const answer = { value: 42 };\n"
+	prettierMessy     = "const answer={value:42}\n"
+)
 
-// inherited is an upstream subject with no scope, as a fork's main can hold.
-const inherited = "test: migrate from jest to vite (#75)"
+// prettierShared is formatted to the shared config's single quotes, which
+// Prettier's own defaults would reformat.
+const prettierShared = "const greeting = 'hi';\n"
 
-// defaultNames are fork default branches with origin/HEAD unset: the usual
-// two, and one Fitness cannot guess.
-var defaultNames = []string{"main", "master", "develop"}
+// prettierPackageField is a formatted package.json holding the Prettier
+// config, in place of a config file.
+const prettierPackageField = "{\n  \"prettier\": {\n    \"singleQuote\": true\n  }\n}\n"
 
-// forkedRepo is happyRepo on a fresh branch over inherited history that
-// origin/<base> holds.
-func forkedRepo(t *testing.T, base string) string {
-	t.Helper()
-	repo := example(t, "happyRepo", nil)
-	fork(t, repo, base)
-	return repo
-}
-
-// fork commits an inherited bad subject to repo without hooks, as a fetch
-// does, records it as origin/<base>, and branches fresh.
-func fork(t *testing.T, repo, base string) {
-	t.Helper()
-	out, err := exec.Command("git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "HEAD^{tree}", "-p", "HEAD", "-m", inherited).Output()
-	mustDo(t, err)
-	git(t, repo, "reset", "-q", "--hard", strings.TrimSpace(string(out)))
-	remote(t, repo)
-	git(t, repo, "update-ref", "refs/remotes/origin/"+base, "HEAD")
-	git(t, repo, "checkout", "-q", "-b", "work")
-}
-
-// hookedFork is a happyRepo fork with the shared hooks, or with only the
-// installer's pre-commit hook when installerHook is set.
-func hookedFork(t *testing.T, installerHook bool) (string, []string) {
-	t.Helper()
-	if !installerHook {
-		repo, env := hooked(t, nil)
-		fork(t, repo, "main")
-		return repo, env
+// What Prettier 3 prints: `--check` on formatted files, `--check` naming
+// app.js, the same with a colored [warn] prefix, and `--write`.
+var (
+	prettierClean = response{Stdout: "Checking formatting...\nAll matched files use Prettier code style!\n"}
+	prettierWarn  = response{
+		Stdout: "Checking formatting...\n",
+		Stderr: "[warn] app.js\n[warn] Code style issues found in the above file. Run Prettier with --write to fix.\n",
+		Exit:   1,
 	}
-	repo := forkedRepo(t, "main")
-	cmd := exec.Command(installer(t), "--install-hook")
-	cmd.Dir, cmd.Env = repo, userEnv()
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("--install-hook: %v\n%s", err, out)
+	prettierWarnColored = response{
+		Stdout: "Checking formatting...\n",
+		Stderr: "\x1b[33m[warn]\x1b[39m app.js\n\x1b[33m[warn]\x1b[39m Code style issues found in the above file. Run Prettier with --write to fix.\n",
+		Exit:   1,
 	}
-	return repo, nil
+	prettierWritten = response{Stdout: "CHANGELOG.md 9ms (unchanged)\nREADME.md 4ms (unchanged)\napp.js 12ms\npackage.json 1ms (unchanged)\n"}
+)
+
+// prettierAnswers matches a response to calls holding every match string.
+func prettierAnswers(r response, match ...string) response {
+	r.Match = match
+	return r
 }
 
-// quotesOnly asserts semantic-commit failed on subject and never quoted the
-// inherited one.
-func quotesOnly(t *testing.T, out string, code int, subject string) {
+// prettierRun runs `fitness-install -- prettier <args>` on happyRepo with
+// files written over it and a Prettier stand-in answering from saved.
+func prettierRun(t *testing.T, files map[string]string, saved []response, args ...string) (string, int, replays) {
 	t.Helper()
-	sees(t, out, code, 1, `Commit message: "`+subject+`" — use type(scope): description `+semanticCommitTypes)
-	if strings.Contains(out, inherited) {
-		t.Errorf("semantic-commit judged inherited history:\n%s", out)
+	repo := example(t, "happyRepo", files)
+	rp := standIn(t, map[string][]response{"prettier": saved})
+	out, code := fitness(t, repo, rp.env, append([]string{"prettier"}, args...)...)
+	return out, code, rp
+}
+
+// prettierCalledWith fails t unless fitness called Prettier with want and
+// without each of not.
+func prettierCalledWith(t *testing.T, rp replays, want []string, not ...string) {
+	t.Helper()
+	if !rp.called("prettier", want...) {
+		t.Errorf("prettier was not called with %q; calls: %q", want, rp.calls("prettier"))
 	}
-}
-
-func Test0056_2(t *testing.T) {
-	t.Parallel()
-	out, code := semanticCommit(t, "--message", "feat: add endpoint")
-	sees(t, out, code, 1, `Commit message: "feat: add endpoint" — use type(scope): description `+semanticCommitTypes)
-}
-
-func Test0056_7(t *testing.T) {
-	t.Parallel()
-	// happyRepo's HEAD subject is valid, so an empty message must not fall back to it.
-	out, code := semanticCommit(t, "--message=")
-	sees(t, out, code, 1, "No commit message to validate; use type(scope): description")
-	noRepo := example(t, "happyRepo", nil)
-	mustDo(t, os.RemoveAll(filepath.Join(noRepo, ".git")))
-	out, code = fitness(t, noRepo, nil, "semantic-commit")
-	sees(t, out, code, 1, "No commit message to validate; use type(scope): description")
+	for _, n := range not {
+		if rp.called("prettier", n) {
+			t.Errorf("prettier was called with %q; calls: %q", n, rp.calls("prettier"))
+		}
+	}
 }
 
 func Test0056_9(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", nil)
-	messages := []string{"Merge branch 'feature' into main", "chore(deps): bump tools\n\nNot a semantic line at all"}
-	for _, kind := range []string{"feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"} {
-		messages = append(messages, kind+"(api): change the endpoint")
-	}
-	for _, message := range messages {
-		out, code := fitness(t, repo, nil, "semantic-commit", "--message", message)
-		sees(t, out, code, 0, "All 1 checks passed")
-	}
+	out, code, rp := prettierRun(t, prettierJS(map[string]string{".prettierrc.json": `{ "singleQuote": true, "semi": false }` + "\n"}), []response{prettierWarnColored})
+	sees(t, out, code, 1, "✖ app.js")
+	prettierCalledWith(t, rp, []string{"--check", "app.js"}, "--config")
+	files := prettierJS(map[string]string{".prettierrc.json": "", "package.json": prettierPackageField})
+	out, code, rp = prettierRun(t, files, []response{prettierAnswers(prettierWarn, "--config"), prettierClean})
+	sees(t, out, code, 0, "All 1 checks passed")
+	prettierCalledWith(t, rp, []string{"--check", "package.json"}, "--config")
 }
 
-func Test0056_10(t *testing.T) {
-	t.Parallel()
-	for _, subject := range []string{`Revert "feat(api): add endpoint"`, "feat(api)!: drop the old endpoint"} {
-		out, code := semanticCommit(t, "--message", subject)
-		sees(t, out, code, 1, `Commit message: "`+subject+`" — use type(scope): description`)
-	}
-}
+// biomeReformat is real `biome format --reporter=github` output naming a
+// file it would reformat.
+const biomeReformat = "::error title=format,file=%s,line=1,endLine=1,col=2,endColumn=2::Formatter would have printed the following content:\n"
 
-func Test0056_15(t *testing.T) {
+func Test0056_11(t *testing.T) {
 	t.Parallel()
-	for _, base := range defaultNames {
-		repo := forkedRepo(t, base)
-		out, code := fitness(t, repo, nil, "semantic-commit")
-		sees(t, out, code, 0, "All 1 checks passed")
-		commit(t, repo, nil, "Add notes")
-		commit(t, repo, nil, "docs(readme): note more")
-		out, code = fitness(t, repo, nil)
-		quotesOnly(t, out, code, "Add notes")
-		if !strings.Contains(row(out, "semantic-commit"), "failed") {
-			t.Errorf("semantic-commit did not fail the full run on %s:\n%s", base, out)
+	files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n"}
+	var report strings.Builder
+	for i := 1; i <= biomeMany; i++ {
+		name := fmt.Sprintf("app%d.js", i)
+		files[name] = prettierMessy
+		fmt.Fprintf(&report, biomeReformat, name)
+	}
+	for _, major := range biomeMajors {
+		files["package.json"] = fmt.Sprintf(biomePackage, major[0])
+		repo := example(t, "happyRepo", files)
+		reformat := response{
+			Match:  []string{"format " + fmt.Sprintf(biomeFlags, major[2]), "app1.js"},
+			Stdout: report.String(),
+			Stderr: "format ━━━━━━━━━━\n\n  × Some errors were emitted while running checks.\n",
+			Exit:   1,
 		}
-		git(t, repo, "checkout", "-q", "-B", base, "origin/"+base)
-		commit(t, repo, nil, "Add base notes")
-		out, code = fitness(t, repo, nil, "semantic-commit")
-		quotesOnly(t, out, code, "Add base notes")
-	}
-}
-
-func Test0056_16(t *testing.T) {
-	t.Parallel()
-	for _, installerHook := range []bool{false, true} {
-		repo, env := hookedFork(t, installerHook)
-		out, code := user(t, repo, env, "commit", "--allow-empty", "-m", "docs(readme): touch nothing")
-		sees(t, out, code, 0, "docs(readme): touch nothing")
-		if strings.Contains(out, inherited) {
-			t.Errorf("a hook judged the parent commit:\n%s", out)
+		rp := standIn(t, map[string][]response{"biome": {biomeVersion(major[1]), reformat}})
+		out, code := fitness(t, repo, rp.env, "prettier")
+		sees(t, out, code, 1, "✖ app1.js", "✖ app25.js")
+		if !rp.called("biome", "format", "README.md") || strings.Contains(out, "Prettier not installed") {
+			t.Errorf("Biome must check every tracked file in place of Prettier; calls %q:\n%s", rp.calls("biome"), out)
 		}
 	}
+	biomeRejects(t, files, "prettier")
 }
 
-func Test0056_17(t *testing.T) {
+func Test0056_3(t *testing.T) {
 	t.Parallel()
-	repo, env := hookedFork(t, false)
-	out, code := user(t, repo, env, "commit", "--allow-empty", "-m", "Add notes")
-	quotesOnly(t, out, code, "Add notes")
-	repo, env = hookedFork(t, true)
-	out, code = user(t, repo, env, "commit", "--allow-empty", "-m", "Add notes")
-	sees(t, out, code, 0, "Add notes")
-	out, code = user(t, repo, env, "commit", "--allow-empty", "-m", "docs(readme): note more")
-	quotesOnly(t, out, code, "Add notes")
+	out, code, rp := prettierRun(t, map[string]string{"app.js": prettierMessy}, []response{prettierWarn})
+	sees(t, out, code, 0, "All 1 checks passed")
+	if calls := rp.calls("prettier"); len(calls) > 0 {
+		t.Errorf("prettier was called without a package.json: %q", calls)
+	}
 }
 
-func Test0056_14(t *testing.T) {
+// prettierSynced are the files may-journal/.github syncs into every repo,
+// formatted with Prettier's defaults: double-quoted front matter.
+var prettierSynced = map[string]string{
+	".github/ISSUE_TEMPLATE/plan.md": "---\nname: Plan\ntitle: \"[Plan] Short name of the work\"\n---\n\n> REPLACE-ME\n",
+	".github/fitness-setup.md":       "# Fitness setup\n\nRun \"fitness\" before each push.\n",
+}
+
+// configFrom returns the file a Prettier call names after --config.
+func configFrom(t *testing.T, call string) string {
+	t.Helper()
+	args := strings.Fields(call)
+	i := slices.Index(args, "--config")
+	if i < 0 || i+1 == len(args) {
+		t.Fatalf("prettier was called without --config: %q", call)
+	}
+	raw, err := os.ReadFile(args[i+1])
+	mustDo(t, err)
+	return string(raw)
+}
+
+func Test0056_12(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", nil)
-	commit(t, repo, nil, "Add notes\n\nBody text")
-	out, code := fitness(t, repo, nil, "semantic-commit")
-	sees(t, out, code, 1, `Commit message: "Add notes" — use type(scope): description `+semanticCommitTypes)
+	files := prettierJS(with(map[string]string{".prettierrc.json": "", "app.js": prettierShared}, prettierSynced))
+	shared := prettierAnswers(prettierClean, "--config", "prettier.config.cjs", "--check", "app.js", ".github/ISSUE_TEMPLATE/plan.md", ".github/fitness-setup.md")
+	out, code, rp := prettierRun(t, files, []response{shared, prettierWarn})
+	sees(t, out, code, 0, "All 1 checks passed")
+	prettierCalledWith(t, rp, []string{"--config", "prettier.config.cjs", "--ignore-unknown", "--ignore-path", "--with-node-modules", "--check", "app.js"})
+	calls := rp.calls("prettier")
+	if len(calls) != 1 {
+		t.Fatalf("want one prettier call, got %q", calls)
+	}
+	config := configFrom(t, calls[0])
+	for _, want := range []string{"singleQuote: true", "'.github/ISSUE_TEMPLATE/**/*.md', '.github/fitness-setup.md'", "singleQuote: false", "fromRepoRoot"} {
+		if !strings.Contains(config, want) {
+			t.Errorf("the shared config must use single quotes and keep the synced files at Prettier defaults; missing %q in:\n%s", want, config)
+		}
+	}
+}
+
+// prettierLinkRefused is what Prettier 3 prints when a symbolic link is
+// named on its command line.
+var prettierLinkRefused = response{
+	Match:  []string{"ci_scripts/ci_post_clone.sh"},
+	Stderr: "[error] Explicitly specified pattern \"ci_scripts/ci_post_clone.sh\" is a symbolic link.\n",
+	Exit:   2,
+}
+
+func Test0056_5(t *testing.T) {
+	t.Parallel()
+	repo, env := hooked(t, prettierJS(map[string]string{".fitnessrc.json": `{"policy": "external", "checks": ["prettier"]}` + "\n"}))
+	write(t, repo, map[string]string{"app.js": prettierMessy, "ci_scripts/run.sh": "#!/bin/sh\necho ready\n"})
+	mustDo(t, os.Symlink("run.sh", filepath.Join(repo, "ci_scripts", "ci_post_clone.sh")))
+	rp := standIn(t, map[string][]response{"prettier": {prettierLinkRefused, prettierAnswers(prettierWarn, "app.js"), prettierClean}})
+	env = append(env, rp.env...)
+	user(t, repo, env, "add", "ci_scripts")
+	out, code := user(t, repo, env, "commit", "-m", "ci(scripts): share one post-clone script")
+	sees(t, out, code, 0, "ci(scripts): share one post-clone script")
+	prettierCalledWith(t, rp, []string{"--check", "ci_scripts/run.sh"}, "app.js", "ci_scripts/ci_post_clone.sh")
+}
+
+func Test0056_6(t *testing.T) {
+	t.Parallel()
+	out, code, rp := prettierRun(t, prettierJS(map[string]string{"app.js": prettierMessy}), []response{prettierAnswers(prettierWritten, "--write ."), prettierWarn}, "--write", ".")
+	sees(t, out, code, 0, "All 1 checks passed")
+	prettierCalledWith(t, rp, []string{"--write ."}, "--check")
+	files := prettierJS(map[string]string{".prettierrc.json": "", "biome.jsonc": "{}\n", "package.json": fmt.Sprintf(biomePackage, "2.4.15")})
+	written := response{Match: []string{"format " + fmt.Sprintf(biomeFlags, "none") + " --write app.js"}, Stdout: "Formatted 1 file in 2ms. Fixed 1 file.\n"}
+	biomeRun := standIn(t, map[string][]response{"biome": {biomeVersion("2.4.15"), written}})
+	out, code = fitness(t, example(t, "happyRepo", files), biomeRun.env, "prettier", "--write", "--ignore-unknown", "app.js")
+	sees(t, out, code, 0, "All 1 checks passed")
+	for _, call := range biomeRun.calls("biome") {
+		if strings.Contains(call, "--ignore-unknown") || strings.Contains(call, "README.md") {
+			t.Errorf("Biome must get only its own flags and the given path; got %q", call)
+		}
+	}
+	out, code = fitness(t, example(t, "happyRepo", files), biomeRun.env, "prettier", "--write", "--print-width", "100", "app.js")
+	sees(t, out, code, 1, "Biome formats this repo and has no counterpart for Prettier's --print-width")
+}
+
+func Test0056_7(t *testing.T) {
+	t.Parallel()
+	out, code := fitness(t, example(t, "happyRepo", map[string]string{".prettierignore": "README.md\n"}), nil, "prettier")
+	sees(t, out, code, 1, ".prettierignore exists; Prettier checks every tracked file, so delete it and fix the findings instead")
+}
+
+func Test0056_8(t *testing.T) {
+	t.Parallel()
+	out, code := fitness(t, example(t, "happyRepo", prettierJS(nil)), []string{pathWithout(t, "prettier")}, "prettier")
+	showsInfo(t, out, code, "prettier", "Prettier not installed: npm install --save-dev prettier")
+	noPlugin := response{Stderr: "[error] Cannot find package 'prettier-plugin-packagejson' imported from /shared/prettier.config.cjs\n", Exit: 2}
+	out, code, _ = prettierRun(t, prettierJS(nil), []response{noPlugin})
+	showsInfo(t, out, code, "prettier", "prettier exited 2 without a finding: [error] Cannot find package 'prettier-plugin-packagejson'")
+	unparsable := response{Stderr: "Checking formatting...\n[error] app.js: SyntaxError: Unexpected token (1:7)\n", Exit: 2}
+	out, code, _ = prettierRun(t, prettierJS(nil), []response{unparsable})
+	sees(t, out, code, 1, "[error] app.js: SyntaxError: Unexpected token (1:7)")
 }

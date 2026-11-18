@@ -1,212 +1,162 @@
 package requirements
 
 import (
-	"os"
-	"path/filepath"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
-// mermaidCallouts runs `fitness-install -- mermaid-callouts <args>` on
-// happyRepo with files written over it.
-func mermaidCallouts(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"mermaid-callouts"}, args...)...)
-}
+// refSha is a full commit sha a workflow pins an action to.
+const refSha = "6b02ebef8736d2508d47e085806b5b3cd19efa6c"
 
-// mermaidCalloutsDiagram fences mermaid lines as a diagram block.
-func mermaidCalloutsDiagram(lines ...string) string {
-	return "```mermaid\n" + strings.Join(lines, "\n") + "\n```\n"
-}
-
-// mermaidCalloutsTable builds a callout table with one row per label.
-func mermaidCalloutsTable(labels ...string) string {
-	table := "| # | Description |\n| --- | --- |\n"
-	for _, n := range labels {
-		table += "| " + n + " | step " + n + " |\n"
+// refWorkflow is a workflow file whose jobs call each `uses:` value, one
+// job per value, so value i sits on line 4+2i.
+func refWorkflow(uses ...string) string {
+	var b strings.Builder
+	b.WriteString("name: CI\non: push\njobs:\n")
+	for i, u := range uses {
+		b.WriteString("  job" + string(rune('a'+i)) + ":\n    uses: " + u + "\n")
 	}
-	return table
+	return b.String()
 }
 
-// mermaidCalloutsDoc joins diagram and table blocks into one doc.
-func mermaidCalloutsDoc(blocks ...string) map[string]string {
-	return map[string]string{"docs/flow.md": strings.Join(blocks, "\n")}
+// found is a saved GitHub answer for a path that exists.
+func found(match, body string) response {
+	return response{Match: []string{"api " + match}, Stdout: body}
 }
 
-// mermaidCalloutsFlow reads docs/flow.md from repo.
-func mermaidCalloutsFlow(t *testing.T, repo string) string {
+// notFound is a saved GitHub answer for a path that does not exist.
+func notFound(match string) response {
+	return response{Match: []string{"api " + match}, Stderr: "gh: Not Found (HTTP 404)\n", Exit: 1}
+}
+
+// refCheck runs workflow-ref-exists on happyRepo with .github/workflows/ci.yml
+// set to workflow, GitHub answering from saved responses.
+func refCheck(t *testing.T, workflow string, saved []response) (string, int, replays) {
 	t.Helper()
-	got, err := os.ReadFile(filepath.Join(repo, "docs", "flow.md"))
-	mustDo(t, err)
-	return string(got)
+	rp := standIn(t, map[string][]response{"gh": saved})
+	repo := example(t, "happyRepo", map[string]string{".github/workflows/ci.yml": workflow})
+	out, code := fitness(t, repo, rp.env, "workflow-ref-exists")
+	return out, code, rp
 }
 
-// mermaidCalloutsNumbered is a doc whose flowchart and C4 diagrams label
-// connectors with numbers beside numbered nodes and a letter in use.
-func mermaidCalloutsNumbered() map[string]string {
-	return mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(
-			"flowchart LR",
-			`app[1 App] -->|2| api["3 API"]`,
-			"api -->|A| db((4 Store))",
-			"db -- 6 --> app",
-		),
-		mermaidCalloutsTable("1", "2", "3", "4", "A", "6"),
-		mermaidCalloutsDiagram(`Container(web, "5", "UI")`, `Rel(web, api, "12", "HTTPS")`),
-		"| # | Description |\n| --- | --- |\n| 5  | step 5 |\n| 12 | step 12 |\n",
-	)
-}
-
-func Test0039_14(t *testing.T) {
+func Test0039_1(t *testing.T) {
 	t.Parallel()
-	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(
-			"flowchart LR",
-			`app[1 App] -->|A| api["2 API"]`,
-			"api -- B --> db((3 Store))",
-			`db -->|"C"| app`,
-			"db -->|YES| app -->|go| Q --> db",
-		),
-		mermaidCalloutsTable("1", "2", "3", "A", "B", "C"),
-		mermaidCalloutsDiagram(`Container(web, "4", "UI")`, `Rel(web, api, "D", "HTTPS")`),
-		mermaidCalloutsDiagram(`Person(p, "Person")`, `System(s, "System")`, `Rel(p, s, "uses")`),
-		mermaidCalloutsTable("4", "D"),
-		mermaidCalloutsDiagram(
-			"wardley-beta",
-			"  anchor User [0.99, 0.66]",
-			"  component code [0.60, 0.35]",
-			`  annotation 5,[0.40, 0.35] "Genesis: code"`,
-			"  User -> code",
-		),
-		mermaidCalloutsTable("5"),
-		mermaidCalloutsDiagram("gitGraph", "  commit", "  branch dev", "  commit"),
-	))
-	sees(t, out, code, 0, "All 1 checks passed")
-	if !regexp.MustCompile(`│ passed\s+│ 1\s+│`).MatchString(row(out, "mermaid-callouts")) {
-		t.Errorf("mermaid-callouts must pass judging 1 file, got row %q", row(out, "mermaid-callouts"))
-	}
-}
-
-func Test0039_13(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidCallouts(t, map[string]string{
-		"docs/flow.md": strings.Join([]string{
-			mermaidCalloutsDiagram("classDiagram", `class a["1 A"]`, `class b["1 B"]`, "a --> b : A", "b --> a : C"),
-			mermaidCalloutsTable("1", "A", "A", "B"),
-		}, "\n"),
-		"docs/unpaired.md": strings.Join([]string{
-			mermaidCalloutsTable("A"),
-			mermaidCalloutsDiagram(`Rel(a, b, "A")`),
-		}, "\n"),
-		"docs/plain.md": strings.Join([]string{
-			mermaidCalloutsDiagram("flowchart LR", "Login --> Home"),
-			mermaidCalloutsDiagram("flowchart LR", "a[1 A] --> b[2 B]"),
-			mermaidCalloutsTable("1", "2"),
-			mermaidCalloutsDiagram("flowchart TD", "Fetch -->|then parse| Save"),
-		}, "\n"),
+	out, code, _ := refCheck(t, refWorkflow(
+		"may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1",
+		"may-journal/fitness-runner@"+refSha,
+	), []response{
+		found("repos/may-journal/fitness-runner/git/ref/tags/v1", `{"ref":"refs/tags/v1"}`),
+		found("repos/may-journal/fitness-runner/contents/.github/workflows/ci-reusable.yml?ref=v1", `{"name":"ci-reusable.yml"}`),
+		found("repos/may-journal/fitness-runner/contents?ref="+refSha, `[{"name":"README.md"},{"name":"action.yml"}]`),
 	})
-	sees(t, out, code, 1,
-		"docs/plain.md: line 1: mermaid diagram has no numbered callouts; number its nodes, as in A[1 Step]",
-		"docs/plain.md: line 16: mermaid diagram has no numbered callouts",
-		"docs/flow.md: diagram callout 1 appears 2 times (line 1)",
-		"docs/flow.md: callout table row A appears 2 times (line 9)",
-		"docs/flow.md: diagram callout C has no matching table row (line 1)",
-		"docs/flow.md: callout table row B has no matching diagram callout (line 9)",
-		"docs/unpaired.md: callout table at line 1 has no preceding mermaid diagram",
-		"docs/unpaired.md: mermaid diagram at line 5 has callouts but no associated callout table")
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWith(t, out, "workflow-ref-exists", "1")
 }
+
+func Test0039_2(t *testing.T) {
+	t.Parallel()
+	out, code, _ := refCheck(t, refWorkflow(
+		"may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1",
+	), []response{
+		found("repos/may-journal/fitness-runner/git/ref/tags/v1", `{"ref":"refs/tags/v1"}`),
+		notFound("repos/may-journal/fitness-runner/contents/.github/workflows/comment-check-reusable.yml?ref=v1"),
+		found("repos/may-journal/fitness-runner", `{"full_name":"may-journal/fitness-runner"}`),
+	})
+	sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1: "+
+		".github/workflows/comment-check-reusable.yml does not exist at v1")
+}
+
+func Test0039_3(t *testing.T) {
+	t.Parallel()
+	badSha := strings.Repeat("0", 40)
+	out, code, _ := refCheck(t, refWorkflow("may-journal/fitness-runner@v9", "may-journal/fitness-runner@"+badSha), []response{
+		notFound("repos/may-journal/fitness-runner/git/ref/tags/v9"),
+		notFound("repos/may-journal/fitness-runner/git/ref/heads/v9"),
+		{Match: []string{"contents?ref=" + badSha}, Stderr: "gh: No commit found for the ref " + badSha + " (HTTP 404)\n", Exit: 1},
+		found("repos/may-journal/fitness-runner", `{"full_name":"may-journal/fitness-runner"}`),
+	})
+	sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner@v9: v9 is not a tag, a branch, or a full commit sha",
+		".github/workflows/ci.yml: line 7: may-journal/fitness-runner@"+badSha+": no commit "+badSha+" exists")
+}
+
+func Test0039_4(t *testing.T) {
+	t.Parallel()
+	out, code, rp := refCheck(t, refWorkflow(
+		"./.github/workflows/local.yml",
+		"actions/checkout@v4",
+		"may-journal/fitness-runner/.github/workflows/ci-reusable.yml@${{ inputs.ref }}",
+		"may-journal/fitness-runner/.github/workflows/ci-reusable.yml@main",
+	)+"  script:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          echo 'uses: may-journal/fitness-runner/nope.yml@v1' > caller.yml\n", []response{
+		notFound("repos/may-journal/fitness-runner/git/ref/tags/main"),
+		found("repos/may-journal/fitness-runner/git/ref/heads/main", `{"ref":"refs/heads/main"}`),
+	})
+	sees(t, out, code, 0, "All 1 checks passed")
+	if rp.called("gh", "contents") || rp.called("gh", "actions/checkout") {
+		t.Errorf("an ignored line read GitHub: %q", rp.calls("gh"))
+	}
+}
+
+func Test0039_5(t *testing.T) {
+	t.Parallel()
+	out, code, _ := refCheck(t, refWorkflow("may-journal/hub/.github/workflows/sync.yml@v1"), []response{
+		notFound("repos/may-journal/hub"),
+	})
+	sees(t, out, code, 0, ".github/workflows/ci.yml: line 5: may-journal/hub/.github/workflows/sync.yml@v1: skipped, may-journal/hub cannot be read with this token")
+}
+
+func Test0039_6(t *testing.T) {
+	t.Parallel()
+	out, code := fitness(t, example(t, "happyRepo", nil), nil, "workflow-ref-exists")
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "workflow-ref-exists")
+}
+
+func Test0039_7(t *testing.T) {
+	t.Parallel()
+	out, code, _ := refCheck(t, refWorkflow(
+		"may-journal/fitness-runner/.github/workflows/nope.yml@v1",
+		"may-journal/hub/.github/workflows/sync.yml@v1",
+		"may-journal/journey/.github/workflows/build.yml@v1",
+	), []response{
+		found("repos/may-journal/fitness-runner/git/ref/tags/v1", `{"ref":"refs/tags/v1"}`),
+		notFound("repos/may-journal/fitness-runner/contents/.github/workflows/nope.yml?ref=v1"),
+		found("repos/may-journal/fitness-runner", `{"full_name":"may-journal/fitness-runner"}`),
+		{Match: []string{"repos/may-journal/hub/"}, Stderr: "gh: Resource not accessible by integration (HTTP 403)\n", Exit: 1},
+		{Match: []string{"repos/may-journal/journey/"}, Stderr: "error connecting to api.github.com\n", Exit: 1},
+	})
+	sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/nope.yml@v1: .github/workflows/nope.yml does not exist at v1",
+		".github/workflows/ci.yml: line 7: may-journal/hub/.github/workflows/sync.yml@v1: skipped, GitHub answered gh: Resource not accessible by integration (HTTP 403)",
+		"workflow refs from .github/workflows/ci.yml line 9 on were not verified: gh api repos/may-journal/journey/git/ref/tags/v1: error connecting to api.github.com")
+}
+
+// rowDuration matches a results-table row's time, in milliseconds or seconds.
+var rowDuration = regexp.MustCompile(`│ (\d+(?:\.\d+)?)(ms|s)\s+│\s*$`)
+
+// slowRefs is how many pinned workflow calls Test0039_8 makes, each answered
+// after one second. Read one at a time, they take slowRefs seconds.
+const slowRefs = 8
 
 func Test0039_8(t *testing.T) {
-	t.Parallel()
-	body := mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(`Rel(a, b, "A")`, `Rel(b, c, "B")`),
-		mermaidCalloutsTable("A"),
-	)["docs/flow.md"]
-	out, code := mermaidCallouts(t, map[string]string{"body.md": body}, "--body-file", "body.md")
-	sees(t, out, code, 1, "(description): diagram callout B has no matching table row (line 1)")
-}
-
-func Test0039_11(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(`Container(app, "1", "UI")`, `Rel(app, api, "2")`),
-		mermaidCalloutsTable("1", "2"),
-	))
-	sees(t, out, code, 1, "docs/flow.md: connector callout 2 must be a letter; numbers are for nodes; run `fitness mermaid-callouts --fix` (line 1)")
-	if strings.Contains(out, "has no matching") {
-		t.Errorf("a numbered connector must fail only for its form, not as an orphan:\n%s", out)
+	// Not parallel: a wall-clock limit beside other tests would time their load.
+	var uses []string
+	for i := range slowRefs {
+		uses = append(uses, fmt.Sprintf("may-journal/fitness-runner/.github/workflows/w%d.yml@%s", i, refSha))
 	}
-}
-
-func Test0039_12(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
-		mermaidCalloutsDiagram("flowchart LR", "a -->|Z| b", "b -->|AA| c", "c -->|AB| a"),
-		mermaidCalloutsTable("Z", "AA", "AB"),
-	))
-	sees(t, out, code, 1,
-		"docs/flow.md: connector callout AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 1)",
-		"docs/flow.md: callout table row AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 8)")
-	if strings.Contains(out, "callout AA ") || strings.Contains(out, "row AA ") {
-		t.Errorf("AA follows the doubling and must pass:\n%s", out)
-	}
-}
-
-func Test0039_15(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", mermaidCalloutsNumbered())
-	out, code := fitness(t, repo, nil, "mermaid-callouts")
-	sees(t, out, code, 1, "connector callout 2 must be a letter")
-	out, code = fitness(t, repo, nil, "mermaid-callouts", "--fix")
-	sees(t, out, code, 0, "docs/flow.md: converted connector callouts 2 to B, 6 to C, 12 to A", "--fix changed 1 file")
-	want := mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(
-			"flowchart LR",
-			`app[1 App] -->|B| api["3 API"]`,
-			"api -->|A| db((4 Store))",
-			"db -- C --> app",
-		),
-		"| # | Description |\n| --- | --- |\n| 1 | step 1 |\n| B | step 2 |\n| 3 | step 3 |\n| 4 | step 4 |\n| A | step A |\n| C | step 6 |\n",
-		mermaidCalloutsDiagram(`Container(web, "5", "UI")`, `Rel(web, api, "A", "HTTPS")`),
-		"| # | Description |\n| --- | --- |\n| 5  | step 5 |\n| A  | step 12 |\n",
-	)["docs/flow.md"]
-	if got := mermaidCalloutsFlow(t, repo); got != want {
-		t.Errorf("--fix must turn each numbered connector and its row into the next free letter, got:\n%s\nwant:\n%s", got, want)
-	}
-	out, code = fitness(t, repo, nil, "mermaid-callouts")
+	slow := found("repos/may-journal/fitness-runner/contents/.github/workflows/", `{"name":"w.yml"}`)
+	slow.Wait = 1
+	out, code, rp := refCheck(t, refWorkflow(uses...), []response{slow})
 	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0039_16(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", mermaidCalloutsNumbered())
-	out, code := fitness(t, repo, nil, "mermaid-callouts", "--fix")
-	sees(t, out, code, 0, "--fix changed 1 file")
-	fixed := mermaidCalloutsFlow(t, repo)
-	out, code = fitness(t, repo, nil, "mermaid-callouts", "--fix")
-	sees(t, out, code, 0, "--fix changed 0 files")
-	if strings.Contains(out, "converted") {
-		t.Errorf("a second --fix must list no file, got:\n%s", out)
+	if reads := len(rp.calls("gh")); reads != slowRefs {
+		t.Errorf("workflow-ref-exists read GitHub %d times, want %d", reads, slowRefs)
 	}
-	if got := mermaidCalloutsFlow(t, repo); got != fixed {
-		t.Errorf("a second --fix must change nothing, got:\n%s\nwant:\n%s", got, fixed)
+	took := rowDuration.FindStringSubmatch(row(out, "workflow-ref-exists"))
+	if took == nil {
+		t.Fatalf("workflow-ref-exists shows no time in %q", row(out, "workflow-ref-exists"))
 	}
-}
-
-func Test0039_17(t *testing.T) {
-	t.Parallel()
-	files := mermaidCalloutsDoc(
-		mermaidCalloutsDiagram(`Container(app, "2", "UI")`, `Rel(app, api, "2")`),
-		mermaidCalloutsTable("2"),
-	)
-	repo := example(t, "happyRepo", files)
-	out, code := fitness(t, repo, nil, "mermaid-callouts", "--fix")
-	sees(t, out, code, 1,
-		"docs/flow.md: --fix left the mermaid diagram at line 1 unchanged: callout 2 marks a node too",
-		"--fix changed 0 files",
-		"docs/flow.md: connector callout 2 must be a letter")
-	if got := mermaidCalloutsFlow(t, repo); got != files["docs/flow.md"] {
-		t.Errorf("--fix must leave a diagram it cannot convert byte for byte, got:\n%s", got)
+	if d, _ := time.ParseDuration(took[1] + took[2]); d >= slowRefs*time.Second/2 {
+		t.Errorf("workflow-ref-exists took %v on %d one-second reads, want under %v", d, slowRefs, slowRefs*time.Second/2)
 	}
 }

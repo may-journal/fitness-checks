@@ -1,107 +1,69 @@
 package requirements
 
-import (
-	"maps"
-	"strings"
-	"testing"
-)
+import "testing"
 
-// kebabDocsCheck is the check under test.
-const kebabDocsCheck = "markdown-filename-kebab-case"
-
-// kebabDocsRepo is a repo whose docs follow kebab-case, with files added.
-func kebabDocsRepo(files map[string]string) map[string]string {
-	repo := map[string]string{
-		"docs/api-design.md": "# API\n",
-		"docs/user-guide.md": "# Guide\n",
-	}
-	maps.Copy(repo, files)
-	return repo
-}
-
-// kebabDocs runs `fitness-install -- markdown-filename-kebab-case` on
-// happyRepo with files written over it.
-func kebabDocs(t *testing.T, files map[string]string) (string, int) {
+// planStructure runs `fitness-install -- plan-structure --body-file plan.md`
+// on happyRepo with body as plan.md.
+func planStructure(t *testing.T, body string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, kebabDocsCheck)
+	repo := example(t, "happyRepo", map[string]string{"plan.md": body})
+	return fitness(t, repo, nil, "plan-structure", "--body-file", "plan.md")
 }
+
+// planStructureOf is a plan with pitch, then Background, then the steps.
+func planStructureOf(pitch, steps string) string {
+	return pitch + "\n\n## Background\n\nThe sync job drops edits made offline.\n\n## What needs to happen\n\n" + steps + "\n"
+}
+
+const planStructurePitch = "> Offline edits survive the next sync."
 
 func Test0034_1(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, kebabDocsRepo(map[string]string{"docs/releaseNotes.md": "# Notes\n"}))
-	sees(t, out, code, 1, "docs/releaseNotes.md: filename must be kebab-case")
+	out, code := planStructure(t, planBody("- [ ] Write the tests."))
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 }
 
 func Test0034_2(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, kebabDocsRepo(map[string]string{
-		"docs/api_notes.md": "# Notes\n",
-		"docs/ApiNotes.md":  "# Notes\n",
-		"docs/api notes.md": "# Notes\n",
-	}))
-	sees(t, out, code, 1,
-		"docs/api_notes.md: filename must be kebab-case",
-		"docs/ApiNotes.md: filename must be kebab-case",
-		"docs/api notes.md: filename must be kebab-case")
+	out, code := planStructure(t, planStructureOf("Offline edits survive the next sync.", "- [ ] Keep queued edits."))
+	sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
 }
 
 func Test0034_3(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, kebabDocsRepo(map[string]string{
-		"architecture/02-containers.md": "# Containers\n",
-		"docs/adr001.md":                "# ADR\n",
-	}))
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := planStructure(t, planStructureOf("> REPLACE-ME", "- [ ] Keep queued edits."))
+	sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
+}
+
+func Test0034_4(t *testing.T) {
+	t.Parallel()
+	out, code := planStructure(t, planStructurePitch+"\n\n## What needs to happen\n\n- [ ] Keep queued edits.\n")
+	sees(t, out, code, 1, "Missing `## Background` section")
 }
 
 func Test0034_5(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, kebabDocsRepo(map[string]string{"Guides/Api_Docs/api-design.md": "# API\n"}))
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := planStructure(t, planStructureOf(planStructurePitch, "```\n- [ ] Keep queued edits.\n```"))
+	sees(t, out, code, 1, "`## What needs to happen` has no checklist item (- [ ] …)")
 }
 
 func Test0034_6(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, map[string]string{
-		"docs/releaseNotes.md": "# Notes\n",
-		"docs/installGuide.md": "# Guide\n",
-		"docs/api-design.md":   "# API\n",
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, kebabDocsCheck)
+	out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Keep queued edits.\n\n## Notes\n\nSee the sync design."))
+	sees(t, out, code, 1, "Unexpected `## Notes` section — a plan has only Background and What needs to happen")
 }
 
 func Test0034_7(t *testing.T) {
 	t.Parallel()
-	out, code := kebabDocs(t, map[string]string{
-		"docs/api-design.md":   "# API\n",
-		"docs/releaseNotes.md": "# Notes\n",
-	})
-	sees(t, out, code, 1, "docs/releaseNotes.md: filename must be kebab-case")
+	for _, heading := range []string{"Open questions", "Unresolved questions", "Questions for the owner"} {
+		out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Keep queued edits.\n\n## "+heading+"\n\n- Which sync wins?"))
+		sees(t, out, code, 1, "Remove the `## "+heading+"` section — turn unknowns into checklist steps")
+	}
 }
 
 func Test0034_8(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", kebabDocsRepo(map[string]string{
-		"docs/oldNotes.md":    "# Old\n",
-		"docs/setup-steps.md": "# Setup\n",
-	}))
-	write(t, repo, map[string]string{"docs/newNotes.md": "# New\n"})
-	git(t, repo, "add", "-A")
-	out, code := fitness(t, repo, nil, kebabDocsCheck)
-	sees(t, out, code, 1, "docs/newNotes.md: filename must be kebab-case")
-	if strings.Contains(out, "oldNotes.md") {
-		t.Errorf("only the staged file may be judged:\n%s", out)
-	}
-}
-
-func Test0034_9(t *testing.T) {
-	t.Parallel()
-	out, code := kebabDocs(t, kebabDocsRepo(map[string]string{
-		"CODE_OF_CONDUCT.md":               "# Code of conduct\n",
-		"docs/AGENTS.md":                   "# Agents\n",
-		".github/pull_request_template.md": "# Pull request\n",
-		"docs/issue_template.md":           "# Issue\n",
-	}))
+	out, code := fitness(t, example(t, "happyRepo", nil), nil, "plan-structure")
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "plan-structure")
 }

@@ -1,271 +1,134 @@
 package requirements
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 )
 
-// eslintMissing is the install hint shown when no eslint binary resolves.
-const eslintMissing = "eslint not found in node_modules/.bin (walking up from the repo root) or on PATH. Run: npm install --save-dev eslint"
+const (
+	aaCheck   = "architecture-actors"
+	acDoc     = "docs/requirements/0001-open.md"
+	aaGiven   = acDoc + ":16: Given "
+	aaContext = "architecture/01-system-context.md"
+	aaRel     = "Rel(user, app, \"3\")"
+	aaHost    = aaRel + "\nPerson(host, \"4 Host\")"
+	aaOpens   = " opens the app"
+)
 
-// eslintPackage marks the repo as a JavaScript project.
-const eslintPackage = "{\"name\": \"app\", \"private\": true}\n"
+// acDocWith is requirement 0001 with one acceptance whose Given is given.
+// The Given sits on line 16.
+func acDocWith(given string) string {
+	return "# 0001 Open\n\n## Why\n\nI open the app.\n\n## Measurement\n\nopens\n-\ntries\n\n## Requirements\n\n- 0001.1\n    - Given " + given + "\n        - When it starts\n            - Then it opens\n"
+}
 
-// eslintUnsorted breaks the shared config's `sort-keys` rule.
-const eslintUnsorted = "export const o = { z: 1, a: 2 };\n"
+// aaFixture is the default architecture with its one Given replaced.
+func aaFixture(given string) map[string]string {
+	files := acFixture(acRoot)
+	files[acDoc] = acDocWith(given)
+	return files
+}
 
-// eslintSorted is eslintUnsorted with its keys in order.
-const eslintSorted = "export const o = { a: 1, z: 2 };\n"
+// aaWith is aaFixture with one edit to the context diagram.
+func aaWith(given, oldContext, newContext string) map[string]string {
+	files := aaFixture(given)
+	files[acRoot+acContext] = strings.Replace(files[acRoot+acContext], oldContext, newContext, 1)
+	return files
+}
 
-// eslintTyped is a clean TypeScript file.
-const eslintTyped = "export const b = 2;\n"
-
-// eslintArgs are the flags fitness passes eslint before the file list.
-const eslintArgs = "--no-error-on-unmatched-pattern --format json"
-
-// eslintClean is real `eslint --format json` output for a file with no
-// findings; %s is its absolute path.
-const eslintClean = `{"filePath":%s,"messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[]}`
-
-// eslintSortKeys is real output for eslintUnsorted under the shared config.
-const eslintSortKeys = `{"filePath":%s,"messages":[{"ruleId":"sort-keys","severity":2,"message":"Expected object keys to be in natural ascending order. 'a' should be before 'z'.","line":1,"column":26,"nodeType":"Property","messageId":"sortKeys","endLine":1,"endColumn":30}],"suppressedMessages":[],"errorCount":1,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"source":"export const o = { z: 1, a: 2 };\n","usedDeprecatedRules":[]}`
-
-// eslintConsole is real output for a `console.log` call under a config
-// that only warns on it.
-const eslintConsole = `{"filePath":%s,"messages":[{"ruleId":"no-console","severity":1,"message":"Unexpected console statement.","line":2,"column":1,"nodeType":"MemberExpression","messageId":"unexpected","endLine":2,"endColumn":12,"suggestions":[{"messageId":"removeConsole","data":{"propertyName":"log"},"fix":{"range":[33,48],"text":""},"desc":"Remove the console.log()."}]}],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":1,"fixableErrorCount":0,"fixableWarningCount":0,"source":"export const o = { z: 1, a: 2 };\nconsole.log(o);\n","usedDeprecatedRules":[]}`
-
-// eslintIgnored is real output for a file passed on the command line that
-// the config ignores.
-const eslintIgnored = `{"filePath":%s,"messages":[{"ruleId":null,"fatal":false,"severity":1,"message":"File ignored because of a matching ignore pattern. Use \"--no-ignore\" to disable file ignore settings or use \"--no-warn-ignored\" to suppress this warning.","nodeType":null}],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":1,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[]}`
-
-// eslintShared is a JavaScript project carrying its own copy of the shared
-// config files fitness ships, the way a consumer repo keeps them.
-func eslintShared(t *testing.T, files map[string]string) map[string]string {
+func aaRun(t *testing.T, files map[string]string, env ...string) (string, int) {
 	t.Helper()
-	all := map[string]string{"package.json": eslintPackage}
-	for _, name := range []string{"eslint.config.mjs", "eslint.base.mjs"} {
-		body, err := os.ReadFile(filepath.Join("..", "internal", "sharedconf", "config", name))
-		mustDo(t, err)
-		all[name] = string(body)
+	return fitness(t, example(t, "happyRepo", files), env, aaCheck)
+}
+
+// aaNoActor is the failure for a Given whose text names no actor among
+// the declared names.
+func aaNoActor(given, where, actors string) string {
+	return aaGiven + "\"" + given + "\"" + where + "; actors declared at " + aaContext + ":3 are " + actors
+}
+
+func Test0024_1(t *testing.T) {
+	t.Parallel()
+	out, code := aaRun(t, map[string]string{"src/main.go": "package main\n", acDoc: acDocWith("no network")})
+	sees(t, out, code, 0)
+	passedWithNoFiles(t, out, aaCheck)
+	out, code = aaRun(t, aaFixture("no network"))
+	sees(t, out, code, 1, aaNoActor("no network", " starts with no actor", "User"))
+}
+
+func Test0024_2(t *testing.T) {
+	t.Parallel()
+	for _, given := range []string{"User" + aaOpens, "user" + aaOpens, "User"} {
+		out, code := aaRun(t, aaFixture(given))
+		sees(t, out, code, 0)
+		passedWith(t, out, aaCheck, "1")
 	}
-	for name, body := range files {
-		all[name] = body
+	for _, given := range []string{"Users open the app", "Admin" + aaOpens, "USER" + aaOpens} {
+		out, code := aaRun(t, aaFixture(given))
+		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
 	}
-	return all
 }
 
-// eslintReport is eslint's JSON report: each template filled with the
-// absolute path of the matching file under repo, in order.
-func eslintReport(repo string, results ...[2]string) string {
-	parts := make([]string, len(results))
-	for i, r := range results {
-		parts[i] = fmt.Sprintf(r[0], strconv.Quote(filepath.Join(repo, r[1])))
+func Test0024_3(t *testing.T) {
+	t.Parallel()
+	out, code := aaRun(t, aaFixture("User has an app"))
+	sees(t, out, code, 0)
+	given := "a user" + aaOpens
+	out, code = aaRun(t, aaFixture(given))
+	sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
+}
+
+func Test0024_4(t *testing.T) {
+	t.Parallel()
+	given := "Host" + aaOpens
+	out, code := aaRun(t, aaWith(given, aaRel, aaHost))
+	sees(t, out, code, 0)
+	repo := example(t, "happyRepo", aaFixture(given))
+	for _, changed := range []string{"README.md", "src/store/store.go", acRoot + acContext} {
+		out, code := fitness(t, repo, []string{"FITNESS_CHANGED_FILES=" + changed}, aaCheck)
+		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
 	}
-	return "[" + strings.Join(parts, ",") + "]\n"
 }
 
-// eslintRun runs `fitness-install -- eslint` in repo with eslint standing
-// in, answering a call with files and the repo's own config with a report.
-// It matches the config path without macOS's /private prefix, so either
-// spelling of the temporary folder matches.
-func eslintRun(t *testing.T, repo string, files string, exit int, results ...[2]string) (string, int, replays) {
-	t.Helper()
-	real, err := filepath.EvalSymlinks(repo)
-	mustDo(t, err)
-	rp := standIn(t, map[string][]response{"eslint": {{
-		Match:  []string{"--config ", strings.TrimPrefix(real, "/private") + "/eslint.config.mjs " + eslintArgs + " " + files},
-		Stdout: eslintReport(real, results...),
-		Exit:   exit,
-	}}})
-	out, code := fitness(t, repo, rp.env, "eslint")
-	return out, code, rp
+func Test0024_5(t *testing.T) {
+	t.Parallel()
+	out, code := aaRun(t, aaWith("Host"+aaOpens, aaRel, aaHost))
+	sees(t, out, code, 0)
+	out, code = aaRun(t, aaWith("User"+aaOpens, aaRel, aaRel+"\nPerson(User, \"4 Host\")"))
+	sees(t, out, code, 1, aaGiven+"actor \"User\" is ambiguous: user at "+aaContext+":5 and User at "+aaContext+":8")
 }
 
-// eslintStaged commits a project with the shared config and an unsorted
-// app.js, stages files, and returns the repo.
-func eslintStaged(t *testing.T, files map[string]string) string {
-	t.Helper()
-	repo := example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
-	write(t, repo, files)
-	git(t, repo, "add", "-A")
-	return repo
+func Test0024_6(t *testing.T) {
+	t.Parallel()
+	out, code := aaRun(t, aaWith("User and Host open the app", aaRel, aaHost))
+	sees(t, out, code, 0)
+	given := "User and Admin open the app"
+	out, code = aaRun(t, aaWith(given, aaRel, aaHost))
+	sees(t, out, code, 1, aaNoActor(given, " names no actor at \"Admin open the app\"", "User, Host"))
+	out, code = aaRun(t, aaWith("User and", aaRel, aaHost))
+	sees(t, out, code, 1, aaNoActor("User and", " names no actor at \"\"", "User, Host"))
 }
 
-// eslintPassedWith asserts the eslint row shows a pass that judged files.
-func eslintPassedWith(t *testing.T, out, files string) {
-	t.Helper()
-	passedWith(t, out, "eslint", files)
-}
-
-// eslintFinds asserts eslint failed and reported want. The table wraps the
-// long absolute path at any character, so spaces are ignored when matching.
-func eslintFinds(t *testing.T, out string, code int, want string) {
-	t.Helper()
-	squash := strings.NewReplacer("│", "", " ", "", "\n", "")
-	if !strings.Contains(squash.Replace(out), squash.Replace(want)) {
-		t.Errorf("output is missing %q:\n%s", want, out)
-	}
-	sees(t, out, code, 1)
-}
-
-// eslintUncalled asserts fitness never ran eslint.
-func eslintUncalled(t *testing.T, rp replays) {
-	t.Helper()
-	if calls := rp.calls("eslint"); len(calls) > 0 {
-		t.Errorf("eslint must not run, got calls %q", calls)
+func Test0024_8(t *testing.T) {
+	t.Parallel()
+	files := aaFixture("User" + aaOpens)
+	files[acDoc] = strings.Replace(files[acDoc], "        - When it starts\n", "", 1)
+	out, code := aaRun(t, files)
+	sees(t, out, code, 0)
+	passedWith(t, out, aaCheck, "1")
+	if strings.Contains(out, acDoc) {
+		t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
 	}
 }
 
 func Test0024_9(t *testing.T) {
 	t.Parallel()
-	for _, repo := range []string{
-		example(t, "happyRepo", map[string]string{"app.js": eslintUnsorted}),
-		example(t, "happyRepo", map[string]string{"package.json": "{\"private\": true}\n", "eslint.config.mjs": "export default [];\n"}),
-		eslintStaged(t, map[string]string{"README.md": readme + "\nOne more short line.\n"}),
-	} {
-		rp := standIn(t, map[string][]response{"eslint": {{Stdout: "[]\n"}}})
-		out, code := fitness(t, repo, rp.env, "eslint")
-		sees(t, out, code, 0, "All 1 checks passed")
-		passedWithNoFiles(t, out, "eslint")
-		eslintUncalled(t, rp)
+	given := "User" + aaOpens
+	out, code := aaRun(t, aaFixture(given))
+	sees(t, out, code, 0)
+	for _, given := range []string{"App" + aaOpens, "app" + aaOpens, "Person" + aaOpens, "p" + aaOpens} {
+		out, code := aaRun(t, aaFixture(given))
+		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
 	}
-}
-
-// biomePackage is a JavaScript project that installs Biome at version %s.
-const biomePackage = "{\"name\": \"app\", \"private\": true, \"devDependencies\": {\"@biomejs/biome\": \"%s\"}}\n"
-
-// biomeFlags are the flags fitness passes Biome before the paths, with %s
-// the cap that lifts its default of 20 diagnostics.
-const biomeFlags = "--reporter=github --max-diagnostics=%s --no-errors-on-unmatched --files-ignore-unknown=true"
-
-// biomeMajors pairs declared version, installed version and cap: Biome 1.8
-// takes at most 65535, and `latest` hides the version.
-var biomeMajors = [][3]string{{"2.4.15", "2.4.15", "none"}, {"^1.9.4", "1.9.4", "none"}, {"latest", "1.8.3", "65535"}}
-
-// biomeTooOld is a Biome before 1.8, whose CLI rejects `--reporter=github`,
-// declared under a spec that hides its version.
-const biomeTooOld = "1.7.3"
-
-// biomeRejects runs check on files with Biome 1.7.3 installed under
-// `latest`, and expects it to fail naming that version without running Biome.
-func biomeRejects(t *testing.T, files map[string]string, check string) {
-	t.Helper()
-	files["package.json"] = fmt.Sprintf(biomePackage, "latest")
-	rp := standIn(t, map[string][]response{"biome": {biomeVersion(biomeTooOld)}})
-	out, code := fitness(t, example(t, "happyRepo", files), rp.env, check)
-	sees(t, out, code, 1, "Biome "+biomeTooOld+" found; Biome 1.8 or later is required")
-	if rp.called("biome", "--reporter=github") {
-		t.Errorf("Biome %s cannot take --reporter=github, yet it ran: %q", biomeTooOld, rp.calls("biome"))
-	}
-}
-
-// biomeVersion is real `biome --version` output for version v.
-func biomeVersion(v string) response {
-	return response{Match: []string{"--version"}, Stdout: "Version: " + v + "\n"}
-}
-
-// biomeUseConst is real `biome lint --reporter=github` output for a `let`
-// never reassigned on line %d; Biome exits 0 on a warning.
-const biomeUseConst = "::warning title=lint/style/useConst,file=app.js,line=%d,endLine=%[1]d,col=1,endColumn=4::This let declares a variable that is only assigned once.\n"
-
-// biomeMany is more findings than Biome's default cap of 20 diagnostics.
-const biomeMany = 25
-
-func Test0024_11(t *testing.T) {
-	t.Parallel()
-	var source, report strings.Builder
-	for i := 1; i <= biomeMany; i++ {
-		fmt.Fprintf(&source, "let v%d = %[1]d;\nexport { v%[1]d };\n", i)
-		fmt.Fprintf(&report, biomeUseConst, 2*i-1)
-	}
-	for _, major := range biomeMajors {
-		repo := example(t, "happyRepo", map[string]string{
-			"package.json": fmt.Sprintf(biomePackage, major[0]),
-			"biome.json":   "{ \"linter\": { \"enabled\": true } }\n",
-			"app.js":       source.String(),
-		})
-		match := "lint " + fmt.Sprintf(biomeFlags, major[2]) + " app.js"
-		rp := standIn(t, map[string][]response{"biome": {biomeVersion(major[1]), {Match: []string{match}, Stdout: report.String()}}})
-		out, code := fitness(t, repo, rp.env, "eslint")
-		eslintFinds(t, out, code, "app.js:1:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
-		eslintFinds(t, out, code, "app.js:49:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
-		if strings.Contains(out, eslintMissing) {
-			t.Errorf("a repo that chose Biome needs no eslint:\n%s", out)
-		}
-	}
-	biomeRejects(t, map[string]string{"biome.json": "{ \"linter\": { \"enabled\": true } }\n", "app.js": source.String()}, "eslint")
-}
-
-func Test0024_2(t *testing.T) {
-	t.Parallel()
-	out, code := fitness(t, example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted})), nil, "eslint")
-	showsInfo(t, out, code, "eslint", eslintMissing)
-	crashed := standIn(t, map[string][]response{"eslint": {{
-		Stderr: "Oops! Something went wrong! :(\n\nTypeError: Cannot read properties of undefined (reading 'rules')\n",
-		Exit:   2,
-	}}})
-	repo := example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
-	out, code = fitness(t, repo, crashed.env, "eslint")
-	showsInfo(t, out, code, "eslint", "TypeError: Cannot read properties of undefined (reading 'rules')")
-}
-
-func Test0024_3(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintSorted, "src/b.ts": eslintTyped}))
-	out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs src/b.ts", 0,
-		[2]string{eslintClean, "app.js"}, [2]string{eslintClean, "eslint.base.mjs"},
-		[2]string{eslintClean, "eslint.config.mjs"}, [2]string{eslintClean, "src/b.ts"})
-	sees(t, out, code, 0, "All 1 checks passed")
-	eslintPassedWith(t, out, "4")
-}
-
-func Test0024_4(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
-	out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs", 1,
-		[2]string{eslintSortKeys, "app.js"}, [2]string{eslintClean, "eslint.base.mjs"},
-		[2]string{eslintClean, "eslint.config.mjs"})
-	eslintFinds(t, out, code, "/app.js:1:26 - Expected object keys to be in natural ascending order. 'a' should be before 'z'. (sort-keys)")
-}
-
-func Test0024_5(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{
-		"package.json":      eslintPackage,
-		"eslint.config.mjs": "export default [{ rules: { 'no-console': 'warn' } }];\n",
-		"app.js":            eslintUnsorted + "console.log(o);\n",
-	})
-	out, code, _ := eslintRun(t, repo, "app.js eslint.config.mjs", 0,
-		[2]string{eslintConsole, "app.js"}, [2]string{eslintClean, "eslint.config.mjs"})
-	eslintFinds(t, out, code, "/app.js:2:1 - Unexpected console statement. (no-console)")
-	if strings.Contains(out, "sort-keys") {
-		t.Errorf("the repo's own config must replace the shared one:\n%s", out)
-	}
-}
-
-func Test0024_6(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{
-		"package.json":      eslintPackage,
-		"eslint.config.mjs": "export default [{ ignores: ['skip.js'] }];\n",
-		"skip.js":           eslintSorted,
-	})
-	out, code, _ := eslintRun(t, repo, "eslint.config.mjs skip.js", 0,
-		[2]string{eslintClean, "eslint.config.mjs"}, [2]string{eslintIgnored, "skip.js"})
-	eslintFinds(t, out, code, "/skip.js - ESLint ignores this tracked file; remove the ignore pattern so it is linted")
-}
-
-func Test0024_7(t *testing.T) {
-	t.Parallel()
-	repo := eslintStaged(t, map[string]string{"src/b.ts": eslintTyped, "README.md": readme + "\nOne more short line.\n"})
-	out, code, rp := eslintRun(t, repo, "src/b.ts", 0, [2]string{eslintClean, "src/b.ts"})
-	sees(t, out, code, 0, "All 1 checks passed")
-	eslintPassedWith(t, out, "1")
-	if rp.called("eslint", "app.js") {
-		t.Errorf("eslint must lint only the staged file, got calls %q", rp.calls("eslint"))
-	}
+	out, code = aaRun(t, aaWith(given, "C4Context\nPerson(user, \"1 User\")\nSystem(app, \"2 App\")\nRel(user, app, \"3\")", "flowchart LR\nuser((1 User)):::person\napp[2 App]:::system\nuser -->|3| app"))
+	sees(t, out, code, 1, aaGiven+"\""+given+"\" starts with no actor; no actor is declared at "+aaContext+":3")
 }

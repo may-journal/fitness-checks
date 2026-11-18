@@ -1,215 +1,228 @@
 package requirements
 
 import (
-	"strings"
+	"maps"
 	"testing"
 )
 
-// swiftTest is the path of swiftRepo's requirement test file, and
-// swiftScreens of the helper that imports apple-ui-testing-library.
-const (
-	swiftTest    = "Tests/AdderTests/AdderTests.swift"
-	swiftScreens = "Tests/AdderTests/Screens.swift"
-)
+// localizedCatalog is the fixture app's String Catalog: a live verb, a plural
+// noun, a stale word, and Xcode's empty key.
+const localizedCatalog = `{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : { "shouldTranslate" : false },
+    "noun.photo" : {
+      "localizations" : { "en" : { "variations" : { "plural" : {
+        "one" : { "stringUnit" : { "state" : "translated", "value" : "Photo" } },
+        "other" : { "stringUnit" : { "state" : "translated", "value" : "Photos" } }
+      } } } }
+    },
+    "verb.archive" : {
+      "extractionState" : "stale",
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Archive" } } }
+    },
+    "verb.share" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : { "en" : { "stringUnit" : { "state" : "new", "value" : "Share" } } }
+    }
+  },
+  "version" : "1.0"
+}
+`
 
-// libraryHint is the part of every test library failure that says what to
-// use instead.
-const libraryHint = "write it with Swift Testing and UITestingLibrary, hosted in the app, as https://github.com/may-journal/apple-ui-testing-library shows"
+// localizedWords is the fixture app's reference type, which reads each
+// label from the catalog by key.
+const localizedWords = `import Foundation
 
-// swiftChecked runs only the requirements check on swiftRepo with files
-// written over it.
-func swiftChecked(t *testing.T, files map[string]string) (string, int) {
+enum Words {
+    enum Verb {
+        static var share: String {
+            String(localized: "verb.share", defaultValue: "Share", comment: "Verb: share a photo")
+        }
+    }
+
+    enum Noun {
+        static var photo: String {
+            String(localized: "noun.photo", defaultValue: "Photo", comment: "Noun: one photo")
+        }
+    }
+}
+`
+
+// localizedApp is the fixture app with a String Catalog, its Words
+// reference, and a config naming that reference, with files written over
+// it. An empty body deletes a fixture file.
+func localizedApp(t *testing.T, files map[string]string) string {
 	t.Helper()
-	return checked(t, with(swiftRepo(), files))
+	app := map[string]string{
+		".fitnessrc.json":           `{"localizedText": {"reference": "Words"}}` + "\n",
+		"App/Localizable.xcstrings": localizedCatalog,
+		"App/Words.swift":           localizedWords,
+	}
+	maps.Copy(app, files)
+	return example(t, "happyRepo", app)
 }
 
-// librarySuite is a Swift Testing file whose test0001_1 runs body on
-// apple-ui-testing-library, after the given extra imports.
-func librarySuite(imports, body string) string {
-	return "import Testing\nimport UITestingLibrary\n" + imports + "\n@MainActor @Test func test0001_1() async throws {\n" + body + "}\n"
-}
-
-// systemSuite is an end-to-end XCTest class whose test0001_1 drives the
-// app through UITestingLibrarySystem.
-const systemSuite = "import UITestingLibrary\nimport UITestingLibrarySystem\nimport XCTest\n\n@MainActor\nfinal class SystemRequirements: XCTestCase {\n" +
-	"  func test0001_1() throws {\n    let session = SystemSession(bundleIdentifier: \"org.example.app\", timeout: 10)\n" +
-	"    session.launch()\n    let reset = [\"xcrun\", \"simctl\", \"erase\", \"all\"]\n    XCTAssertFalse(reset.isEmpty)\n    try session.taps(.button(\"Share\"))\n  }\n}\n"
-
-// swiftJudged runs fitness on swiftRepo with files written over it.
-func swiftJudged(t *testing.T, files map[string]string) (string, int) {
+// localizedText runs `fitness-install -- localized-text` on the fixture
+// app with files written over it.
+func localizedText(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	return judged(t, with(swiftRepo(), files))
+	return fitness(t, localizedApp(t, files), nil, "localized-text")
 }
 
-// swiftOwnsNothing is a test file whose test0001_1 is not a test.
-func swiftOwnsNothing(t *testing.T, body string) {
-	t.Helper()
-	out, code := swiftJudged(t, map[string]string{"Tests/AdderTests/AdderTests.swift": body})
-	sees(t, out, code, 1, "0001.1 has no test; name exactly one test test0001_1")
-}
+// localizedView is a view that passes literals to a button and a title.
+const localizedView = `import SwiftUI
 
-// checked runs only the requirements check on happyRepo plus files, so a
-// TypeScript repo meets no JavaScript tool.
-func checked(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "requirements")
-}
+struct ShareView: View {
+    let count: Int
 
-// scriptChecked runs the requirements check on scriptRepo with its test file
-// replaced by statements.
-func scriptChecked(t *testing.T, statements ...string) (string, int) {
-	t.Helper()
-	return checked(t, with(scriptRepo(), map[string]string{"tests/adder.test.ts": vitestFile(statements...)}))
+    var body: some View {
+        Button("Share") {}
+            .navigationTitle("Library")
+        Text("\(count) shared")
+    }
 }
+`
 
-// notTests mention 0001.1 in ways vitest runs no test for.
-var notTests = []string{
-	`// test("0001.1 in a comment", () => {});`,
-	`const note = "test('0001.1 in a string', () => {})";`,
-	`describe("0001.1 a describe title", () => {});`,
-	`class Matcher { test(value: string) { return /0001\.1/.test(value); } }`,
-	`class Typed { test(value: string): boolean { return value === "0001.1"; } }`,
-	`interface Check { test(value: string): boolean; }`,
+// localizedStateView passes literals as ternary and ?? branches.
+const localizedStateView = `import SwiftUI
+
+struct StateView: View {
+    let isShared: Bool
+    let name: String?
+
+    var body: some View {
+        Text(isShared ? "Shared" : "Private")
+        Text(name ?? "Nobody")
+        Text(isShared ? Words.Verb.share : Words.Noun.photo)
+        Label("Photos", systemImage: isShared ? "person" : "lock")
+    }
 }
+`
 
-func Test0065_20(t *testing.T) {
+// localizedCountView passes literals as branches inside an interpolation.
+const localizedCountView = `import SwiftUI
+
+struct CountView: View {
+    let count: Int
+
+    var body: some View {
+        Text("\(count == 1 ? "photo" : "photos")")
+        Text("\(count)\(Words.Noun.photo)")
+    }
+}
+`
+
+func Test0065_1(t *testing.T) {
 	t.Parallel()
-	out, _ := swiftJudged(t, nil)
-	passedWith(t, out, "requirements", "2")
-	out, _ = swiftJudged(t, map[string]string{
-		"Tests/AdderTests/AdderTests.swift": "import Testing\n\nstruct AdderSpec {\n  @Test(\"adds\") func test0001_1() {}\n}\n",
+	out, code := localizedText(t, map[string]string{
+		"App/ShareView.swift": localizedView,
+		"App/StateView.swift": localizedStateView,
+		"App/CountView.swift": localizedCountView,
+		"App/HelpView.swift":  "import SwiftUI\n\nstruct HelpView: View {\n    var body: some View {\n        Text(\"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\")\n    }\n}\n",
 	})
-	passedWith(t, out, "requirements", "2")
-	swiftOwnsNothing(t, xcTestFile()+"// func test0001_1() {}\n/* nested /* func test0001_1() {} */ */\nlet note = \"\\(\"func test0001_1() {}\")\"\nlet raw = #\"\"\"\n\" func test0001_1() {}\n\"\"\"#\n")
-	swiftOwnsNothing(t, xcTestFile()+"\nstruct Helper {\n  func test0001_1() {}\n}\n")
-	for _, owner := range []string{
-		`test("0001.1 adds two numbers", () => {});`,
-		`describe("adder", () => { it.each([1, 2])("0001.1 adds %i", (n) => { expect(n).toBeTruthy(); }); });`,
-		"test.skip(`0001.1 adds two numbers`, () => {});",
-		`test("0001.1 adds two numbers", () => { test.skip(process.env.CI === undefined, "0001.1 runs in CI"); });`,
-	} {
-		out, code := scriptChecked(t, append([]string{owner}, notTests...)...)
-		sees(t, out, code, 0)
-		passedWith(t, out, "requirements", "2")
-	}
-	jestFolder := map[string]string{"tests/adder.test.ts": "", "src/__tests__/adder.ts": vitestFile(`test("0001.1 adds two numbers", () => {});`)}
-	out, code := checked(t, with(scriptRepo(), jestFolder))
-	sees(t, out, code, 0)
-	passedWith(t, out, "requirements", "2")
-	out, code = scriptChecked(t, notTests...)
-	sees(t, out, code, 1, `0001.1 has no test; name exactly one test test("0001.1 …")`)
-	junitOwnership(t)
+	sees(t, out, code, 1,
+		`App/StateView.swift:8 - "Shared" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		`App/StateView.swift:8 - "Private" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		`App/StateView.swift:9 - "Nobody" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		`App/StateView.swift:11 - "Photos" passed to Label skips the String Catalog; use a Words reference for catalog entry "noun.photo"`,
+		`App/CountView.swift:7 - "photo" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		`App/CountView.swift:7 - "photos" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		"App/HelpView.swift:5 - \"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference",
+		`App/ShareView.swift:7 - "Share" passed to Button skips the String Catalog; use a Words reference for catalog entry "verb.share"`,
+		`App/ShareView.swift:8 - "Library" passed to navigationTitle skips the String Catalog; add it to the String Catalog and use a Words reference`,
+		`App/ShareView.swift:9 - "\(count) shared" passed to Text skips the String Catalog; add it to the String Catalog and use a Words reference`)
 }
 
-// junitOwnership checks a JUnit test owns 0001.1 by its name and test
-// annotation, and a comment, string or helper method does not.
-func junitOwnership(t *testing.T) {
-	t.Helper()
-	for _, owner := range []string{
-		"class AdderTest {\n  @ParameterizedTest\n  @ValueSource(ints = {1, 2})\n  void test0001_1(int n) {}\n}\n",
-		"class AdderTest {\n  @TestFactory\n  Stream<DynamicTest> test0001_1() {\n    return Stream.empty();\n  }\n}\n",
-		// TestNG runs a marked class's public methods, but not its setup.
-		"@Test\npublic class AdderTest {\n  public AdderTest() {}\n\n  @BeforeTest\n  public void setUp() {}\n\n  public void test0001_1() {}\n}\n",
-	} {
-		out, code := checked(t, with(junitRepo(), map[string]string{"src/test/java/AdderTest.java": owner}))
-		sees(t, out, code, 0)
-		passedWith(t, out, "requirements", "2")
-	}
-	notJUnit := "class AdderTest {\n  // @Test void test0001_1() {}\n  String note = \"@Test void test0001_1() {}\";\n\n  void test0001_1() {}\n\n  @BeforeTest\n  void test0001_1() {}\n}\n"
-	out, code := checked(t, with(junitRepo(), map[string]string{"src/test/java/AdderTest.java": notJUnit}))
-	sees(t, out, code, 1, "0001.1 has no test; name exactly one test test0001_1")
-}
-
-func Test0065_26(t *testing.T) {
+func Test0065_2(t *testing.T) {
 	t.Parallel()
-	out, code := judged(t, with(goRepo(), map[string]string{"adder_test.go": ""}))
-	sees(t, out, code, 1, "0001.1 has no test; name exactly one test Test0001_1")
-	swiftOwnsNothing(t, xcTestFile())
-	out, code = checked(t, with(scriptRepo(), map[string]string{"tests/adder.test.ts": ""}))
-	sees(t, out, code, 1, `0001.1 has no test; name exactly one test test("0001.1 …")`)
-	out, code = checked(t, with(junitRepo(), map[string]string{"src/test/java/AdderTest.java": junitFile("AdderTest")}))
-	sees(t, out, code, 1, "0001.1 has no test; name exactly one test test0001_1")
-	out, code = judged(t, with(goRepo(), map[string]string{"more/more_test.go": testFile("more", "Test0001_1")}))
-	sees(t, out, code, 1, "0001.1 is owned by 2 tests")
-	out, code = judged(t, with(goRepo(), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "Test0001_2")}))
-	sees(t, out, code, 1, "Test0001_2 names 0001.2, which no requirement defines")
+	out, code := localizedText(t, map[string]string{"App/PhotoView.swift": `import SwiftUI
+
+struct PhotoView: View {
+    let caption: String
+    let count: Int
+    let titles: [String: String]
+
+    var body: some View {
+        VStack {
+            Label(Words.Noun.photo, systemImage: "photo")
+            Text(caption)
+            Text("·")
+            Text("\(count)")
+            Text("\(titles["first"] ?? Words.Noun.photo)")
+            Button(Words.Verb.share) {}
+                .accessibilityLabel(Words.Verb.share)
+        }
+    }
+}
+`})
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
-func Test0065_27(t *testing.T) {
+func Test0065_3(t *testing.T) {
 	t.Parallel()
-	out, code := judged(t, with(goRepo(), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "TestAddsAgain")}))
-	sees(t, out, code, 1, "TestAddsAgain proves no requirement")
-	out, code = swiftJudged(t, map[string]string{swiftTest: swiftTestingFile("test0001_1", "testAddsAgain")})
-	sees(t, out, code, 1, "testAddsAgain proves no requirement; rename it testNNNN_N")
-	out, code = scriptChecked(t, `test("0001.1 adds two numbers", () => {});`, `it("adds again", () => {});`)
-	sees(t, out, code, 1, `tests/adder.test.ts:4: it("adds again") proves no requirement; rename it test("NNNN.N …")`)
-	out, code = checked(t, with(junitRepo(), map[string]string{"src/test/java/AdderTest.java": junitFile("AdderTest", "test0001_1", "addsAgain")}))
-	sees(t, out, code, 1, "src/test/java/AdderTest.java:6: addsAgain proves no requirement; rename it testNNNN_N")
-	unchangedTestFails(t, with(goRepo(), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "TestAddsAgain")}), "TestAddsAgain proves no requirement")
-	for _, body := range []string{xcTestFile("testAddsAgain"), "import Testing\n@Test func addsAgain() {}\n"} {
-		files := with(swiftRepo(), map[string]string{"Tests/ExtraTests.swift": body})
-		unchangedTestFails(t, files, "proves no requirement; rename it testNNNN_N")
-	}
-	files := with(scriptRepo(), map[string]string{"tests/extra.spec.js": vitestFile(`it("adds again", () => {});`)})
-	unchangedTestFails(t, files, `it("adds again") proves no requirement`)
-	files = with(junitRepo(), map[string]string{"src/test/java/ExtraTest.java": junitFile("ExtraTest", "addsAgain")})
-	unchangedTestFails(t, files, "addsAgain proves no requirement")
+	out, code := localizedText(t, map[string]string{"Tests/Requirements/ShareTests.swift": `import Testing
+
+struct ShareTests {
+    func tapsShare(_ user: User) async throws {
+        try await user.taps(.button("Share"))
+    }
+}
+`})
+	sees(t, out, code, 1,
+		`Tests/Requirements/ShareTests.swift:5 - "Share" types catalog entry "verb.share"; read it through a Words reference`)
 }
 
-func Test0065_24(t *testing.T) {
+func Test0065_4(t *testing.T) {
 	t.Parallel()
-	for _, repo := range []map[string]string{goRepo(), swiftRepo(), scriptRepo(), junitRepo()} {
-		out, code := checked(t, with(repo, map[string]string{"docs/requirements/0001-adds-numbers.md": ""}))
-		sees(t, out, code, 1, "docs/requirements/ has no requirement docs")
-	}
-	out, code := checked(t, map[string]string{"src/app.js": "export const app = 1;\n"})
-	sees(t, out, code, 1, "docs/requirements/ has no requirement docs")
+	out, code := localizedText(t, map[string]string{"Tests/Requirements/Support/Guest.swift": `struct Guest {
+    let user: User
+
+    func sharesCaptionedPhoto() async throws {
+        try await user.writes("Swim at the lake")
+        try await user.sees(.text("$9.99"))
+        try await user.sees(.image("Sparkle"))
+        try await user.doesNotSee(.button("Archive"))
+        try await user.taps(.button(Words.Verb.share))
+        let label = "Share"
+        try await user.writes(label)
+        try await user.adds(Photo(title: "Photos", caption: "Share"))
+    }
+}
+`})
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
-func Test0065_25(t *testing.T) {
+func Test0065_5(t *testing.T) {
 	t.Parallel()
-	for _, files := range []map[string]string{nil, {"vite.config.ts": "export default {};\n", ".eslintrc.cjs": "module.exports = {};\n"}} {
-		out, code := checked(t, files)
-		sees(t, out, code, 0)
-		passedWithNoFiles(t, out, "requirements")
-	}
+	out, code := localizedText(t, map[string]string{
+		".fitnessrc.json": `{"localizedText": {"reference": "Words", "allow": [
+  {"pattern": "Beta [0-9]+", "reason": "build tags stay in English for testers"}
+]}}` + "\n",
+		"App/BuildTag.swift": "import SwiftUI\n\nstruct BuildTag: View {\n    var body: some View { Text(\"Beta 3\") }\n}\n",
+	})
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
-func Test0065_28(t *testing.T) {
+func Test0065_6(t *testing.T) {
 	t.Parallel()
-	out, code := swiftChecked(t, map[string]string{swiftTest: xcTestFile("test0001_1")})
-	sees(t, out, code, 1, swiftTest+":1: imports XCTest; only an end-to-end test that imports UITestingLibrarySystem may use it, so "+libraryHint, swiftTest+":3: subclasses XCTestCase; "+libraryHint)
-	out, code = swiftChecked(t, map[string]string{swiftTest: "import Testing\n@testable import XCTest\n\n@Test func test0001_1() {}\n"})
-	sees(t, out, code, 1, swiftTest+":2: imports XCTest")
-	// An end-to-end test drives the app through SystemSession, never XCUIApplication itself.
-	out, code = swiftChecked(t, map[string]string{swiftTest: strings.Replace(systemSuite, "try session.taps", "XCUIApplication().launch()\n    try session.taps", 1)})
-	sees(t, out, code, 1, "drives Xcode UI tests through XCUIApplication")
-	out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("", "  let app = XCUIApplication()\n  app.launch()\n")})
-	sees(t, out, code, 1, swiftTest+":5: drives Xcode UI tests through XCUIApplication, which launches the app in a separate process; "+libraryHint)
-	boot := "  let shell = Process()\n  shell.arguments = [\"xcrun\", \"simctl\", \"boot\", \"booted\"]\n"
-	out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("import Foundation\n", boot)})
-	sees(t, out, code, 1, swiftTest+":7: boots a simulator through simctl outside the end-to-end mode; "+libraryHint)
-	for _, framework := range []string{"ViewInspector", "SnapshotTesting", "KIF", "EarlGrey", "Hammer"} {
-		out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("import "+framework+"\n", "")})
-		sees(t, out, code, 1, swiftTest+":3: imports "+framework+", a UI test framework requirement tests may not use; "+libraryHint)
-	}
-	out, code = swiftChecked(t, map[string]string{swiftScreens: ""})
-	sees(t, out, code, 1, swiftTest+": nothing in Tests/AdderTests/ imports UITestingLibrary; "+libraryHint)
-	// A library import in a sibling folder does not reach the test.
-	out, code = swiftChecked(t, map[string]string{swiftScreens: "", "Tests/OtherTests/Screens.swift": "import UITestingLibrary\n"})
-	sees(t, out, code, 1, "nothing in Tests/AdderTests/ imports UITestingLibrary")
+	out, code := localizedText(t, map[string]string{
+		".fitnessrc.json": `{"localizedText": {"reference": "Words", "allow": [
+  {"pattern": "Beta [0-9]+"},
+  {"pattern": "(Beta", "reason": "build tags stay in English for testers"}
+]}}` + "\n",
+	})
+	sees(t, out, code, 1,
+		`localizedText.allow pattern "Beta [0-9]+" needs a reason`,
+		`localizedText.allow pattern "(Beta" is not a regular expression`)
 }
 
-func Test0065_29(t *testing.T) {
+func Test0065_7(t *testing.T) {
 	t.Parallel()
-	// Words in comments and strings are no import or call.
-	quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n}\n"
-	for _, body := range []string{swiftTestingFile("test0001_1"), librarySuite("", ""), quiet} {
-		out, code := swiftChecked(t, map[string]string{swiftTest: body})
-		sees(t, out, code, 0)
-		passedWith(t, out, "requirements", "2")
-	}
-	out, code := swiftChecked(t, map[string]string{swiftTest: systemSuite})
-	sees(t, out, code, 0)
-	passedWith(t, out, "requirements", "2")
+	out, code := localizedText(t, map[string]string{
+		"App/Localizable.xcstrings": "",
+		"App/ShareView.swift":       localizedView,
+	})
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "localized-text")
 }

@@ -53,9 +53,9 @@
 //
 // # Requirements
 //
-// [Requirement 0072] has one installed-command test per acceptance.
+// [Requirement 0022] has one installed-command test per acceptance.
 //
-// [Requirement 0072]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0072-checks-architecture-journey.md
+// [Requirement 0022]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0022-checks-architecture-journey.md
 package main
 
 import _ "embed"

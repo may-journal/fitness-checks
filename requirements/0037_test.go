@@ -5,68 +5,70 @@ import (
 	"testing"
 )
 
-// noBoldItalic runs `fitness-install -- markdown-no-bold-italic <args>` on
-// happyRepo with files written over it.
-func noBoldItalic(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"markdown-no-bold-italic"}, args...)...)
-}
+// prStructureSummary is a real one-line blockquote summary.
+const prStructureSummary = "> Ship the thing so a reader gets the value.\n\n"
 
-// noBoldItalicReadme runs the check with text added to happyRepo's README.
-func noBoldItalicReadme(t *testing.T, text string) (string, int) {
-	t.Helper()
-	return noBoldItalic(t, map[string]string{"README.md": readme + "\n" + text})
-}
+// prStructureBackground is a filled `## Background` section.
+const prStructureBackground = "## Background\n\nWhy this exists.\n\n"
 
-// noBoldItalicRule is the advice every finding carries.
-const noBoldItalicRule = " (use only when explicitly required): "
+// prStructureChangelog is a `## Changelog` section with one bullet.
+const prStructureChangelog = "## Changelog\n\n- Feat: the new behavior\n"
+
+// prStructure runs `fitness-install -- pr-structure --body-file pr.md` on
+// happyRepo with body as the PR description.
+func prStructure(t *testing.T, body string) (string, int) {
+	t.Helper()
+	repo := example(t, "happyRepo", map[string]string{"pr.md": body})
+	return fitness(t, repo, nil, "pr-structure", "--body-file", "pr.md")
+}
 
 func Test0037_1(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalicReadme(t, "Some **strong** and *soft* words.\n")
-	sees(t, out, code, 1,
-		`README.md: disallowed **bold**`+noBoldItalicRule+`"**strong**"`,
-		`README.md: disallowed *italic*`+noBoldItalicRule+`"*soft*"`)
+	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog)
+	sees(t, out, code, 0, "pr-structure")
 }
 
 func Test0037_2(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalicReadme(t, "Some __strong__ and _soft_ words.\n")
-	sees(t, out, code, 1,
-		`README.md: disallowed __bold__`+noBoldItalicRule+`"__strong__"`,
-		`README.md: disallowed _italic_`+noBoldItalicRule+`"_soft_"`)
+	out, code := prStructure(t, prStructureBackground+prStructureChangelog)
+	sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
 }
 
 func Test0037_3(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalicReadme(t, "Use `**strong**` here.\n\n```\n_soft_ and **strong**\n```\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := prStructure(t, "> REPLACE-ME\n\n"+prStructureBackground+prStructureChangelog)
+	sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
 }
 
 func Test0037_4(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalicReadme(t, "See [the _dev_ path](https://example.com/_dev_/to_page_).\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := prStructure(t, prStructureSummary+prStructureChangelog)
+	sees(t, out, code, 1, "Missing `## Background` section")
 }
 
 func Test0037_5(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalicReadme(t, "* first item\n* second item\n* third item\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := prStructure(t, prStructureSummary+prStructureBackground+"## Changelog\n\nNothing yet.\n")
+	sees(t, out, code, 1, "`## Changelog` has no list item (- …)")
+}
+
+func Test0037_6(t *testing.T) {
+	t.Parallel()
+	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog+"\n## Testing\n\nRan it.\n")
+	sees(t, out, code, 1, "Unexpected `## Testing` section — a PR has only Background and Changelog")
 }
 
 func Test0037_7(t *testing.T) {
 	t.Parallel()
-	out, code := noBoldItalic(t, map[string]string{"body.md": "Hello _there_.\n"}, "--body-file", "body.md")
-	sees(t, out, code, 1, `(description): disallowed _italic_`+noBoldItalicRule+`"_there_"`)
+	fence := strings.Repeat("`", 3)
+	sample := "\n" + fence + "markdown\n## Testing\n" + fence + "\n"
+	out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog+sample)
+	sees(t, out, code, 0, "pr-structure")
 }
 
-func Test0037_9(t *testing.T) {
+func Test0037_8(t *testing.T) {
 	t.Parallel()
-	release := strings.Replace(notesRelease(notesTwo), "change it", "change **everything**", 1)
-	out, code := notesChecks(t, notesHead+release+notesEntry, "markdown-no-bold-italic")
-	sees(t, out, code, 1, `CHANGELOG.md: disallowed **bold**`+noBoldItalicRule+`"**everything**"`)
-	if n := strings.Count(out, "disallowed"); n != 1 {
-		t.Errorf("only the bold outside a scope must fail, got %d findings:\n%s", n, out)
-	}
+	out, code := fitness(t, example(t, "happyRepo", nil), nil, "pr-structure")
+	sees(t, out, code, 0, "pr-structure")
+	passedWithNoFiles(t, out, "pr-structure")
 }

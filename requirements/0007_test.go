@@ -5,78 +5,60 @@ import (
 	"testing"
 )
 
-// proseBudget runs `fitness-install -- prose-budget <args>` on happyRepo
-// with files written over it.
-func proseBudget(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"prose-budget"}, args...)...)
+// largeTreeFiles is how many generated files the large tree adds beside a
+// Java project and a components view.
+const largeTreeFiles = 50000
+
+// largeTreeChecks are the repo-state checks a large tree must keep fast.
+var largeTreeChecks = []string{"build-output-untracked", "architecture-components"}
+
+// nestedDist is a build output file deep in the large tree.
+const nestedDist = "tree/0049/dist/app.js"
+
+// largeTree is aoFixture with a Java project, a TypeScript source the store
+// owns and an ignored dist folder.
+func largeTree() map[string]string {
+	return with(aoFixture(), map[string]string{
+		"pom.xml":            javaPom(""),
+		".gitignore":         "dist/\n",
+		"src/store/index.ts": "import { save } from './save';\n\nexport const ready = save;\n",
+		"src/store/save.ts":  "export const save = true;\n",
+	})
 }
 
-// longSentence has 30 words, past the 23-word default.
-var longSentence = strings.Repeat("word ", 29) + "end.\n"
-
-func Test0007_9(t *testing.T) {
-	t.Parallel()
-	out, code := proseBudget(t, map[string]string{"README.md": readme + "\n" + longSentence})
-	sees(t, out, code, 1, "README.md: a sentence has 30 words (max 23)")
-	out, code = proseBudget(t, map[string]string{"README.md": readme + "\nOne. Two. Three. Four. Five.\n"})
-	sees(t, out, code, 1, "README.md: a paragraph has 5 sentences (max 4)")
-}
-
-func Test0007_10(t *testing.T) {
-	t.Parallel()
-	// The task holds 23 words, the default limit, so only a counted box
-	// would push it over.
-	task := "- [x] " + strings.Repeat("word ", 22) + "end"
-	out, code := proseBudget(t, map[string]string{"plan.md": planBody(task)}, "--body-file", "plan.md")
-	sees(t, out, code, 0, "All 1 checks passed")
+func Test0007_1(t *testing.T) {
+	// Not parallel: a 50,000-file tree built beside other tests would time their disk load.
+	repo := generatedTree(t, largeTree(), largeTreeFiles)
+	write(t, repo, map[string]string{"dist/index.js": "export const built = true;\n"})
+	path, calls := loggedGit(t)
+	out, code := fitness(t, repo, []string{path}, "--all", "--policy=external", "--checks="+strings.Join(largeTreeChecks, ","))
+	sees(t, out, code, 0, "All 2 checks passed")
+	fewGitCalls(t, calls)
 }
 
 func Test0007_2(t *testing.T) {
-	t.Parallel()
-	body := readme + "\n## Notes\n"
-	for i := 0; i < 16; i++ {
-		body += "\n- " + strings.Repeat("item word ", 10) + "\n"
+	// Not parallel, like Test0007_1.
+	repo := generatedTree(t, largeTree(), largeTreeFiles)
+	write(t, repo, map[string]string{nestedDist: "export const built = true;\n"})
+	git(t, repo, "add", "-f", nestedDist)
+	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "build(tree): track a build")
+	path, calls := loggedGit(t)
+	out, code := fitness(t, repo, []string{path}, "--all", "--policy=external", "--checks="+largeTreeChecks[0])
+	sees(t, out, code, 1, nestedDist)
+	fewGitCalls(t, calls)
+}
+
+// maxLargeTreeGitCalls bounds the git calls of a whole run on the large tree,
+// runner included, far below one per tracked file.
+const maxLargeTreeGitCalls = 20
+
+// fewGitCalls asserts the run started git a few times in all, with one
+// `git ls-files` for build-output-untracked, not one per file.
+func fewGitCalls(t *testing.T, calls string) {
+	t.Helper()
+	n := occurrences(calls, "\n")
+	t.Logf("git started %d times", n)
+	if n == 0 || n > maxLargeTreeGitCalls {
+		t.Errorf("the run started git %d times on %d tracked files, want 1 to %d, none per file", n, largeTreeFiles, maxLargeTreeGitCalls)
 	}
-	out, code := proseBudget(t, map[string]string{"README.md": body})
-	sees(t, out, code, 1, `README.md: section "Notes" has 320 prose words (max 300)`)
-}
-
-func Test0007_3(t *testing.T) {
-	t.Parallel()
-	changelog := "# Changelog\n\n## Changes\n\n### 2026.10.08.1400\n\n- Docs: " + longSentence
-	out, code := proseBudget(t, map[string]string{"CHANGELOG.md": changelog})
-	sees(t, out, code, 1, "CHANGELOG.md: a list item has 31 words (max 23)")
-}
-
-func Test0007_4(t *testing.T) {
-	t.Parallel()
-	out, code := proseBudget(t, map[string]string{"body.md": "## Background\n\n" + longSentence}, "--body-file", "body.md")
-	sees(t, out, code, 1, "a sentence has 30 words (max 23)")
-}
-
-func Test0007_5(t *testing.T) {
-	t.Parallel()
-	nested := readme + "\n- Top item\n" + strings.Repeat("    - Child item\n", 5)
-	out, code := proseBudget(t, map[string]string{"README.md": nested})
-	sees(t, out, code, 1, "README.md: a list has more than 4 items at level 2")
-}
-
-func Test0007_7(t *testing.T) {
-	t.Parallel()
-	out, code := proseBudget(t, map[string]string{"README.md": readme + "\n```\n" + longSentence + "```\n"})
-	sees(t, out, code, 0, "All 1 checks passed")
-	// Three paragraphs, the default limit, so only a counted - would push
-	// the Measurement over.
-	out, code = proseBudget(t, map[string]string{"docs/requirements/0001-adds-numbers.md": requirementDoc("0001.1")})
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0007_8(t *testing.T) {
-	t.Parallel()
-	out, code := proseBudget(t, map[string]string{
-		".fitnessrc.json": `{"proseBudget": {"maxSentenceWords": 5}}` + "\n",
-		"README.md":       readme + "\nThis sentence has exactly seven short words.\n",
-	})
-	sees(t, out, code, 1, "README.md: a sentence has 7 words (max 5)")
 }

@@ -1,81 +1,149 @@
 package requirements
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
-// mdpTable is a callout table that pairs with the diagram above it.
-const mdpTable = "\n| # | Description | Why |\n| --- | --- | --- |\n| 6 | uses | because |\n"
+// reportStep is a last step that reports every outcome to the job summary.
+const reportStep = `      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf 'Job %s\n' "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+`
 
-// mdpDiagram wraps body in a mermaid fence under a heading.
-func mdpDiagram(body string) string {
-	return "# Architecture\n\n```mermaid\n" + body + "\n```\n"
+// reportingJob is a workflow whose job, on line 4, builds and then
+// reports with tail as its last steps.
+func reportingJob(tail string) string {
+	return "name: CI\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: make\n" + tail
 }
 
-// mdpPaired is a doc whose diagram is paired with a callout table.
-func mdpPaired(body string) string {
-	return mdpDiagram(body) + mdpTable
-}
-
-// mdpCheck runs `fitness-install -- mermaid-diagram-prose <args>` on
-// happyRepo with files written over it.
-func mdpCheck(t *testing.T, files map[string]string, args ...string) (string, int) {
+// reportingCheck runs workflow-reporting on happyRepo with files written
+// over it.
+func reportingCheck(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"mermaid-diagram-prose"}, args...)...)
-}
-
-// mdpError is the message a user sees for one prose label in docs/arch.md.
-func mdpError(label string) string {
-	return `docs/arch.md: diagram at line 3 has a relationship label with prose ("` + label + `") — put descriptions in the callout table`
+	return fitness(t, example(t, "happyRepo", files), nil, "workflow-reporting")
 }
 
 func Test0040_1(t *testing.T) {
 	t.Parallel()
-	body := "Rel(app, api, \"6 Uses over HTTP\")\nBiRel(app, db, \"6 talks both ways\")\nRel_Back(api, app, '6 replies')\nRel(api, db,\n  \"6 wrapped prose\")\nRel(api, db, \"B reads\")"
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpPaired(body)})
-	sees(t, out, code, 1, mdpError("6 Uses over HTTP"), mdpError("6 talks both ways"), mdpError("6 replies"), mdpError("6 wrapped prose"), mdpError("B reads"))
+	out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(reportStep)})
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWith(t, out, "workflow-reporting", "1")
 }
 
 func Test0040_2(t *testing.T) {
 	t.Parallel()
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpPaired("flowchart LR\napp -->|6 calls the api| api -->|6 reads| db -->|A calls back| app")})
-	sees(t, out, code, 1, mdpError("6 calls the api"), mdpError("6 reads"), mdpError("A calls back"))
+	out, code := reportingCheck(t, map[string]string{".github/workflows/build.yaml": reportingJob("")})
+	sees(t, out, code, 1, ".github/workflows/build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY",
+		"add a last step with `if: ${{ always() }}` whose run writes the job's status to \"$GITHUB_STEP_SUMMARY\"")
 }
 
 func Test0040_3(t *testing.T) {
 	t.Parallel()
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpPaired("flowchart LR\napp --> api : 6 sends data   \napi --> db : C writes")})
-	sees(t, out, code, 1, mdpError("6 sends data"), mdpError("C writes"))
+	onSuccess := strings.Replace(reportStep, "        if: ${{ always() }}\n", "", 1)
+	out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(onSuccess)})
+	sees(t, out, code, 1, ".github/workflows/ci.yml:4: job build writes $GITHUB_STEP_SUMMARY only when earlier steps pass, at line 9",
+		"add `if: ${{ always() }}` to the step at line 9")
 }
 
 func Test0040_4(t *testing.T) {
 	t.Parallel()
-	body := "flowchart LR\napp -->|6| api\napi --> db : 6\ndb --> app : uses 6\n%% note : 6 something\nRel(app, api, \"6\")\nclassDef x fill:#6366f1"
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpPaired(body)})
+	out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": "name: CI\non: push\njobs:\n" +
+		"  fitness:\n    uses: may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1\n    secrets: inherit\n"})
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWith(t, out, "workflow-reporting", "1")
 }
 
-func Test0040_9(t *testing.T) {
+func Test0040_5(t *testing.T) {
 	t.Parallel()
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpDiagram(`Rel(app, api, "6 Uses over HTTP")`)})
-	sees(t, out, code, 1, mdpError("6 Uses over HTTP"))
+	matrix := "name: CI\non: push\njobs:\n  test:\n    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest, windows-latest]\n" +
+		"    runs-on: ${{ matrix.os }}\n    steps:\n      - run: make test\n"
+	out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": matrix})
+	sees(t, out, code, 1, ".github/workflows/ci.yml:4: job test has no step")
+	if n := strings.Count(out, "job test has no step"); n != 1 {
+		t.Errorf("a matrix job must be named once, got %d times:\n%s", n, out)
+	}
+}
+
+// mergedRunsOn is the runs-on line that merged into three workflows and
+// failed every run, since GitHub reads its `": "` as a mapping value.
+const mergedRunsOn = `${{ github.event.repository.private && !github.event.pull_request.head.repo.fork && fromJSON('{"group": "fitness", "labels": "fitness"}') || 'ubuntu-24.04-arm' }}`
+
+// runsOnJob is a reporting workflow whose job runs on runsOn, on line 5.
+func runsOnJob(runsOn string) string {
+	return strings.Replace(reportingJob(reportStep), "runs-on: ubuntu-latest", "runs-on: "+runsOn, 1)
+}
+
+// rejectedRunsOn are runs-on values GitHub rejects as YAML, by file,
+// each failing on line 5 or 6 at the column its message follows.
+var rejectedRunsOn = map[string]string{
+	"fork.yml":          mergedRunsOn,
+	"reserved.yml":      "@self-hosted",
+	"key-line.yml":      "- self-hosted",
+	"continued.yml":     "ubuntu\n      latest: now",
+	"colon-end.yml":     "ubuntu-latest:",
+	"flow-trailing.yml": "[self-hosted]: x",
+	"wide.yml":          "café: x",
+}
+
+// acceptedRunsOn are the quoted or reshaped forms GitHub accepts.
+var acceptedRunsOn = map[string]string{
+	"fork.yml":          `"` + strings.ReplaceAll(mergedRunsOn, `"`, `\"`) + `"`,
+	"reserved.yml":      `"@self-hosted"`,
+	"key-line.yml":      "\n      - self-hosted",
+	"continued.yml":     "ubuntu\n      latest now",
+	"colon-end.yml":     `"ubuntu-latest:"`,
+	"flow-trailing.yml": "[self-hosted] # a comment",
+	"wide.yml":          `"café: x"`,
+}
+
+// runsOnWorkflows writes each runs-on value into a reporting workflow.
+func runsOnWorkflows(values map[string]string) map[string]string {
+	files := map[string]string{}
+	for name, runsOn := range values {
+		files[".github/workflows/"+name] = runsOnJob(runsOn)
+	}
+	return files
 }
 
 func Test0040_6(t *testing.T) {
 	t.Parallel()
-	body := "Container(app, \"6 App Shell\", \"SwiftUI\")\nRel(app, api, \"6\")\na[\"6 node\"] -->|6| b"
-	out, code := mdpCheck(t, map[string]string{"docs/arch.md": mdpPaired(body)})
+	files := runsOnWorkflows(rejectedRunsOn)
+	files[".github/workflows/ci.yml"] = "name: CI\non: push\njobs:\n  build:\n\truns-on: ubuntu-latest\n"
+	out, code := reportingCheck(t, files)
+	const bad = ": this workflow is not valid YAML: "
+	sees(t, out, code, 1, ".github/workflows/ci.yml:5"+bad+"a tab indents this line",
+		".github/workflows/fork.yml:5:116"+bad+"a `: ` inside a plain value starts a mapping",
+		".github/workflows/reserved.yml:5:14"+bad+"a plain value cannot start with '@'",
+		".github/workflows/key-line.yml:5:14"+bad+"'-' opens a list item on its key's line",
+		"move it onto its own line, indented under the key",
+		".github/workflows/continued.yml:6:13"+bad+"a `: ` inside a plain value",
+		".github/workflows/colon-end.yml:5:27"+bad+"a plain value ends in `:`",
+		".github/workflows/flow-trailing.yml:5:27"+bad+"text follows the closing bracket",
+		".github/workflows/wide.yml:5:18"+bad+"a `: ` inside a plain value")
+	out, code = reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
 	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0040_7(t *testing.T) {
 	t.Parallel()
-	files := map[string]string{"body.md": mdpPaired(`Rel(app, api, "6 Uses over HTTP")`)}
-	out, code := mdpCheck(t, files, "--body-file", "body.md")
-	sees(t, out, code, 1, `has a relationship label with prose ("6 Uses over HTTP")`)
+	out, code := reportingCheck(t, nil)
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "workflow-reporting")
 }
 
 func Test0040_8(t *testing.T) {
 	t.Parallel()
-	out, code := mdpCheck(t, nil)
+	own, err := filepath.Glob(filepath.Join("..", "..", ".github", "workflows", "*.y*ml"))
+	mustDo(t, err)
+	files := map[string]string{}
+	for _, f := range own {
+		body, err := os.ReadFile(f)
+		mustDo(t, err)
+		files[".github/workflows/"+filepath.Base(f)] = string(body)
+	}
+	out, code := reportingCheck(t, files)
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "mermaid-diagram-prose")
 }

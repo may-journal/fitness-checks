@@ -2,63 +2,77 @@ package requirements
 
 import "testing"
 
-// planTrailer runs `fitness-install -- plan-trailer --message <msg>` on
-// happyRepo, as the commit-msg hook passes a proposed message.
-func planTrailer(t *testing.T, msg string) (string, int) {
+// goTest runs `fitness-install -- go-test` on happyRepo with files written
+// over it and env added.
+func goTest(t *testing.T, files map[string]string, env ...string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", nil), nil, "plan-trailer", "--message", msg)
+	return fitness(t, example(t, "happyRepo", files), env, "go-test")
 }
 
-// planTrailerFix is the hint every misspelled plan reference carries.
-const planTrailerFix = `must read exactly "Plan #<number>", "Plan <owner>/<repo>#<number>" or "Plan https://github.com/<owner>/<repo>/issues/<number>"`
+// goTestModule is a Go module in dir whose test file holds body.
+func goTestModule(dir, body string) map[string]string {
+	return map[string]string{
+		dir + "go.mod":    "module example.com/m\n\ngo 1.22\n",
+		dir + "m_test.go": "package m\n\nimport \"testing\"\n\n" + body,
+	}
+}
+
+// goTestBroken is a test that fails with the message "boom" on line 5.
+const goTestBroken = "func TestBroken(t *testing.T) { t.Error(\"boom\") }\n"
 
 func Test0049_1(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := goTest(t, goTestModule("", goTestBroken))
+	sees(t, out, code, 1, "--- FAIL: TestBroken", "m_test.go:5: boom")
 }
 
 func Test0049_2(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n\nPlan #63\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := goTest(t, goTestModule("", "func TestFine(t *testing.T) {}\n"))
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 }
 
 func Test0049_3(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nPlan 63\nplan #63\nPlan: 63\n")
-	sees(t, out, code, 1,
-		`plan trailer "Plan 63" `+planTrailerFix,
-		`plan trailer "plan #63" `+planTrailerFix,
-		`plan trailer "Plan: 63" `+planTrailerFix)
+	out, code := goTest(t, nil)
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-test")
 }
 
 func Test0049_4(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nPlan the rollout in 3 steps.\n")
+	files := with(goTestModule("testdata/a/", goTestBroken), goTestModule("vendor/b/", goTestBroken))
+	out, code := goTest(t, files)
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-test")
 }
 
 func Test0049_5(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", nil)
-	commit(t, repo, nil, "feat(app): add a feature\n\nPlan: 63")
-	out, code := fitness(t, repo, nil, "plan-trailer")
-	sees(t, out, code, 1, `plan trailer "Plan: 63" `+planTrailerFix)
+	out, code := goTest(t, goTestModule("svc/", goTestBroken))
+	sees(t, out, code, 1, "svc: --- FAIL: TestBroken", "svc: m_test.go:5: boom")
 }
 
 func Test0049_6(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github#144\n")
-	sees(t, out, code, 0, "All 1 checks passed")
-	out, code = planTrailer(t, "feat(app): add a feature\n\nPlan https://github.com/may-journal/.github/issues/144\n")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := goTest(t, goTestModule("", "func TestBroken(t *testing.T) { undefinedThing() }\n"))
+	sees(t, out, code, 1, "m_test.go:5:33: undefined: undefinedThing")
 }
 
 func Test0049_7(t *testing.T) {
 	t.Parallel()
-	out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github 144\nPlan: may-journal/.github#144\n")
-	sees(t, out, code, 1,
-		`plan trailer "Plan may-journal/.github 144" `+planTrailerFix,
-		`plan trailer "Plan: may-journal/.github#144" `+planTrailerFix)
+	repo := example(t, "happyRepo", goTestModule("", goTestBroken))
+	write(t, repo, map[string]string{"README.md": readme + "\nOne more line.\n"})
+	git(t, repo, "add", "README.md")
+	out, code := fitness(t, repo, nil, "go-test")
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "go-test")
+}
+
+func Test0049_8(t *testing.T) {
+	t.Parallel()
+	out, code := goTest(t, goTestModule("", "func TestFine(t *testing.T) {}\n"), pathWithout(t, "go"))
+	showsInfo(t, out, code, "go-test", "Go not installed: see https://go.dev/dl")
+	out, code = goTest(t, goTestModule("", goTestBroken), crashingGo(t, "test", "go: unexpected internal error"))
+	showsInfo(t, out, code, "go-test", "go test ./... exited 2 without a finding: go: unexpected internal error")
 }

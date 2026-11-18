@@ -35,32 +35,32 @@ Each step's label ends with the requirement docs it fulfils, by ID. The `archite
 ```mermaid
 flowchart TB
     dev((1 Developer or agent)):::persona
-    runFitness(2 Run fitness or a hook<br/>Req 0003):::action
-    startCheck[(3 Engine starts each check program<br/>Req 0003, 0067, 0160)]:::system
+    runFitness(2 Run fitness or a hook<br/>Req 0001):::action
+    startCheck[(3 Engine starts each check program<br/>Req 0001, 0003, 0008)]:::system
 
     subgraph checks["Check families"]
-        commitChecks[(4 Commit messages<br/>Req 0020, 0031, 0049, 0056, 0153)]:::system
-        changelogChecks[(5 Changelog<br/>Req 0017, 0018, 0019, 0054)]:::system
-        proseChecks[(6 Prose and templates<br/>Req 0006, 0007, 0023, 0044, 0058, 0085, 0152)]:::system
-        spellChecks[(19 Spelling<br/>Req 0021, 0156)]:::system
-        commentChecks[(7 Code comments<br/>Req 0137, 0139, 0141, 0157)]:::system
-        markdownChecks[(8 Markdown files<br/>Req 0033, 0034, 0036, 0037, 0123, 0159)]:::system
-        mermaidChecks[(9 Mermaid diagrams<br/>Req 0038, 0039, 0040, 0041, 0042, 0043, 0084)]:::system
-        architectureChecks[(10 Architecture views<br/>Req 0070, 0072, 0073, 0074, 0075, 0076, 0154)]:::system
-        requirementChecks[(11 Requirements and tests<br/>Req 0005, 0065, 0130, 0132, 0151)]:::system
-        goSwiftChecks[(12 Go and Swift code<br/>Req 0026, 0027, 0028, 0029, 0030, 0057, 0097, 0168)]:::system
-        javaChecks[(13 Java builds<br/>Req 0078, 0079, 0080, 0081)]:::system
-        nodeChecks[(14 Node packages and tests<br/>Req 0022, 0024, 0045, 0047, 0052, 0059, 0060)]:::system
-        repoChecks[(15 Repo hygiene<br/>Req 0016, 0025, 0032, 0046, 0053, 0055, 0147)]:::system
-        workflowChecks[(20 Workflows<br/>Req 0086, 0133)]:::system
-        bodyChecks[(16 Issue and PR bodies<br/>Req 0012, 0048, 0050, 0051)]:::system
+        commitChecks[(4 Commit messages<br/>Req 0006, 0030, 0032, 0035, 0038)]:::system
+        changelogChecks[(5 Changelog<br/>Req 0041, 0042, 0043, 0044)]:::system
+        proseChecks[(6 Prose and templates<br/>Req 0005, 0016, 0067, 0080, 0081, 0082, 0083)]:::system
+        spellChecks[(19 Spelling<br/>Req 0045, 0066)]:::system
+        commentChecks[(7 Code comments<br/>Req 0084, 0085, 0086, 0087)]:::system
+        markdownChecks[(8 Markdown files<br/>Req 0068, 0069, 0070, 0071, 0072, 0088)]:::system
+        mermaidChecks[(9 Mermaid diagrams<br/>Req 0073, 0074, 0075, 0076, 0077, 0078, 0079)]:::system
+        architectureChecks[(10 Architecture views<br/>Req 0007, 0021, 0022, 0023, 0024, 0025, 0026)]:::system
+        requirementChecks[(11 Requirements and tests<br/>Req 0004, 0015, 0017, 0018, 0019)]:::system
+        goSwiftChecks[(12 Go and Swift code<br/>Req 0020, 0048, 0049, 0050, 0051, 0052, 0058, 0065)]:::system
+        javaChecks[(13 Java builds<br/>Req 0061, 0062, 0063, 0064)]:::system
+        nodeChecks[(14 Node packages and tests<br/>Req 0046, 0047, 0054, 0055, 0056, 0059, 0060)]:::system
+        repoChecks[(15 Repo hygiene<br/>Req 0002, 0027, 0029, 0031, 0033, 0053, 0057)]:::system
+        workflowChecks[(20 Workflows<br/>Req 0039, 0040)]:::system
+        bodyChecks[(16 Issue and PR bodies<br/>Req 0028, 0034, 0036, 0037)]:::system
     end
 
-    results[17 Results table<br/>Req 0003, 0160]:::screen
-    ci[(21 CI builds the changed checks<br/>Req 0161)]:::system
-    release[(22 Main releases the changed checks<br/>Req 0162, 0163, 0167, 0169)]:::system
-    fix(18 Fix and rerun<br/>Req 0003):::action
-    readmes(23 Read a check's README<br/>Req 0166):::action
+    results[17 Results table<br/>Req 0001, 0008]:::screen
+    ci[(21 CI builds the changed checks<br/>Req 0009)]:::system
+    release[(22 Main releases the changed checks<br/>Req 0010, 0011, 0013, 0014)]:::system
+    fix(18 Fix and rerun<br/>Req 0001):::action
+    readmes(23 Read a check's README<br/>Req 0012):::action
 
     dev --> runFitness
     runFitness --> startCheck

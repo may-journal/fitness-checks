@@ -1,72 +1,76 @@
 package requirements
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// markdownLinks runs `fitness-install -- markdown-links` on happyRepo with
-// files written over it.
-func markdownLinks(t *testing.T, files map[string]string) (string, int) {
+// prCloses runs `fitness-install -- pr-closes-issue --body-file body.md
+// <args>` on happyRepo with body as the PR description.
+func prCloses(t *testing.T, body string, args ...string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "markdown-links")
+	repo := example(t, "happyRepo", map[string]string{"body.md": body})
+	return fitness(t, repo, nil, append([]string{"pr-closes-issue", "--body-file", "body.md"}, args...)...)
 }
 
-// markdownLinksReadme is the happy README with body appended; body starts on
-// line 9.
-func markdownLinksReadme(body string) map[string]string {
-	return map[string]string{"README.md": readme + "\n" + body}
-}
+// prClosesNoKeyword is the failure a body with no closing keyword gets.
+const prClosesNoKeyword = "PR description has no GitHub closing keyword (close/fix/resolve + #NN)"
+
+// prClosesKeywords is GitHub's fixed set of issue-closing keywords.
+var prClosesKeywords = strings.Fields("close closes closed fix fixes fixed resolve resolves resolved")
 
 func Test0036_1(t *testing.T) {
 	t.Parallel()
-	out, code := markdownLinks(t, markdownLinksReadme(`See [the guide](gone.md "Guide") and [home](README.md).`+"\n"))
-	sees(t, out, code, 1, "README.md:9: broken relative link: gone.md")
+	files := map[string]string{}
+	for _, keyword := range prClosesKeywords {
+		files[keyword+".md"] = "> pitch\n\n" + strings.ToUpper(keyword[:1]) + keyword[1:] + ": #12\n"
+	}
+	repo := example(t, "happyRepo", files)
+	for _, keyword := range prClosesKeywords {
+		out, code := fitness(t, repo, nil, "pr-closes-issue", "--body-file", keyword+".md")
+		sees(t, out, code, 0, "All 1 checks passed")
+	}
+	for _, body := range []string{"Closes May-Journal/.github#144\n", "Fixes https://github.com/may-journal/.github/issues/144\n"} {
+		out, code := prCloses(t, body)
+		sees(t, out, code, 0, "All 1 checks passed")
+	}
 }
 
 func Test0036_2(t *testing.T) {
 	t.Parallel()
-	files := markdownLinksReadme("See [guide](./docs/guide.md#setup), [docs](docs/), and [home](docs/../README.md).\n")
-	files["docs/guide.md"] = "# Guide\n\n## Setup\n\nBack to [the readme](../README.md).\n"
-	out, code := markdownLinks(t, files)
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := prCloses(t, "This addresses #12, is part of #6, and follows #7. Closes # 12, and closes #\n12.\n")
+	sees(t, out, code, 1, prClosesNoKeyword)
 }
 
 func Test0036_3(t *testing.T) {
 	t.Parallel()
-	out, code := markdownLinks(t, map[string]string{"docs/guide.md": "# Guide\n\nSee [setup](setup.md#install).\n"})
-	sees(t, out, code, 1, "docs/guide.md:3: broken relative link: setup.md#install")
+	out, code := prCloses(t, "Implements #5.\n\nPlan #63 for context.\n\nCloses #6.\n")
+	sees(t, out, code, 1,
+		"PR says it implements #5 but no closing keyword (close/fix/resolve + #5) closes it",
+		"PR says it implements #63 but no closing keyword (close/fix/resolve + #63) closes it")
 }
 
 func Test0036_4(t *testing.T) {
 	t.Parallel()
-	out, code := markdownLinks(t, markdownLinksReadme("![Logo](logo.png)\n\n[spec]: spec.md\n"))
-	sees(t, out, code, 1, "README.md:9: broken relative link: logo.png", "README.md:11: broken relative link: spec.md")
+	out, code := prCloses(t, "Merging `Closes #12` closed it.\n\n```\nFixes #12\n```\n\n<!-- Resolves #12 -->\n")
+	sees(t, out, code, 1, prClosesNoKeyword)
 }
 
 func Test0036_5(t *testing.T) {
 	t.Parallel()
-	out, code := markdownLinks(t, markdownLinksReadme(
-		"See [site](https://example.com/gone), [mail](mailto:a@example.com), [cdn](//example.com/x), and [top](#app).\n"))
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := prCloses(t, "Closes #12.\n", "--require-close=12,40")
+	sees(t, out, code, 1, "PR closes a Plan that closes #40, so the PR must also close #40")
 }
 
 func Test0036_6(t *testing.T) {
 	t.Parallel()
-	out, code := markdownLinks(t, markdownLinksReadme("Write `[text](gone.md)` like this.\n\n```\n[text](gone.md)\n```\n"))
+	out, code := prCloses(t, "Closes #12 and closes #40.\n", "--require-close=12,40")
 	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0036_7(t *testing.T) {
 	t.Parallel()
-	files := markdownLinksReadme("See [notes](docs/release%20notes.md).\n")
-	files["docs/release notes.md"] = "# Release Notes\n"
-	out, code := markdownLinks(t, files)
+	out, code := fitness(t, example(t, "happyRepo", nil), nil, "pr-closes-issue")
 	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0036_8(t *testing.T) {
-	t.Parallel()
-	out, code := markdownLinks(t, map[string]string{
-		"docs/guide.markdown": "# Guide\n\nSee [setup](setup.md).\n",
-		"docs/intro.mdx":      "# Intro\n\nSee [the guide](gone.mdx).\n",
-	})
-	sees(t, out, code, 1, "docs/guide.markdown:3: broken relative link: setup.md", "docs/intro.mdx:3: broken relative link: gone.mdx")
+	passedWithNoFiles(t, out, "pr-closes-issue")
 }

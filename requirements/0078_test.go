@@ -1,127 +1,118 @@
-// cspell:ignore mvnw diffplug
-
 package requirements
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 )
 
-// spotlessMaven declares Spotless in a Maven build.
-const spotlessMaven = "<plugin><groupId>com.diffplug.spotless</groupId><artifactId>spotless-maven-plugin</artifactId></plugin>"
+// levelBleed runs `fitness-install -- mermaid-level-bleed` on happyRepo with
+// files written over it.
+func levelBleed(t *testing.T, files map[string]string) (string, int) {
+	t.Helper()
+	return fitness(t, example(t, "happyRepo", files), nil, "mermaid-level-bleed")
+}
 
-// spotlessClean is the build's answer when Spotless finds nothing to rewrite.
-var spotlessClean = response{Match: []string{"spotless:check"}, Stdout: "[INFO] BUILD SUCCESS\n"}
+// levelBleedDoc is a C4 level doc with one diagram and a callout table of
+// [#, Description] rows.
+func levelBleedDoc(descriptions ...string) string {
+	lines := []string{"# Level", "", "```mermaid", `Rel(a, b, "1")`, "```", "", "| # | Description |", "| --- | --- |"}
+	for i, d := range descriptions {
+		lines = append(lines, "| "+strconv.Itoa(i+1)+" | "+d+" |")
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
 
-// spotlessGradleClean is Gradle's answer for a clean spotlessCheck.
-var spotlessGradleClean = response{Match: []string{"spotlessCheck"}, Stdout: "> Task :spotlessCheck\n\nBUILD SUCCESSFUL in 2s\n"}
-
-// spotlessViolations is Maven's answer when Spotless would rewrite the
-// Java source: the file under the violations header, then its diff.
-var spotlessViolations = response{
-	Match: []string{"spotless:check"},
-	Stdout: "[INFO] Scanning for projects...\n" +
-		"[ERROR] Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:3.10.4:check (default-cli) on project app: The following files had format violations:\n" +
-		"[ERROR]     " + javaSource + "\n" +
-		"[ERROR]         @@ -1 +1 @@\n" +
-		"[ERROR]         -class App {  }\n" +
-		"[ERROR]         +class App {}\n" +
-		"[ERROR] Run 'mvn spotless:apply' to fix these violations.\n",
-	Exit: 1,
+// levelBleedRepeat is the message for file repeating text from level.
+func levelBleedRepeat(file, text string, level int) string {
+	return file + `: description "` + text + `" repeats level ` + strconv.Itoa(level) +
+		" verbatim — lower levels should add level-specific rationale"
 }
 
 func Test0078_1(t *testing.T) {
 	t.Parallel()
-	repo := javaRepo(t, map[string]string{"pom.xml": javaPom(spotlessMaven)})
-	_, out, code := javaRun(t, repo, "spotless", map[string][]response{"mvn": {spotlessViolations}})
-	sees(t, out, code, 1, javaSource+" is not formatted; run spotless:apply")
+	out, code := levelBleed(t, map[string]string{
+		"docs/architecture/01-context.md":    levelBleedDoc("User reads the timeline"),
+		"docs/architecture/02-containers.md": levelBleedDoc("User reads the timeline", "New detail"),
+	})
+	sees(t, out, code, 1, levelBleedRepeat("docs/architecture/02-containers.md", "user reads the timeline", 1))
 }
 
 func Test0078_2(t *testing.T) {
 	t.Parallel()
-	modules := map[string]string{
-		"pom.xml":                         javaParent(spotlessMaven, "core", "web"),
-		"core/pom.xml":                    javaPom(""),
-		"core/src/main/java/Core.java":    "class Core {}\n",
-		"core/src/test/resources/pom.xml": "<project/>\n",
-		"web/pom.xml":                     javaPom(""),
-		"web/src/main/java/web/Page.java": "class Page {}\n",
-	}
-	rp, out, code := javaRun(t, javaRepo(t, modules), "spotless", map[string][]response{"mvn": {spotlessClean}})
+	out, code := levelBleed(t, map[string]string{
+		"architecture/01-context.md":    levelBleedDoc("The whole system", ""),
+		"architecture/02-containers.md": levelBleedDoc("The macOS app", ""),
+	})
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWith(t, out, "spotless", "3")
-	javaCalledOnce(t, rp, "mvn")
-	// A nested build no pom lists as a module is a build root of its own.
-	modules["tools/pom.xml"] = javaPom(spotlessMaven)
-	rp, out, code = javaRun(t, javaRepo(t, modules), "spotless", map[string][]response{"mvn": {spotlessClean}})
-	sees(t, out, code, 0, "All 1 checks passed")
-	if calls := rp.calls("mvn"); len(calls) != 2 {
-		t.Errorf("mvn calls = %q, want one per build root", calls)
-	}
 }
 
 func Test0078_3(t *testing.T) {
 	t.Parallel()
-	repo := javaRepo(t, map[string]string{"pom.xml": javaPom(spotlessMaven)})
-	javaWrapper(t, repo, "mvnw")
-	rp, out, code := javaRun(t, repo, "spotless", map[string][]response{"mvn": {spotlessClean}, "mvnw": {spotlessClean}})
-	sees(t, out, code, 0, "All 1 checks passed")
-	javaCalledOnce(t, rp, "mvnw")
-	if calls := rp.calls("mvn"); len(calls) != 0 {
-		t.Errorf("the build tool on PATH ran %q, want the wrapper only", calls)
+	out, code := levelBleed(t, map[string]string{
+		"architecture/01-context.md": levelBleedDoc("The app"),
+		"architecture/02-app.md":     levelBleedDoc("The  APP", "the app", "New detail"),
+	})
+	want := levelBleedRepeat("architecture/02-app.md", "the app", 1)
+	sees(t, out, code, 1, want)
+	if n := strings.Count(read(out), read(want)); n != 1 {
+		t.Errorf("the repeat must be reported once, got %d:\n%s", n, out)
 	}
 }
 
 func Test0078_4(t *testing.T) {
 	t.Parallel()
-	repo := javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'com.diffplug.spotless' version '8.10.4' }\n"})
-	rp, out, code := javaRun(t, repo, "spotless", map[string][]response{"gradle": {spotlessGradleClean}})
+	out, code := levelBleed(t, map[string]string{
+		"architecture/01-context.md":    levelBleedDoc("Shared line"),
+		"architecture/02-containers.md": levelBleedDoc("Something else"),
+		"architecture/03-components.md": levelBleedDoc("Shared line"),
+	})
 	sees(t, out, code, 0, "All 1 checks passed")
-	if !rp.called("gradle", "--no-daemon", "spotlessCheck") {
-		t.Errorf("gradle calls = %q, want spotlessCheck with --no-daemon", rp.calls("gradle"))
-	}
 }
 
 func Test0078_5(t *testing.T) {
 	t.Parallel()
-	repo := javaRepo(t, map[string]string{
-		"pom.xml":                         javaPom(""),
-		"tools/pom.xml":                   javaPom(spotlessMaven),
-		"src/test/resources/fake/pom.xml": javaPom(spotlessMaven),
+	out, code := levelBleed(t, map[string]string{
+		"architecture/2-app.md":   levelBleedDoc("The engine"),
+		"architecture/10-deep.md": levelBleedDoc("The engine"),
 	})
-	_, out, code := javaRun(t, repo, "spotless", map[string][]response{"mvn": {spotlessClean}})
-	sees(t, out, code, 1, "Spotless is not in the Maven build at .; add it:")
-	javaSeesSnippet(t, out, "<artifactId>spotless-maven-plugin</artifactId>")
-	if strings.Contains(read(out), "build at tools") {
-		t.Errorf("the nested build declares Spotless, so only the root may fail:\n%s", out)
-	}
-}
-
-// spotlessGradleNoJDK is Gradle's answer, saved from a real run, when the
-// toolchain needs a JDK the machine lacks.
-var spotlessGradleNoJDK = response{
-	Match: []string{"spotlessCheck"},
-	Stdout: "FAILURE: Build failed with an exception.\n\n* What went wrong:\n" +
-		"Could not determine the dependencies of task ':spotlessJava'.\n" +
-		"> Could not resolve all dependencies for configuration ':compileClasspath'.\n" +
-		"   > Failed to calculate the value of task ':compileJava' property 'javaCompiler'.\n" +
-		"      > Cannot find a Java installation on your machine (Mac OS X 27.0.1 aarch64) matching: {languageVersion=17, vendor=any vendor, implementation=vendor-specific, nativeImageCapable=false}. Toolchain download repositories have not been configured.\n" +
-		"\n* Try:\n> Run with --stacktrace option to get the stack trace.\n\nBUILD FAILED in 1s\n",
-	Exit: 1,
-}
-
-func Test0078_7(t *testing.T) {
-	t.Parallel()
-	repo := javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'com.diffplug.spotless' version '8.10.4' }\n"})
-	_, out, code := javaRun(t, repo, "spotless", map[string][]response{"gradle": {spotlessGradleNoJDK}})
-	sees(t, out, code, 1, "Could not determine the dependencies of task ':spotlessJava'.")
-	javaSeesSnippet(t, out, "> Cannot find a Java installation on your machine")
-	javaSeesSnippet(t, out, "matching: {languageVersion=17,")
+	sees(t, out, code, 1, levelBleedRepeat("architecture/10-deep.md", "the engine", 2))
 }
 
 func Test0078_6(t *testing.T) {
 	t.Parallel()
-	_, out, code := javaRun(t, example(t, "happyRepo", nil), "spotless", nil)
+	out, code := levelBleed(t, map[string]string{
+		"architecture/overview.md":    levelBleedDoc("Anything"),
+		"not-architecture/01-x.md":    levelBleedDoc("Anything"),
+		"not-architecture/02-x.md":    levelBleedDoc("Anything"),
+		"docs/01-context-notes.md":    levelBleedDoc("Anything"),
+		"docs/02-container-notes.md":  levelBleedDoc("Anything"),
+		"architecture/sub/01-deep.md": levelBleedDoc("Anything"),
+	})
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "spotless")
+	passedWithNoFiles(t, out, "mermaid-level-bleed")
+}
+
+func Test0078_7(t *testing.T) {
+	t.Parallel()
+	out, code := levelBleed(t, map[string]string{
+		"architecture/01-context.md": "| # | Label | DESCRIPTION |\n| --- | --- | --- |\n| 1 | Same label | The system |\n",
+		"architecture/02-app.md":     "| # | Label | Description |\n| --- | --- | --- |\n| 1 | Same label | The system |\n",
+	})
+	sees(t, out, code, 1, levelBleedRepeat("architecture/02-app.md", "the system", 1))
+	if strings.Contains(out, "same label") {
+		t.Errorf("only the Description column may be compared:\n%s", out)
+	}
+}
+
+func Test0078_8(t *testing.T) {
+	t.Parallel()
+	out, code := levelBleed(t, map[string]string{
+		"architecture/01-context.md": "| # | Text | Notes |\n| --- | --- | --- |\n| 1 | Same | x |\n",
+		"architecture/02-app.md":     "| # | Text | Notes |\n| --- | --- | --- |\n| 1 | same | x |\n",
+	})
+	sees(t, out, code, 1, levelBleedRepeat("architecture/02-app.md", "same", 1))
+	if strings.Contains(out, `"x"`) {
+		t.Errorf("only the second column may be compared:\n%s", out)
+	}
 }

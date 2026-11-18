@@ -47,11 +47,11 @@
 //
 // # Requirements
 //
-// [Requirement 0168] has one installed-command test per acceptance.
+// [Requirement 0020] has one installed-command test per acceptance.
 //
 // [#79]: https://github.com/may-journal/fitness-checks/issues/79
 // [common-swift #53]: https://github.com/may-journal/common-swift/issues/53
-// [Requirement 0168]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0168-checks-swift-storybook-requirements.md
+// [Requirement 0020]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0020-checks-swift-storybook-requirements.md
 package main
 
 import _ "embed"

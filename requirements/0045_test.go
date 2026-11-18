@@ -1,99 +1,142 @@
+// cspell:ignore mvnw gradlew
+
 package requirements
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// noEslintDisableRun runs `fitness-install -- no-eslint-disable <args>` in repo.
-func noEslintDisableRun(t *testing.T, repo string, args ...string) (string, int) {
+// Misspellings are built from pieces so this file's own spell check passes.
+var (
+	cspellTypo        = "qu" + "ik"
+	cspellRepoWord    = "bor" + "wn"
+	cspellSharedWord  = "zz" + "zq" + "qqv"
+	cspellBinaryWord  = "xq" + "zzt"
+	cspellBinaryOther = "vb" + "nmm"
+	cspellBodyTypo    = "mis" + "pe" + "led"
+)
+
+// cspellRun runs `fitness-install -- cspell <args>` on happyRepo with files
+// written over it and committed.
+func cspellRun(t *testing.T, files map[string]string, args ...string) (string, int) {
 	t.Helper()
-	return fitness(t, repo, nil, append([]string{"no-eslint-disable"}, args...)...)
+	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"cspell"}, args...)...)
 }
 
-// noEslintDisableCheck runs the check on happyRepo with files written over it.
-func noEslintDisableCheck(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return noEslintDisableRun(t, example(t, "happyRepo", files))
-}
-
-// noEslintDisableNext is a next-line directive comment.
-const noEslintDisableNext = "// eslint-disable-next-line no-console\n"
-
-// noEslintDisableExts are the extensions the check scans.
-var noEslintDisableExts = []string{".cts", ".mts", ".ts", ".cjs", ".js", ".mjs", ".tsx"}
-
-func Test0045_1(t *testing.T) {
-	t.Parallel()
-	legacy := "export const x = 1;\n" + noEslintDisableNext + "console.log(x);\n" +
-		"const y = 2; // eslint-disable-line\n/* eslint-disable */\n"
-	out, code := noEslintDisableCheck(t, map[string]string{"src/legacy.ts": legacy})
-	sees(t, out, code, 1,
-		"src/legacy.ts:2: eslint-disable-next-line",
-		"src/legacy.ts:4: eslint-disable-line",
-		"src/legacy.ts:5: eslint-disable")
-}
+// cspellInstalled is where an installed shared package keeps its cspell.json.
+const cspellInstalled = "node_modules/@mayjournal/fitness-shared/config/cspell.json"
 
 func Test0045_2(t *testing.T) {
 	t.Parallel()
-	out, code := noEslintDisableCheck(t, map[string]string{
-		"src/a.ts": "export const a = 1;\n",
-		"src/b.js": "export const b = 2;\n",
+	out, code := cspellRun(t, map[string]string{
+		"cspell.json":   `{"words":["fitnessrc","` + cspellRepoWord + `"]}` + "\n",
+		cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
+		"notes.md":      cspellRepoWord + " and " + cspellSharedWord + "\n@jasonvanderslice from Vanderbot\n",
 	})
-	sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
-}
-
-func Test0045_3(t *testing.T) {
-	t.Parallel()
-	files := map[string]string{}
-	var want []string
-	for _, ext := range noEslintDisableExts {
-		files["src/f"+ext] = "export const hint = 'add eslint-disable-next-line to skip';\n"
-		want = append(want, "src/f"+ext+":1: eslint-disable-next-line")
+	sees(t, out, code, 1, "notes.md:1:11 - Unknown word ("+cspellSharedWord+")")
+	if strings.Contains(out, "Unknown word ("+cspellRepoWord+")") {
+		t.Errorf("the repo's own word must be accepted:\n%s", out)
 	}
-	out, code := noEslintDisableCheck(t, files)
-	sees(t, out, code, 1, append(want, "7 files scanned")...)
-}
-
-func Test0045_4(t *testing.T) {
-	t.Parallel()
-	out, code := noEslintDisableCheck(t, map[string]string{
-		"docs/lint.md": "Never write " + noEslintDisableNext,
-		"src/a.ts":     "export const a = 1;\n",
-	})
-	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+	if strings.Contains(out, "Unknown word (jasonvanderslice)") || strings.Contains(out, "Unknown word (Vanderbot)") {
+		t.Errorf("the owner and agent names must be accepted:\n%s", out)
+	}
 }
 
 func Test0045_5(t *testing.T) {
 	t.Parallel()
-	out, code := noEslintDisableCheck(t, nil)
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "no-eslint-disable")
+	out, code := cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
+	sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file, so remove ignorePaths and fix the findings instead")
 }
 
-func Test0045_6(t *testing.T) {
+func Test0045_11(t *testing.T) {
 	t.Parallel()
-	out, code := noEslintDisableCheck(t, map[string]string{
-		"node_modules/pkg/index.js": "/* eslint-disable */\n",
-		"dist/out.js":               "/* eslint-disable */\n",
-		"src/clean.ts":              "export const a = 1;\n",
+	repo := example(t, "happyRepo", map[string]string{
+		".gitattributes":       "*.gen linguist-generated\n",
+		"deps/pkg.gen":         cspellSharedWord + "\n",
+		"blob.bin":             cspellBinaryWord + "\x00" + cspellBinaryOther,
+		"package-lock.json":    `{"packages":{"node_modules/` + cspellTypo + `":{}}}` + "\n",
+		"web/yarn.lock":        cspellRepoWord + "@1.0.0\n",
+		"pnpm-lock.yaml":       cspellBodyTypo + ": 1.0.0\n",
+		"go.sum":               "example.com/" + cspellBinaryOther + " v1.0.0 h1:abc=\n",
+		"App/Package.resolved": `{"identity":"` + cspellBinaryWord + `"}` + "\n",
+		"lib/gradle.lockfile":  "com.example:" + cspellTypo + ":1.0=compileClasspath\n",
+		"mvnw":                 "url=" + cspellTypo + "\n",
+		"app/gradlew.bat":      "set " + cspellRepoWord + "=1\n",
+		".mvn/wrapper/MavenWrapperDownloader.java": "class Downloader { String " + cspellRepoWord + "; }\n",
+		"gradle/wrapper/gradle-wrapper.properties": "distributionUrl=" + cspellBodyTypo + "\n",
 	})
-	sees(t, out, code, 1,
-		"node_modules/pkg/index.js:1: eslint-disable",
-		"dist/out.js:1: eslint-disable",
-		"3 files scanned")
+	write(t, repo, map[string]string{"untracked.md": "the " + cspellRepoWord + " fox\n"})
+	out, code := fitness(t, repo, nil, "cspell")
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0045_7(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"src/a.ts": "export const a = 1;\n"})
-	write(t, repo, map[string]string{"src/scratch.ts": noEslintDisableNext})
-	out, code := noEslintDisableRun(t, repo)
-	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+	repo := example(t, "happyRepo", map[string]string{"old.md": "the " + cspellTypo + " fox\n", "gone.md": "clean words\n"})
+	write(t, repo, map[string]string{"new.md": "the " + cspellRepoWord + " fox\n"})
+	git(t, repo, "add", "new.md")
+	git(t, repo, "rm", "-q", "gone.md")
+	out, code := fitness(t, repo, nil, "cspell")
+	sees(t, out, code, 1, "new.md:1:5 - Unknown word ("+cspellRepoWord+")")
+	if strings.Contains(out, cspellTypo) || strings.Contains(out, "gone.md") {
+		t.Errorf("only the staged file on disk may be checked:\n%s", out)
+	}
+}
+
+func Test0045_13(t *testing.T) {
+	t.Parallel()
+	// 2,500 filler lines are 65,000 bytes, so the block opens just before
+	// cspell's 64 KB chunk boundary and closes after it.
+	filler := strings.Repeat("good words in a long file\n", 2500)
+	long := "the " + cspellTypo + " fox\n" + filler +
+		"cspell:disable\n" + filler[:2600] + "the " + cspellBodyTypo + " fox\ncspell:enable\n" +
+		filler + "the " + cspellRepoWord + " fox\n"
+	out, code := cspellRun(t, map[string]string{
+		"notes.md": "good words\nthe " + cspellTypo + " fox\n",
+		"long.md":  long,
+	})
+	first := "long.md:1:5 - Unknown word (" + cspellTypo + ")"
+	last := "long.md:5105:5 - Unknown word (" + cspellRepoWord + ")"
+	sees(t, out, code, 1, "notes.md:2:5 - Unknown word ("+cspellTypo+")", first, last)
+	if strings.Contains(out, cspellBodyTypo) || strings.Index(out, first) > strings.Index(out, last) {
+		t.Errorf("only the words outside the block may be named, in line order:\n%s", out)
+	}
 }
 
 func Test0045_8(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"src/old.ts": noEslintDisableNext})
-	write(t, repo, map[string]string{"src/new.ts": "export const a = 1;\n"})
-	git(t, repo, "add", "src/new.ts")
-	out, code := noEslintDisableRun(t, repo)
-	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+	out, code := cspellRun(t, map[string]string{"body.md": "a " + cspellBodyTypo + " word\n"}, "--body-file", "body.md")
+	sees(t, out, code, 1, "(description):1:3 - Unknown word ("+cspellBodyTypo+")")
+}
+
+func Test0045_12(t *testing.T) {
+	t.Parallel()
+	out, code := cspellRun(t, map[string]string{
+		cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
+		"notes.md":      cspellSharedWord + " is a shared word\n",
+	})
+	sees(t, out, code, 0, "All 1 checks passed")
+	out, code = cspellRun(t, map[string]string{"notes.md": "mayjournal is a shared word, and addrinfo a language one\n"})
+	sees(t, out, code, 0, "All 1 checks passed")
+	out, code = cspellRun(t, map[string]string{"body.md": "sync `fastlane/Appfile`, `fastlane/Fastfile`, `fastlane/Gymfile`\n"}, "--body-file", "body.md")
+	sees(t, out, code, 0, "All 1 checks passed")
+	out, code = cspellRun(t, map[string]string{"static-preview.yml": "run: touch \"$PAGES/.nojekyll\"\n"})
+	sees(t, out, code, 0, "All 1 checks passed")
+}
+
+func Test0045_10(t *testing.T) {
+	t.Parallel()
+	files := map[string]string{
+		"cspell.json": `{"words":["fitnessrc"],"flagWords":["green apple"]}` + "\n",
+		"notes.md":    "a Green  Apple and green" + "apple\n",
+		"body.md":     "no green\napple here\n",
+	}
+	out, code := cspellRun(t, files)
+	sees(t, out, code, 1, "notes.md:1:3 - Forbidden word (green apple)", "body.md:1:4 - Forbidden word (green apple)")
+	if strings.Contains(out, "cspell.json:") {
+		t.Errorf("the cspell.json listing flagWords must not be flagged:\n%s", out)
+	}
+	out, code = cspellRun(t, files, "--body-file", "body.md")
+	sees(t, out, code, 1, "(description):1:4 - Forbidden word (green apple)")
 }

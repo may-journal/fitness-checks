@@ -1,157 +1,216 @@
 package requirements
 
 import (
-	"os"
-	"path/filepath"
+	"cmp"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
-// noPlansDir runs `fitness-install -- no-plans-dir` on happyRepo with files
-// written over it.
-func noPlansDir(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "no-plans-dir")
-}
-
-// Where the check sends each kind of temporary work.
+// The packages these tests declare, each with its saved latest version.
 const (
-	toPlanIssue  = "open a `Plan`-labeled GitHub Issue and put the plan there, not a file in the repo"
-	toPlanDesign = "post it as a comment on the Plan Issue that it designs, not a file in the repo"
-	toPRComment  = "post it as a comment on the pull request it reviews, not a file in the repo"
+	dcLeftPad  = "left-pad"        // the saved latest version is 1.3.0
+	dcIsNumber = "is-number"       // the saved latest version is 7.0.0
+	dcTypes    = "@types/left-pad" // the saved latest version is 1.2.0
+	dcInternal = "@mayjournal/fitness-shared"
 )
 
-// inPlansFolder is the error line for a file in a `plans` folder.
-func inPlansFolder(path string) string {
-	return path + ": a `plans` folder holds temporary work; " + toPlanIssue
+// dcLead is the line that opens every failure.
+const dcLead = "Dependencies behind their latest published version — update them (npm install <pkg>@latest) or pin intentionally:"
+
+// dcUnreachable is a registry address nothing listens on.
+const dcUnreachable = "http://127.0.0.1:1"
+
+// dcDoc is a package's abbreviated registry document, as npm serves it for
+// Accept: application/vnd.npm.install-v1+json. The last version is latest.
+func dcDoc(name string, versions ...string) string {
+	all := map[string]any{}
+	for _, v := range versions {
+		all[v] = map[string]any{"name": name, "version": v, "dist": map[string]string{"shasum": strings.Repeat("0", 40)}}
+	}
+	doc, _ := json.Marshal(map[string]any{
+		"name":      name,
+		"modified":  "2024-01-01T00:00:00.000Z",
+		"dist-tags": map[string]string{"latest": versions[len(versions)-1]},
+		"versions":  all,
+	})
+	return string(doc)
 }
 
-// planChecklist is a Plan's checklist as a Markdown file would hold it.
-const planChecklist = "# Ship it\n\n## What needs to happen\n\n- [ ] Write the tests.\n"
+// dcRegistry serves the saved documents for every package these tests
+// declare. The internal package has a newer published version, so it would
+// fail if the check did not skip it.
+func dcRegistry(t *testing.T) string {
+	t.Helper()
+	return registry(t, map[string]string{
+		dcLeftPad:  dcDoc(dcLeftPad, "1.0.0", "1.1.0", "1.3.0"),
+		dcIsNumber: dcDoc(dcIsNumber, "6.0.0", "7.0.0"),
+		dcTypes:    dcDoc(dcTypes, "1.0.0", "1.2.0"),
+		dcInternal: dcDoc(dcInternal, "9.9.9"),
+	})
+}
+
+// dcAnswer is a registry that answers every request with status and body,
+// and counts the requests it received.
+func dcAnswer(t *testing.T, status int, body string) (string, *atomic.Int32) {
+	t.Helper()
+	hits := new(atomic.Int32)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits.Add(1)
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL, hits
+}
+
+// dcNpmrc is an .npmrc pointing npm at registry.
+func dcNpmrc(registry string) string {
+	return "registry=" + registry + "\n"
+}
+
+// dependencyCurrency runs `fitness-install -- dependency-currency` on happyRepo
+// with files written over it, ignoring node_modules as a real repo does. A local
+// listener stands in for GitHub's API so the probe needs no network, and env may
+// name another.
+func dependencyCurrency(t *testing.T, files map[string]string, env ...string) (string, int) {
+	t.Helper()
+	repo := example(t, "happyRepo", with(map[string]string{".gitignore": "node_modules\n"}, files))
+	return fitness(t, repo, append([]string{"HOME=" + t.TempDir(), "GITHUB_API_URL=" + silentListener(t)}, env...), "dependency-currency")
+}
+
+// dcInstalled is the node_modules manifest of name installed at version,
+// under dir ("" for the repo root).
+func dcInstalled(dir, name, version string) (string, string) {
+	return dir + "node_modules/" + name + "/package.json", `{"name": "` + name + `", "version": "` + version + `"}` + "\n"
+}
+
+// dcRepo is a package.json declaring manifest, an .npmrc pointing at
+// registry, plus each install given as dir, name, version triples.
+func dcRepo(registry, manifest string, installs ...string) map[string]string {
+	files := map[string]string{"package.json": manifest + "\n", ".npmrc": dcNpmrc(registry)}
+	for i := 0; i+2 < len(installs); i += 3 {
+		path, body := dcInstalled(installs[i], installs[i+1], installs[i+2])
+		files[path] = body
+	}
+	return files
+}
 
 func Test0046_1(t *testing.T) {
 	t.Parallel()
-	out, code := noPlansDir(t, map[string]string{"docs/plans/03-publish.md": "# Publish\n"})
-	sees(t, out, code, 1, inPlansFolder("docs/plans/03-publish.md"))
+	out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`, "", dcLeftPad, "1.3.0"))
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0046_2(t *testing.T) {
 	t.Parallel()
-	out, code := noPlansDir(t, map[string]string{"docs/plans/archive/old.md": "# Old\n"})
-	sees(t, out, code, 1, inPlansFolder("docs/plans/archive/old.md"))
+	files := dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.0.0"}, "devDependencies": {"is-number": "^6.0.0"}, "peerDependencies": {"@types/left-pad": "^1.0.0"}}`,
+		"", dcLeftPad, "1.0.0", "", dcIsNumber, "6.0.0", "", dcTypes, "1.0.0")
+	out, code := dependencyCurrency(t, files)
+	sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0", "is-number: 6.0.0 → 7.0.0", "@types/left-pad: 1.0.0 → 1.2.0")
 }
 
 func Test0046_3(t *testing.T) {
 	t.Parallel()
-	files := map[string]string{
-		"docs/notes.md":         "# Notes\n",
-		"assets/screen.png":     "png",
-		"docs/planner-guide.md": "# Planner guide\n\nA Plan lists its steps under a heading.\n",
-		"go/plan_test.go":       "package plan\n\nconst body = \"## What needs to happen\\n\\n- [ ] Ship it.\\n\"\n",
-	}
-	repo := example(t, "happyRepo", files)
-	out, code := fitness(t, repo, nil, "no-plans-dir")
-	sees(t, out, code, 0, "All 1 checks passed")
-	for name := range files {
-		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(name))); err != nil {
-			t.Errorf("no-plans-dir must leave %s in place: %v", name, err)
-		}
-	}
+	out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`))
+	sees(t, out, code, 1, dcLead, "left-pad: missing → 1.3.0")
 }
 
 func Test0046_4(t *testing.T) {
 	t.Parallel()
-	out, code := noPlansDir(t, map[string]string{
-		"src/Plans/next.md":               "# Next\n",
-		"design/mockups/home.png":         "png",
-		"reports/validation/run.txt":      "ok",
-		"review-artifacts/diff.txt":       "diff",
-		"assets/icons/validation-ok.png":  "png",
-		"docs/validation-checklist.md":    "# Validation\n",
-		"tests/fixtures/review/input.txt": "in",
-	})
-	sees(t, out, code, 1,
-		"design/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-		"reports/validation/run.txt: a `validation` folder holds temporary work; "+toPRComment,
-		"review-artifacts/diff.txt: a `review-artifacts` folder holds temporary work; "+toPRComment,
-		"src/Plans/next.md: a `plans` folder holds temporary work; "+toPlanIssue,
-	)
-	inOrder(t, out, "design/mockups/home.png:", "reports/validation/run.txt:", "review-artifacts/diff.txt:", "src/Plans/next.md:")
-	for _, kept := range []string{"assets/icons/validation-ok.png", "docs/validation-checklist.md", "tests/fixtures/review/input.txt"} {
-		if strings.Contains(out, kept+":") {
-			t.Errorf("%s names no artifact folder, yet it was reported:\n%s", kept, out)
-		}
-	}
+	out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"`+dcInternal+`": "*"}}`))
+	sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0046_5(t *testing.T) {
 	t.Parallel()
-	out, code := noPlansDir(t, map[string]string{
-		"docs/launch-plan.md":  "# Launch\n",
-		"img/home-mockup.png":  "png",
-		"pr-42-before.png":     "png",
-		"docs/planner.md":      "# Planner\n",
-		"img/print-before.png": "png",
-	})
-	sees(t, out, code, 1,
-		"docs/launch-plan.md: a `*-plan.md` file is a plan; "+toPlanIssue,
-		"img/home-mockup.png: a `*-mockup.*` file is a design mockup; "+toPlanDesign,
-		"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request; "+toPRComment,
-	)
-	for _, kept := range []string{"docs/planner.md", "img/print-before.png"} {
-		if strings.Contains(out, kept+":") {
-			t.Errorf("%s matches no artifact name, yet it was reported:\n%s", kept, out)
-		}
+	for _, workspaces := range []string{`["packages/*"]`, `{"packages": ["packages/a"]}`} {
+		files := dcRepo(dcRegistry(t), `{"workspaces": `+workspaces+`}`, "", dcLeftPad, "1.0.0")
+		files["packages/a/package.json"] = `{"dependencies": {"left-pad": "^1.0.0"}}` + "\n"
+		out, code := dependencyCurrency(t, files)
+		sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0")
 	}
 }
 
 func Test0046_6(t *testing.T) {
 	t.Parallel()
-	out, code := noPlansDir(t, map[string]string{
-		"docs/ship.md":                   planChecklist,
-		".github/ISSUE_TEMPLATE/plan.md": planChecklist,
-		"docs/what-needs-to-happen.md":   "# Notes\n\n## What needs to happen\n\nNothing yet.\n",
-	})
-	sees(t, out, code, 1, "docs/ship.md: a `## What needs to happen` checklist is a plan; "+toPlanIssue)
-	for _, kept := range []string{".github/ISSUE_TEMPLATE/plan.md", "docs/what-needs-to-happen.md"} {
-		if strings.Contains(out, kept+":") {
-			t.Errorf("%s holds no Plan checklist outside .github/, yet it was reported:\n%s", kept, out)
-		}
+	files := dcRepo(dcRegistry(t), `{"workspaces": ["packages/*"]}`, "", dcLeftPad, "1.0.0", "packages/a/", dcLeftPad, "1.1.0")
+	for _, ws := range []string{"a", "b", "c"} {
+		files["packages/"+ws+"/package.json"] = `{"devDependencies": {"left-pad": "^1.0.0"}}` + "\n"
+	}
+	out, code := dependencyCurrency(t, files)
+	sees(t, out, code, 1, "left-pad: 1.1.0 → 1.3.0", "left-pad: 1.0.0 → 1.3.0")
+	if n := strings.Count(read(out), "left-pad: 1.0.0 → 1.3.0"); n != 1 {
+		t.Errorf("the shared install is listed %d times, want once:\n%s", n, out)
+	}
+}
+
+// dcBroken is one registry that cannot tell the latest version, named in
+// the repo or the home .npmrc. want is the info the run shows, when not
+// the count of packages it could not query.
+type dcBroken struct {
+	name, url string
+	want      string
+	hits      *atomic.Int32
+	home      bool
+	env       []string
+}
+
+// dcBrokenRegistries are unreachable, erroring, garbage-answering and silent
+// registries, set in the repo or home .npmrc or behind a proxy.
+func dcBrokenRegistries(t *testing.T) []dcBroken {
+	failing, failHits := dcAnswer(t, http.StatusInternalServerError, `{"error":"Internal Server Error"}`)
+	garbage, garbageHits := dcAnswer(t, http.StatusOK, "<html>proxy login</html>")
+	homeGarbage, homeHits := dcAnswer(t, http.StatusOK, `{"dist-tags": `)
+	return []dcBroken{
+		{name: "unreachable", url: dcUnreachable},
+		{name: "server error", url: failing, hits: failHits},
+		{name: "garbage", url: garbage, hits: garbageHits},
+		{name: "silent", url: silentListener(t)},
+		{name: "home garbage", url: homeGarbage, hits: homeHits, home: true},
+		{name: "silent proxy", url: "https://registry.example.invalid", want: "did not answer within 2s through proxy", env: []string{"HTTPS_PROXY=" + silentListener(t), "NO_PROXY=", "GITHUB_API_URL=https://api.github.com"}},
 	}
 }
 
 func Test0046_7(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"docs/home.png": "png"})
-	write(t, repo, map[string]string{"docs/plans/next.md": "# Next\n"})
-	git(t, repo, "add", "docs/plans/next.md")
-	mustDo(t, os.MkdirAll(filepath.Join(repo, "docs", "mockups"), 0o755))
-	git(t, repo, "mv", "docs/home.png", "docs/mockups/home.png")
-	out, code := fitness(t, repo, nil, "no-plans-dir")
-	sees(t, out, code, 1,
-		"docs/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-		inPlansFolder("docs/plans/next.md"),
-	)
+	for _, broken := range dcBrokenRegistries(t) {
+		start := time.Now()
+		out, code := dcAgainst(t, broken)
+		showsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
+		if broken.hits != nil && broken.hits.Load() == 0 {
+			t.Errorf("%s: the check never asked the registry", broken.name)
+		}
+		if took := time.Since(start); took > dcSilentWithin {
+			t.Errorf("%s: the run took %v, past the %v a silent registry may cost", broken.name, took.Round(time.Second), dcSilentWithin)
+		}
+	}
 }
+
+// dcAgainst runs dependency-currency on a repo with left-pad behind latest,
+// asking the broken registry from the repo or home .npmrc.
+func dcAgainst(t *testing.T, broken dcBroken) (string, int) {
+	t.Helper()
+	files := dcRepo(broken.url, `{"dependencies": {"left-pad": "^1.0.0"}}`, "", dcLeftPad, "1.0.0")
+	home := t.TempDir()
+	if broken.home {
+		delete(files, ".npmrc")
+		write(t, home, map[string]string{".npmrc": dcNpmrc(broken.url)})
+	}
+	return dependencyCurrency(t, files, append([]string{"HOME=" + home}, broken.env...)...)
+}
+
+// dcSilentWithin bounds a run whose registry never answers: the ten-second
+// request timeout plus install, well under the 30-second budget.
+const dcSilentWithin = 20 * time.Second
 
 func Test0046_8(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", nil)
-	mustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index"), 0o644))
-	out, code := fitness(t, repo, nil, "no-plans-dir")
-	sees(t, out, code, 1, "cannot list the repo's files")
-}
-
-// inOrder asserts each want appears in out after the one before it.
-func inOrder(t *testing.T, out string, want ...string) {
-	t.Helper()
-	text, at := read(out), 0
-	for _, w := range want {
-		i := strings.Index(text[at:], w)
-		if i < 0 {
-			t.Errorf("output is missing %q after position %d, or lists it out of order:\n%s", w, at, out)
-			return
-		}
-		at += i + len(w)
-	}
+	out, code := dependencyCurrency(t, nil)
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "dependency-currency")
 }

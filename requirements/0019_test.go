@@ -5,156 +5,119 @@ import (
 	"testing"
 )
 
-// changelogStaged commits happyRepo, stages staged over it, and runs
-// `fitness-install -- changelog-updated` as a pre-commit hook would.
-func changelogStaged(t *testing.T, staged map[string]string) (string, int) {
-	t.Helper()
-	repo := example(t, "happyRepo", nil)
-	write(t, repo, staged)
-	git(t, repo, "add", "-A")
-	return fitness(t, repo, nil, "changelog-updated")
-}
-
-// changelogBase is happyRepo's changelog.
-const changelogBase = "---\nrelatedConfigurations: ['.fitnessrc.json']\n---\n\n# Changelog\n\n## Changes\n\n" +
-	"### 2026.10.08.1400\n\n- Docs: add the readme.\n- Docs: add the changelog.\n- Docs: add the license note.\n"
-
-// changelogEntry is happyRepo's changelog with a new section, holding one
-// bullet item, on top.
-func changelogEntry(stamp, item string) string {
-	return strings.Replace(changelogBase, "## Changes\n\n", "## Changes\n\n### "+stamp+"\n\n- "+item+"\n\n", 1)
-}
-
-// changelogStamp is the heading of a new entry.
-const changelogStamp = "2026.10.12.0900"
-
-// changelogFeature is a staged source change the entry should mention.
-const changelogFeature = "Added runner feature for validation.\n"
-
-// changelogStagedEntry is happyRepo's staged feature with its entry file
-// under stamp, its first bullet item.
-func changelogStagedEntry(stamp, item string) map[string]string {
-	files := withEntries(map[string]string{"2026-10-12-0900-runner-feature": entryFileText(stamp, item)})
-	files["src.txt"] = changelogFeature
-	return files
-}
-
-func Test0019_19(t *testing.T) {
+func Test0019_1(t *testing.T) {
 	t.Parallel()
-	out, code := changelogStaged(t, map[string]string{"src.txt": changelogFeature})
-	sees(t, out, code, 1, "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes")
+	out, code := fitness(t, example(t, "happyRepo", adrRepo()), nil)
+	sees(t, out, code, 0, allPassedWith(1))
+	passedWith(t, out, "adr-checks", "1")
+	passedWith(t, out, "adr-0001", "1")
 }
 
-func Test0019_20(t *testing.T) {
+func Test0019_2(t *testing.T) {
 	t.Parallel()
-	for _, changelog := range []string{
-		changelogEntry(changelogStamp, "Feat: added runner feature for validation."),
-		strings.Replace(changelogBase, "- Docs: add the readme.", "- Docs: add the readme file.", 1),
-		"",
-	} {
-		files := changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation.")
-		files["CHANGELOG.md"] = changelog
-		out, code := changelogStaged(t, files)
-		sees(t, out, code, 0, "All 1 checks passed")
-	}
-	repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": ""})
-	write(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."))
-	git(t, repo, "add", "-A")
-	out, code := fitness(t, repo, nil, "changelog-updated")
-	sees(t, out, code, 0, "All 1 checks passed")
+	apart := "docs/architecture/adr/0001-small-files.md"
+	out, code := fitness(t, example(t, "happyRepo", with(adrRepo(), map[string]string{apart: adrText("")})), nil)
+	sees(t, out, code, 1, apart+": a Markdown file in an `adr` folder is an ADR; open an `ADR` issue instead")
 }
 
 func Test0019_3(t *testing.T) {
 	t.Parallel()
-	out, code := changelogStaged(t, changelogStagedEntry(changelogStamp, "Fix: minor tweak."))
-	sees(t, out, code, 1,
-		"Changelog entry file additions should mention at least 3 words from your staged changes (found 0: )",
-		"e.g. use words like: added, runner, feature, for, validation")
+	// One README has no issue URL, the other one only inside a sentence.
+	for _, text := range []string{
+		"# Small files\n\nKeeps every Markdown file small.\n\n## Check\n\nFails a long Markdown file.\n",
+		"# Small files\n\nKeeps every Markdown file small, as " + adrIssue + " plans.\n\n## Check\n\nFails a long Markdown file.\n",
+	} {
+		out, code := fitness(t, example(t, "happyRepo", with(adrRepo(), map[string]string{adrPath: text})), nil)
+		sees(t, out, code, 1, adrPath+": links no ADR issue; put the full URL of the `ADR` issue this check proves here")
+	}
+}
+
+func Test0019_4(t *testing.T) {
+	t.Parallel()
+	retired := with(shellCheck("house-rule", "", passing), map[string]string{adrPath: adrText("Status: Superseded by a later decision.\n\n")})
+	out, code := fitness(t, example(t, "happyRepo", retired), nil)
+	sees(t, out, code, 0, allPassedWith(1))
+	passedWith(t, out, "adr-checks", "1")
+}
+
+func Test0019_5(t *testing.T) {
+	t.Parallel()
+	want := adrPath + " changed its ADR issue without its check fitness/adr-0001; change both together"
+	repo := example(t, "happyRepo", adrRepo())
+	write(t, repo, map[string]string{adrPath: strings.Replace(adrRepo()[adrPath], adrIssue, adrIssue+"6", 1)})
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "adr-checks")
+	sees(t, out, code, 1, want)
+	repo = example(t, "happyRepo", adrRepo())
+	git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+	commit(t, repo, map[string]string{adrPath: strings.Replace(adrRepo()[adrPath], adrIssue, adrIssue+"7", 1)}, "docs(adr): reword 0001")
+	out, code = fitness(t, repo, prEnv, "adr-checks")
+	sees(t, out, code, 1, want)
 }
 
 func Test0019_6(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
-	git(t, repo, "checkout", "-q", "-b", "side")
-	commit(t, repo, map[string]string{
-		"src.txt":      changelogFeature,
-		"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
-	}, "feat: add runner")
-	git(t, repo, "checkout", "-q", "-")
-	commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
-	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
-	out, code := fitness(t, repo, nil, "changelog-updated")
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := fitness(t, example(t, "happyRepo", provenRepo()), nil)
+	sees(t, out, code, 0, "All 2 checks passed")
+	passedWith(t, out, "req-0002", "1")
 }
 
-// changelogBranch is happyRepo, with files over it, on a branch off
-// origin/main whose first commit added first for the staged feature.
-func changelogBranch(t *testing.T, files, first map[string]string) string {
-	t.Helper()
-	repo := example(t, "happyRepo", files)
-	git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
-	git(t, repo, "checkout", "-q", "-b", "work")
-	first["src.txt"] = changelogFeature
-	commit(t, repo, first, "feat: add runner")
-	return repo
-}
-
-// changelogFirst is the stamp of the branch's first entry.
-const changelogFirst = "2026.01.02.0900"
-
-// changelogSecond stages a second change in repo, with entry, and runs
-// changelog-updated on it.
-func changelogSecond(t *testing.T, repo string, entry map[string]string) (string, int) {
-	t.Helper()
-	entry["src.txt"] = changelogFeature + "Added runner option for validation.\n"
-	write(t, repo, entry)
-	git(t, repo, "add", "-A")
-	return fitness(t, repo, nil, "changelog-updated")
-}
-
-func Test0019_14(t *testing.T) {
+func Test0019_7(t *testing.T) {
 	t.Parallel()
-	first := entryFileText(changelogFirst, "Feat: added runner feature for validation.")
-	repo := changelogBranch(t, nil, map[string]string{"changelog/2026-01-02-0900-runner-feature.md": first})
-	second := withEntries(map[string]string{"2026-10-12-0900-runner-option": entryFileText(changelogStamp, "Feat: added runner option for validation.")})
-	out, code := changelogSecond(t, repo, second)
-	sees(t, out, code, 1, "this branch already has its entry changelog/2026-01-02-0900-runner-feature.md",
-		"instead of a new entry: changelog/2026-10-12-0900-runner-option.md")
+	orphan := with(provenRepo(), map[string]string{"fitness/req-0003/README.md": houseReadme, "fitness/req-0003/check": verdictScript(passing)})
+	out, code := fitness(t, example(t, "happyRepo", orphan), nil, "requirements")
+	sees(t, out, code, 1, "fitness/req-0003 proves requirement 0003, which no doc defines; write the doc or delete the check")
+	out, code = stagedRun(t, provenRepo(), map[string]string{"fitness/req-0002/check": verdictScript(`{"ok": true, "errors": [], "filesChecked": 2}`)})
+	sees(t, out, code, 1, "fitness/req-0002/check changed without its requirement doc docs/requirements/0002-adds-again.md; change both together")
 }
 
-func Test0019_18(t *testing.T) {
+func Test0019_8(t *testing.T) {
 	t.Parallel()
-	files := withEntries(map[string]string{"runner-feature": entryFileText(changelogStamp, "Feat: added runner feature for validation.")})
-	files["src.txt"] = changelogFeature
-	out, code := changelogStaged(t, files)
-	sees(t, out, code, 1, "changelog/runner-feature.md must be named changelog/2026-10-12-0900-runner-feature.md: its heading's date, then the change")
+	empty := `{"ok": true, "errors": [], "filesChecked": 0}`
+	for check, files := range map[string]map[string]string{
+		"adr-0001": with(adrRepo(), adrCheck("0001", empty)),
+		"req-0002": with(provenRepo(), map[string]string{"fitness/req-0002/check": verdictScript(empty)}),
+	} {
+		out, code := fitness(t, example(t, "happyRepo", files), nil, "check", check)
+		sees(t, out, code, 1, check+" judged no files, so its scan is broken")
+	}
 }
 
-func Test0019_21(t *testing.T) {
-	t.Parallel()
-	const released = "changelog/2026-10-01-0900-runner-feature.md"
-	old := entryFileText("2026.10.01.0900", "Feat: added runner feature for validation.")
-	repo := example(t, "happyRepo", map[string]string{released: old})
-	git(t, repo, "tag", "v1.0.0")
-	write(t, repo, map[string]string{
-		released:  old + "- Feat: added runner option for validation.\n",
-		"src.txt": changelogFeature + "Added runner option for validation.\n",
+// adrPath is the one ADR adrRepo holds: the README of its check.
+const adrPath = "fitness/adr-0001/README.md"
+
+// adrIssue is the URL of the ADR issue the README of ADR 0001 links.
+const adrIssue = "https://github.com/may-journal/example/issues/5"
+
+// adrText is the README of ADR 0001: its title, summary, status, the ADR
+// issue it links, and what its check fails.
+func adrText(status string) string {
+	return "# 0001 — Small files\n\nSmall files read fast.\n\n" + status + adrIssue + "\n\n## Check\n\nFails a long Markdown file.\n"
+}
+
+// adrRepo is a repo with ADR 0001 as the README of its check.
+func adrRepo() map[string]string {
+	return adrCheck("0001", passing)
+}
+
+// adrCheck is the check folder fitness/adr-<number>, whose README is ADR
+// 0001 and whose program prints verdict.
+func adrCheck(number, verdict string) map[string]string {
+	folder := "fitness/adr-" + number + "/"
+	return map[string]string{
+		folder + "README.md": adrText(""),
+		folder + "check":     verdictScript(verdict),
+	}
+}
+
+// provenRepo is twoRepo whose requirement 0002 a check in fitness/req-0002
+// proves, with no test of its own.
+func provenRepo() map[string]string {
+	return with(twoRepo(), map[string]string{
+		".fitnessrc.json":            `{"policy": "external", "checks": ["requirements", "req-0002"]}` + "\n",
+		"reqs/0001_0002_test.go":     "",
+		"reqs/0001_test.go":          testFile("reqs", "Test0001_1"),
+		"fitness/req-0002/README.md": "# Doubles\n\nProves [requirement 0002](../../docs/requirements/0002-adds-again.md).\n",
+		"fitness/req-0002/check":     verdictScript(passing),
 	})
-	git(t, repo, "add", "-A")
-	out, code := fitness(t, repo, nil, "changelog-updated")
-	sees(t, out, code, 1, released+" shipped in v1.0.0, so its notes are published; leave it as it is and add a new changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file instead")
-}
-
-func Test0019_22(t *testing.T) {
-	t.Parallel()
-	const released = "changelog/2026-10-01-0900-old-feature.md"
-	item := "Feat: added old feature."
-	repo := example(t, "happyRepo", map[string]string{released: entryFileText("2026.10.01.0900", item)})
-	git(t, repo, "tag", "v1.0.0")
-	files := changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation.")
-	files[released] = bareEntryText("2026.10.01.0900", item)
-	write(t, repo, files)
-	git(t, repo, "add", "-A")
-	out, code := fitness(t, repo, nil, "changelog-updated")
-	sees(t, out, code, 0, "All 1 checks passed")
 }

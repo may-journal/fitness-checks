@@ -5,86 +5,71 @@ import (
 	"testing"
 )
 
-// mermaidLegend runs `fitness-install -- mermaid-legend <args>` on happyRepo
-// with files written over it.
-func mermaidLegend(t *testing.T, files map[string]string, args ...string) (string, int) {
+// changelogBullets runs `fitness-install -- changelog-bullets` on happyRepo
+// holding one entry file, body, at changelog/2026-10-08-1400-entry.md.
+func changelogBullets(t *testing.T, body string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"mermaid-legend"}, args...)...)
+	repo := example(t, "happyRepo", withEntries(map[string]string{"2026-10-08-1400-entry": body}))
+	return fitness(t, repo, nil, "changelog-bullets")
 }
 
-// mermaidLegendDiagram is a fenced mermaid diagram with the given lines.
-func mermaidLegendDiagram(lines ...string) string {
-	return "```mermaid\n" + strings.Join(lines, "\n") + "\n```\n"
+// bulletsFile is the path changelogBullets writes its entry file to.
+const bulletsFile = "changelog/2026-10-08-1400-entry.md"
+
+// changelogBulletsDoc is an entry file whose section, opened on line 1,
+// holds bullets, so its first bullet sits on line 3.
+func changelogBulletsDoc(bullets ...string) string {
+	doc := "### 2026.10.08.1400\n\n"
+	for _, b := range bullets {
+		doc += "- " + b + "\n"
+	}
+	return doc
 }
 
-// mermaidLegendDoc is happyRepo's README followed by diagrams, whose first
-// fence sits on line 9.
-func mermaidLegendDoc(diagrams ...string) map[string]string {
-	return map[string]string{"README.md": readme + "\n" + strings.Join(diagrams, "\n")}
-}
-
-func Test0042_1(t *testing.T) {
+func Test0042_16(t *testing.T) {
 	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(mermaidLegendDiagram(
-		"flowchart TB", "persona((1 Persona))", "classDef persona fill:#eef")))
-	sees(t, out, code, 1, "README.md: callout 1 (persona) has no style class (diagram at line 9)")
+	out, code := changelogBullets(t, changelogBulletsDoc("Docs: add the readme.", "Docs: add the changelog."))
+	sees(t, out, code, 1, bulletsFile+` section "2026.10.08.1400" has 2 bullets; keep entries to 3-5 bullets`)
+	out, code = changelogBullets(t, changelogBulletsDoc("Feat: one.", "Fix: two.", "Fix: three.", "Test: four.", "Docs: five.", "Docs: six."))
+	sees(t, out, code, 1, `"2026.10.08.1400" has 6 bullets`)
+	out, code = changelogBullets(t, "### 2026.10.08.1400\n\n* Fix: one.\n* Fix: two.\n* Fix: three.\n")
+	sees(t, out, code, 1, `"2026.10.08.1400" has 0 bullets`)
 }
 
-func Test0042_2(t *testing.T) {
+func Test0042_17(t *testing.T) {
 	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(mermaidLegendDiagram(
-		"flowchart TB", "persona((1 Persona)):::persona")))
-	sees(t, out, code, 1, "README.md: diagram at line 9 has numbered callouts but no classDef legend")
+	files := withEntries(map[string]string{
+		"short-entry":   "### 2026.10.11.0900\n\n- Feat: one.\n- Fix: two.\n",
+		"untyped-entry": "### 2026.10.11.1000\n\n- Feat: one.\n- Fix: two.\n- no type here.\n",
+	})
+	out, code := fitness(t, example(t, "happyRepo", files), nil, "changelog-bullets")
+	sees(t, out, code, 1, `changelog/short-entry.md section "2026.10.11.0900" has 2 bullets`,
+		"changelog/untyped-entry.md:5: bullet must start with a semantic type")
 }
 
-func Test0042_3(t *testing.T) {
+func Test0042_12(t *testing.T) {
 	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(mermaidLegendDiagram(
-		"flowchart TB",
-		"persona((1 Persona)):::persona",
-		"screen[2 Screen]",
-		"db[(3 Store)]",
-		"class screen, db thing",
-		"dec{4 Choice}",
-		"style dec fill:#eef",
-		"classDef persona fill:#eef",
-		"classDef thing fill:#f8f")))
+	long := "Feat: " + strings.Repeat("x", 359)
+	wrapped := "Fix: " + strings.Repeat("x", 200) + "\n  " + strings.Repeat("y", 200)
+	out, code := changelogBullets(t, changelogBulletsDoc(long, wrapped, "Docs: three."))
+	sees(t, out, code, 1,
+		bulletsFile+":3: bullet is 365 characters; keep each under 365",
+		bulletsFile+":4: bullet is 406 characters; keep each under 365")
+}
+
+func Test0042_18(t *testing.T) {
+	t.Parallel()
+	repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": upstreamChangelog})
+	out, code := fitness(t, repo, nil, "changelog-bullets")
 	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "changelog-bullets")
 }
 
-func Test0042_4(t *testing.T) {
+func Test0042_19(t *testing.T) {
 	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(mermaidLegendDiagram(
-		"block-beta", "a[1 Store]", "b[2 Screen]")))
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0042_5(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(mermaidLegendDiagram(
-		"graph LR", "screen[Screen 2]", "persona((1Persona))")))
-	sees(t, out, code, 0, "All 1 checks passed")
-}
-
-func Test0042_6(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidLegend(t, mermaidLegendDoc(
-		mermaidLegendDiagram("flowchart TB", "a[1 A]:::x", "classDef x fill:#eef"),
-		mermaidLegendDiagram("flowchart TB", "b[2 B]:::x", "classDef y fill:#eef", "c[3 C]")))
-	sees(t, out, code, 1, "README.md: callout 3 (c) has no style class (diagram at line 15)")
-}
-
-func Test0042_7(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidLegend(t, map[string]string{"body.md": mermaidLegendDiagram(
-		"flowchart TB", "persona((1 Persona))", "classDef persona fill:#eef")},
-		"--body-file", "body.md")
-	sees(t, out, code, 1, "(description): callout 1 (persona) has no style class (diagram at line 1)")
-}
-
-func Test0042_8(t *testing.T) {
-	t.Parallel()
-	out, code := mermaidLegend(t, nil)
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "mermaid-legend")
+	out, code := changelogBullets(t, changelogBulletsDoc("Feat: one.", "fix(release)!: two.", "chore(ci): three.", "Revert: four.", "Added the readme."))
+	sees(t, out, code, 1, bulletsFile+":7: bullet must start with a semantic type")
+	if n := strings.Count(read(out), "must start with a semantic type"); n != 1 {
+		t.Errorf("only the untyped bullet must fail, got %d failures:\n%s", n, out)
+	}
 }

@@ -5,71 +5,171 @@ import (
 	"testing"
 )
 
-// changelogBullets runs `fitness-install -- changelog-bullets` on happyRepo
-// holding one entry file, body, at changelog/2026-10-08-1400-entry.md.
-func changelogBullets(t *testing.T, body string) (string, int) {
+// rcStaged writes files over a fresh copy of given, stages them, and runs
+// requirements-changed on the staged commit.
+func rcStaged(t *testing.T, given, files map[string]string) (string, int) {
 	t.Helper()
-	repo := example(t, "happyRepo", withEntries(map[string]string{"2026-10-08-1400-entry": body}))
-	return fitness(t, repo, nil, "changelog-bullets")
+	repo := example(t, "happyRepo", given)
+	write(t, repo, files)
+	git(t, repo, "add", "-A")
+	return fitness(t, repo, nil, "requirements-changed")
 }
 
-// bulletsFile is the path changelogBullets writes its entry file to.
-const bulletsFile = "changelog/2026-10-08-1400-entry.md"
-
-// changelogBulletsDoc is an entry file whose section, opened on line 1,
-// holds bullets, so its first bullet sits on line 3.
-func changelogBulletsDoc(bullets ...string) string {
-	doc := "### 2026.10.08.1400\n\n"
-	for _, b := range bullets {
-		doc += "- " + b + "\n"
-	}
-	return doc
+// rcPull commits files on a pull request branch off main in a fresh copy of
+// given, and runs requirements-changed on it.
+func rcPull(t *testing.T, given, files map[string]string) (string, int) {
+	t.Helper()
+	repo := example(t, "happyRepo", given)
+	git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+	commit(t, repo, files, "feat(adder): double numbers")
+	return fitness(t, repo, prEnv, "requirements-changed")
 }
 
-func Test0018_16(t *testing.T) {
+// rcAdder is goRepo's adder.go with one more function, a product change.
+func rcAdder() string {
+	return goRepo()["adder.go"] + "\n// Double returns twice a.\nfunc Double(a int) int {\n\treturn a + a\n}\n"
+}
+
+// rcPassed is what a passing single-check run prints.
+const rcPassed = "All 1 checks passed"
+
+func Test0018_1(t *testing.T) {
 	t.Parallel()
-	out, code := changelogBullets(t, changelogBulletsDoc("Docs: add the readme.", "Docs: add the changelog."))
-	sees(t, out, code, 1, bulletsFile+` section "2026.10.08.1400" has 2 bullets; keep entries to 3-5 bullets`)
-	out, code = changelogBullets(t, changelogBulletsDoc("Feat: one.", "Fix: two.", "Fix: three.", "Test: four.", "Docs: five.", "Docs: six."))
-	sees(t, out, code, 1, `"2026.10.08.1400" has 6 bullets`)
-	out, code = changelogBullets(t, "### 2026.10.08.1400\n\n* Fix: one.\n* Fix: two.\n* Fix: three.\n")
-	sees(t, out, code, 1, `"2026.10.08.1400" has 0 bullets`)
+	adder := map[string]string{"adder.go": rcAdder()}
+	out, code := rcStaged(t, goRepo(), adder)
+	sees(t, out, code, 1, "adder.go changed without a test and a requirement doc; change both with it")
+	out, code = rcStaged(t, goRepo(), with(adder, map[string]string{"adder_test.go": edited(goRepo()["adder_test.go"])}))
+	sees(t, out, code, 1, "adder.go changed without a requirement doc; change one with it")
+	out, code = rcPull(t, goRepo(), adder)
+	sees(t, out, code, 1, "adder.go changed without a test and a requirement doc")
+	rcCodeWithComments(t)
 }
 
-func Test0018_17(t *testing.T) {
+func Test0018_2(t *testing.T) {
 	t.Parallel()
-	files := withEntries(map[string]string{
-		"short-entry":   "### 2026.10.11.0900\n\n- Feat: one.\n- Fix: two.\n",
-		"untyped-entry": "### 2026.10.11.1000\n\n- Feat: one.\n- Fix: two.\n- no type here.\n",
+	out, code := rcStaged(t, goRepo(), map[string]string{
+		"adder.go":      rcAdder(),
+		"adder_test.go": edited(goRepo()["adder_test.go"]),
+		pairedDoc:       reworded(goRepo()[pairedDoc]),
 	})
-	out, code := fitness(t, example(t, "happyRepo", files), nil, "changelog-bullets")
-	sees(t, out, code, 1, `changelog/short-entry.md section "2026.10.11.0900" has 2 bullets`,
-		"changelog/untyped-entry.md:5: bullet must start with a semantic type")
+	sees(t, out, code, 0, rcPassed)
 }
 
-func Test0018_12(t *testing.T) {
+func Test0018_3(t *testing.T) {
 	t.Parallel()
-	long := "Feat: " + strings.Repeat("x", 359)
-	wrapped := "Fix: " + strings.Repeat("x", 200) + "\n  " + strings.Repeat("y", 200)
-	out, code := changelogBullets(t, changelogBulletsDoc(long, wrapped, "Docs: three."))
-	sees(t, out, code, 1,
-		bulletsFile+":3: bullet is 365 characters; keep each under 365",
-		bulletsFile+":4: bullet is 406 characters; keep each under 365")
-}
-
-func Test0018_18(t *testing.T) {
-	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": upstreamChangelog})
-	out, code := fitness(t, repo, nil, "changelog-bullets")
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "changelog-bullets")
-}
-
-func Test0018_19(t *testing.T) {
-	t.Parallel()
-	out, code := changelogBullets(t, changelogBulletsDoc("Feat: one.", "fix(release)!: two.", "chore(ci): three.", "Revert: four.", "Added the readme."))
-	sees(t, out, code, 1, bulletsFile+":7: bullet must start with a semantic type")
-	if n := strings.Count(read(out), "must start with a semantic type"); n != 1 {
-		t.Errorf("only the untyped bullet must fail, got %d failures:\n%s", n, out)
+	adder := goRepo()["adder.go"]
+	for _, files := range []map[string]string{
+		{"README.md": readme + "\nMore words.\n"},
+		{".fitnessrc.json": `{"proseBudget": {}}` + "\n"},
+		{"CHANGELOG.md": "# Changelog\n\nNothing yet.\n"},
+		{"adder.go": "", "sum.go": adder},
+		{"adder.go": strings.Replace(adder, "\treturn a + b\n", "\n\treturn  a + b  \n", 1)},
+	} {
+		out, code := rcStaged(t, goRepo(), files)
+		sees(t, out, code, 0, rcPassed)
 	}
+	rcCommentOnly(t)
+}
+
+func Test0018_4(t *testing.T) {
+	t.Parallel()
+	repo := example(t, "happyRepo", goRepo())
+	git(t, repo, "checkout", "-q", "-b", "side")
+	commit(t, repo, map[string]string{"adder.go": rcAdder()}, "feat(adder): double numbers")
+	git(t, repo, "checkout", "-q", "-")
+	commit(t, repo, map[string]string{"README.md": readme + "\nMore words.\n"}, "docs(readme): add words")
+	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
+	out, code := fitness(t, repo, nil, "requirements-changed")
+	sees(t, out, code, 0, rcPassed)
+}
+
+func Test0018_5(t *testing.T) {
+	t.Parallel()
+	given := with(goRepo(), map[string]string{"three.go": "package adder\n\n// Three is three.\nconst Three = 3\n"})
+	out, code := rcStaged(t, given, map[string]string{"three.go": ""})
+	sees(t, out, code, 0, rcPassed)
+}
+
+func Test0018_6(t *testing.T) {
+	t.Parallel()
+	named := strings.Replace(goRepo()[pairedDoc], "by hand.", "by hand, with `adder.go`.", 1)
+	out, code := rcStaged(t, with(goRepo(), map[string]string{pairedDoc: named}), map[string]string{"adder.go": ""})
+	sees(t, out, code, 1, "adder.go was deleted, leaving requirement doc "+pairedDoc+" and test adder_test.go unchanged; change or delete them with it")
+}
+
+func Test0018_7(t *testing.T) {
+	t.Parallel()
+	given := with(goRepo(), map[string]string{pairedDoc: ""})
+	out, code := rcStaged(t, given, map[string]string{"adder.go": rcAdder()})
+	sees(t, out, code, 0, rcPassed)
+}
+
+func Test0018_8(t *testing.T) {
+	t.Parallel()
+	repo, env := hooked(t, with(goRepo(), map[string]string{".fitnessrc.json": `{"policy": "external", "checks": ["requirements-changed"]}` + "\n"}))
+	write(t, repo, map[string]string{"adder.go": rcAdder()})
+	user(t, repo, env, "add", "-A")
+	out, code := user(t, repo, env, "commit", "-m", "feat(adder): double numbers\n\nRequirements: none, a helper no user calls yet")
+	sees(t, out, code, 1, "adder.go changed without a test and a requirement doc; change both with it")
+}
+
+// rcCommented is goRepo's adder.go with every comment rewritten and one
+// added after code. Its body is indented anew, as a comment edit may leave it.
+func rcCommented() string {
+	return "// Package adder sums numbers.\npackage adder\n\n// Add returns a plus b,\n// in either order.\nfunc Add(a, b int) int {\n    return a + b // the sum\n}\n"
+}
+
+// rcScript is a shell script, product code, with comments to rewrite.
+const rcScript = "#!/bin/sh\n# greet says hello.\necho \"# not a comment\" # says it\necho done\n"
+
+// rcGiven is goRepo with a shell script, a file behind a build tag, and a
+// cgo preamble, which the toolchain reads as code.
+func rcGiven() map[string]string {
+	return with(goRepo(), map[string]string{
+		"greet.sh": rcScript,
+		"tag.go":   "//go:build darwin\n\npackage adder\n",
+		"cgo.go":   "package adder\n\n// int three(void) { return 3; }\nimport \"C\"\n",
+	})
+}
+
+// rcCommentOnly proves that edits to comments alone, in Go and shell,
+// pass staged and on a pull request.
+func rcCommentOnly(t *testing.T) {
+	t.Helper()
+	files := map[string]string{
+		"adder.go": rcCommented(),
+		"greet.sh": "#!/bin/sh\n# greet prints a greeting.\n\necho \"# not a comment\" # prints it\n  echo done\n",
+	}
+	out, code := rcStaged(t, rcGiven(), files)
+	sees(t, out, code, 0, rcPassed)
+	out, code = rcPull(t, rcGiven(), files)
+	sees(t, out, code, 0, rcPassed)
+}
+
+// rcCodeWithComments proves that a change to code, a directive, or a cgo
+// preamble beside comment edits still fails, staged and in a pull.
+// Joined lines and a changed string count as code, and so does a test or
+// doc changed only in its comments.
+func rcCodeWithComments(t *testing.T) {
+	t.Helper()
+	greeting := strings.Replace(rcScript, "says hello", "prints a greeting", 1)
+	for _, c := range []struct{ file, body string }{
+		{"adder.go", strings.Replace(rcCommented(), "a + b", "b + a", 1)},
+		{"greet.sh", strings.Replace(greeting, "# not a comment\"", "# still not a comment\"", 1)},
+		{"greet.sh", strings.Replace(greeting, "# says it\necho", "echo", 1)},
+		{"tag.go", "//go:build linux\n\n// Package adder builds on Linux.\npackage adder\n"},
+		{"cgo.go", "package adder\n\n// int three(void) { return 4; }\nimport \"C\"\n"},
+	} {
+		out, code := rcStaged(t, rcGiven(), map[string]string{c.file: c.body})
+		sees(t, out, code, 1, c.file+" changed without a test and a requirement doc; change both with it")
+		out, code = rcPull(t, rcGiven(), map[string]string{c.file: c.body})
+		sees(t, out, code, 1, c.file+" changed without a test and a requirement doc")
+	}
+	partners := map[string]string{
+		"adder.go":      rcAdder(),
+		"adder_test.go": withComment(goRepo()["adder_test.go"]),
+		pairedDoc:       goRepo()[pairedDoc] + "\n<!-- Sums stay small. -->\n",
+	}
+	out, code := rcStaged(t, rcGiven(), partners)
+	sees(t, out, code, 1, "adder.go changed without a test and a requirement doc; change both with it")
 }

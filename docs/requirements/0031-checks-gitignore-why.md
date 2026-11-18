@@ -1,0 +1,38 @@
+# 0031 Checks Gitignore Why
+
+## Why
+
+I know why every file is ignored, because each `.gitignore` pattern carries its reason right above it.
+
+## Measurement
+
+`.gitignore` patterns with an explanatory comment directly above
+-
+`.gitignore` patterns
+
+## Requirements
+
+- 0031.1
+    - Given Developer has a `.gitignore` where each pattern has a comment above it
+        - When gitignore-why runs
+            - Then it passes
+- 0031.2
+    - Given Developer has a pattern with no comment above it
+        - When gitignore-why runs
+            - Then it fails naming the line and the pattern
+- 0031.3
+    - Given Developer has one comment above two patterns
+        - When gitignore-why runs
+            - Then it fails naming the second pattern
+- 0031.4
+    - Given Developer has a blank line between a comment and its pattern
+        - When gitignore-why runs
+            - Then it fails naming the pattern
+- 0031.5
+    - Given Developer has a bare `#` with no text above a pattern
+        - When gitignore-why runs
+            - Then it fails naming the pattern
+- 0031.6
+    - Given Developer has a repo with no `.gitignore`
+        - When gitignore-why runs
+            - Then it passes with 0 files checked

@@ -1,134 +1,212 @@
 package requirements
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
 
-const (
-	aaCheck   = "architecture-actors"
-	acDoc     = "docs/requirements/0001-open.md"
-	aaGiven   = acDoc + ":16: Given "
-	aaContext = "architecture/01-system-context.md"
-	aaRel     = "Rel(user, app, \"3\")"
-	aaHost    = aaRel + "\nPerson(host, \"4 Host\")"
-	aaOpens   = " opens the app"
-)
-
-// acDocWith is requirement 0001 with one acceptance whose Given is given.
-// The Given sits on line 16.
-func acDocWith(given string) string {
-	return "# 0001 Open\n\n## Why\n\nI open the app.\n\n## Measurement\n\nopens\n-\ntries\n\n## Requirements\n\n- 0001.1\n    - Given " + given + "\n        - When it starts\n            - Then it opens\n"
-}
-
-// aaFixture is the default architecture with its one Given replaced.
-func aaFixture(given string) map[string]string {
-	files := acFixture(acRoot)
-	files[acDoc] = acDocWith(given)
-	return files
-}
-
-// aaWith is aaFixture with one edit to the context diagram.
-func aaWith(given, oldContext, newContext string) map[string]string {
-	files := aaFixture(given)
-	files[acRoot+acContext] = strings.Replace(files[acRoot+acContext], oldContext, newContext, 1)
-	return files
-}
-
-func aaRun(t *testing.T, files map[string]string, env ...string) (string, int) {
+// mermaidCallouts runs `fitness-install -- mermaid-callouts <args>` on
+// happyRepo with files written over it.
+func mermaidCallouts(t *testing.T, files map[string]string, args ...string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), env, aaCheck)
+	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"mermaid-callouts"}, args...)...)
 }
 
-// aaNoActor is the failure for a Given whose text names no actor among
-// the declared names.
-func aaNoActor(given, where, actors string) string {
-	return aaGiven + "\"" + given + "\"" + where + "; actors declared at " + aaContext + ":3 are " + actors
+// mermaidCalloutsDiagram fences mermaid lines as a diagram block.
+func mermaidCalloutsDiagram(lines ...string) string {
+	return "```mermaid\n" + strings.Join(lines, "\n") + "\n```\n"
 }
 
-func Test0074_1(t *testing.T) {
-	t.Parallel()
-	out, code := aaRun(t, map[string]string{"src/main.go": "package main\n", acDoc: acDocWith("no network")})
-	sees(t, out, code, 0)
-	passedWithNoFiles(t, out, aaCheck)
-	out, code = aaRun(t, aaFixture("no network"))
-	sees(t, out, code, 1, aaNoActor("no network", " starts with no actor", "User"))
-}
-
-func Test0074_2(t *testing.T) {
-	t.Parallel()
-	for _, given := range []string{"User" + aaOpens, "user" + aaOpens, "User"} {
-		out, code := aaRun(t, aaFixture(given))
-		sees(t, out, code, 0)
-		passedWith(t, out, aaCheck, "1")
+// mermaidCalloutsTable builds a callout table with one row per label.
+func mermaidCalloutsTable(labels ...string) string {
+	table := "| # | Description |\n| --- | --- |\n"
+	for _, n := range labels {
+		table += "| " + n + " | step " + n + " |\n"
 	}
-	for _, given := range []string{"Users open the app", "Admin" + aaOpens, "USER" + aaOpens} {
-		out, code := aaRun(t, aaFixture(given))
-		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
+	return table
+}
+
+// mermaidCalloutsDoc joins diagram and table blocks into one doc.
+func mermaidCalloutsDoc(blocks ...string) map[string]string {
+	return map[string]string{"docs/flow.md": strings.Join(blocks, "\n")}
+}
+
+// mermaidCalloutsFlow reads docs/flow.md from repo.
+func mermaidCalloutsFlow(t *testing.T, repo string) string {
+	t.Helper()
+	got, err := os.ReadFile(filepath.Join(repo, "docs", "flow.md"))
+	mustDo(t, err)
+	return string(got)
+}
+
+// mermaidCalloutsNumbered is a doc whose flowchart and C4 diagrams label
+// connectors with numbers beside numbered nodes and a letter in use.
+func mermaidCalloutsNumbered() map[string]string {
+	return mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(
+			"flowchart LR",
+			`app[1 App] -->|2| api["3 API"]`,
+			"api -->|A| db((4 Store))",
+			"db -- 6 --> app",
+		),
+		mermaidCalloutsTable("1", "2", "3", "4", "A", "6"),
+		mermaidCalloutsDiagram(`Container(web, "5", "UI")`, `Rel(web, api, "12", "HTTPS")`),
+		"| # | Description |\n| --- | --- |\n| 5  | step 5 |\n| 12 | step 12 |\n",
+	)
+}
+
+func Test0074_14(t *testing.T) {
+	t.Parallel()
+	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(
+			"flowchart LR",
+			`app[1 App] -->|A| api["2 API"]`,
+			"api -- B --> db((3 Store))",
+			`db -->|"C"| app`,
+			"db -->|YES| app -->|go| Q --> db",
+		),
+		mermaidCalloutsTable("1", "2", "3", "A", "B", "C"),
+		mermaidCalloutsDiagram(`Container(web, "4", "UI")`, `Rel(web, api, "D", "HTTPS")`),
+		mermaidCalloutsDiagram(`Person(p, "Person")`, `System(s, "System")`, `Rel(p, s, "uses")`),
+		mermaidCalloutsTable("4", "D"),
+		mermaidCalloutsDiagram(
+			"wardley-beta",
+			"  anchor User [0.99, 0.66]",
+			"  component code [0.60, 0.35]",
+			`  annotation 5,[0.40, 0.35] "Genesis: code"`,
+			"  User -> code",
+		),
+		mermaidCalloutsTable("5"),
+		mermaidCalloutsDiagram("gitGraph", "  commit", "  branch dev", "  commit"),
+	))
+	sees(t, out, code, 0, "All 1 checks passed")
+	if !regexp.MustCompile(`│ passed\s+│ 1\s+│`).MatchString(row(out, "mermaid-callouts")) {
+		t.Errorf("mermaid-callouts must pass judging 1 file, got row %q", row(out, "mermaid-callouts"))
 	}
 }
 
-func Test0074_3(t *testing.T) {
+func Test0074_13(t *testing.T) {
 	t.Parallel()
-	out, code := aaRun(t, aaFixture("User has an app"))
-	sees(t, out, code, 0)
-	given := "a user" + aaOpens
-	out, code = aaRun(t, aaFixture(given))
-	sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
-}
-
-func Test0074_4(t *testing.T) {
-	t.Parallel()
-	given := "Host" + aaOpens
-	out, code := aaRun(t, aaWith(given, aaRel, aaHost))
-	sees(t, out, code, 0)
-	repo := example(t, "happyRepo", aaFixture(given))
-	for _, changed := range []string{"README.md", "src/store/store.go", acRoot + acContext} {
-		out, code := fitness(t, repo, []string{"FITNESS_CHANGED_FILES=" + changed}, aaCheck)
-		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
-	}
-}
-
-func Test0074_5(t *testing.T) {
-	t.Parallel()
-	out, code := aaRun(t, aaWith("Host"+aaOpens, aaRel, aaHost))
-	sees(t, out, code, 0)
-	out, code = aaRun(t, aaWith("User"+aaOpens, aaRel, aaRel+"\nPerson(User, \"4 Host\")"))
-	sees(t, out, code, 1, aaGiven+"actor \"User\" is ambiguous: user at "+aaContext+":5 and User at "+aaContext+":8")
-}
-
-func Test0074_6(t *testing.T) {
-	t.Parallel()
-	out, code := aaRun(t, aaWith("User and Host open the app", aaRel, aaHost))
-	sees(t, out, code, 0)
-	given := "User and Admin open the app"
-	out, code = aaRun(t, aaWith(given, aaRel, aaHost))
-	sees(t, out, code, 1, aaNoActor(given, " names no actor at \"Admin open the app\"", "User, Host"))
-	out, code = aaRun(t, aaWith("User and", aaRel, aaHost))
-	sees(t, out, code, 1, aaNoActor("User and", " names no actor at \"\"", "User, Host"))
+	out, code := mermaidCallouts(t, map[string]string{
+		"docs/flow.md": strings.Join([]string{
+			mermaidCalloutsDiagram("classDiagram", `class a["1 A"]`, `class b["1 B"]`, "a --> b : A", "b --> a : C"),
+			mermaidCalloutsTable("1", "A", "A", "B"),
+		}, "\n"),
+		"docs/unpaired.md": strings.Join([]string{
+			mermaidCalloutsTable("A"),
+			mermaidCalloutsDiagram(`Rel(a, b, "A")`),
+		}, "\n"),
+		"docs/plain.md": strings.Join([]string{
+			mermaidCalloutsDiagram("flowchart LR", "Login --> Home"),
+			mermaidCalloutsDiagram("flowchart LR", "a[1 A] --> b[2 B]"),
+			mermaidCalloutsTable("1", "2"),
+			mermaidCalloutsDiagram("flowchart TD", "Fetch -->|then parse| Save"),
+		}, "\n"),
+	})
+	sees(t, out, code, 1,
+		"docs/plain.md: line 1: mermaid diagram has no numbered callouts; number its nodes, as in A[1 Step]",
+		"docs/plain.md: line 16: mermaid diagram has no numbered callouts",
+		"docs/flow.md: diagram callout 1 appears 2 times (line 1)",
+		"docs/flow.md: callout table row A appears 2 times (line 9)",
+		"docs/flow.md: diagram callout C has no matching table row (line 1)",
+		"docs/flow.md: callout table row B has no matching diagram callout (line 9)",
+		"docs/unpaired.md: callout table at line 1 has no preceding mermaid diagram",
+		"docs/unpaired.md: mermaid diagram at line 5 has callouts but no associated callout table")
 }
 
 func Test0074_8(t *testing.T) {
 	t.Parallel()
-	files := aaFixture("User" + aaOpens)
-	files[acDoc] = strings.Replace(files[acDoc], "        - When it starts\n", "", 1)
-	out, code := aaRun(t, files)
-	sees(t, out, code, 0)
-	passedWith(t, out, aaCheck, "1")
-	if strings.Contains(out, acDoc) {
-		t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
+	body := mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(`Rel(a, b, "A")`, `Rel(b, c, "B")`),
+		mermaidCalloutsTable("A"),
+	)["docs/flow.md"]
+	out, code := mermaidCallouts(t, map[string]string{"body.md": body}, "--body-file", "body.md")
+	sees(t, out, code, 1, "(description): diagram callout B has no matching table row (line 1)")
+}
+
+func Test0074_11(t *testing.T) {
+	t.Parallel()
+	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(`Container(app, "1", "UI")`, `Rel(app, api, "2")`),
+		mermaidCalloutsTable("1", "2"),
+	))
+	sees(t, out, code, 1, "docs/flow.md: connector callout 2 must be a letter; numbers are for nodes; run `fitness mermaid-callouts --fix` (line 1)")
+	if strings.Contains(out, "has no matching") {
+		t.Errorf("a numbered connector must fail only for its form, not as an orphan:\n%s", out)
 	}
 }
 
-func Test0074_9(t *testing.T) {
+func Test0074_12(t *testing.T) {
 	t.Parallel()
-	given := "User" + aaOpens
-	out, code := aaRun(t, aaFixture(given))
-	sees(t, out, code, 0)
-	for _, given := range []string{"App" + aaOpens, "app" + aaOpens, "Person" + aaOpens, "p" + aaOpens} {
-		out, code := aaRun(t, aaFixture(given))
-		sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
+	out, code := mermaidCallouts(t, mermaidCalloutsDoc(
+		mermaidCalloutsDiagram("flowchart LR", "a -->|Z| b", "b -->|AA| c", "c -->|AB| a"),
+		mermaidCalloutsTable("Z", "AA", "AB"),
+	))
+	sees(t, out, code, 1,
+		"docs/flow.md: connector callout AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 1)",
+		"docs/flow.md: callout table row AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 8)")
+	if strings.Contains(out, "callout AA ") || strings.Contains(out, "row AA ") {
+		t.Errorf("AA follows the doubling and must pass:\n%s", out)
 	}
-	out, code = aaRun(t, aaWith(given, "C4Context\nPerson(user, \"1 User\")\nSystem(app, \"2 App\")\nRel(user, app, \"3\")", "flowchart LR\nuser((1 User)):::person\napp[2 App]:::system\nuser -->|3| app"))
-	sees(t, out, code, 1, aaGiven+"\""+given+"\" starts with no actor; no actor is declared at "+aaContext+":3")
+}
+
+func Test0074_15(t *testing.T) {
+	t.Parallel()
+	repo := example(t, "happyRepo", mermaidCalloutsNumbered())
+	out, code := fitness(t, repo, nil, "mermaid-callouts")
+	sees(t, out, code, 1, "connector callout 2 must be a letter")
+	out, code = fitness(t, repo, nil, "mermaid-callouts", "--fix")
+	sees(t, out, code, 0, "docs/flow.md: converted connector callouts 2 to B, 6 to C, 12 to A", "--fix changed 1 file")
+	want := mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(
+			"flowchart LR",
+			`app[1 App] -->|B| api["3 API"]`,
+			"api -->|A| db((4 Store))",
+			"db -- C --> app",
+		),
+		"| # | Description |\n| --- | --- |\n| 1 | step 1 |\n| B | step 2 |\n| 3 | step 3 |\n| 4 | step 4 |\n| A | step A |\n| C | step 6 |\n",
+		mermaidCalloutsDiagram(`Container(web, "5", "UI")`, `Rel(web, api, "A", "HTTPS")`),
+		"| # | Description |\n| --- | --- |\n| 5  | step 5 |\n| A  | step 12 |\n",
+	)["docs/flow.md"]
+	if got := mermaidCalloutsFlow(t, repo); got != want {
+		t.Errorf("--fix must turn each numbered connector and its row into the next free letter, got:\n%s\nwant:\n%s", got, want)
+	}
+	out, code = fitness(t, repo, nil, "mermaid-callouts")
+	sees(t, out, code, 0, "All 1 checks passed")
+}
+
+func Test0074_16(t *testing.T) {
+	t.Parallel()
+	repo := example(t, "happyRepo", mermaidCalloutsNumbered())
+	out, code := fitness(t, repo, nil, "mermaid-callouts", "--fix")
+	sees(t, out, code, 0, "--fix changed 1 file")
+	fixed := mermaidCalloutsFlow(t, repo)
+	out, code = fitness(t, repo, nil, "mermaid-callouts", "--fix")
+	sees(t, out, code, 0, "--fix changed 0 files")
+	if strings.Contains(out, "converted") {
+		t.Errorf("a second --fix must list no file, got:\n%s", out)
+	}
+	if got := mermaidCalloutsFlow(t, repo); got != fixed {
+		t.Errorf("a second --fix must change nothing, got:\n%s\nwant:\n%s", got, fixed)
+	}
+}
+
+func Test0074_17(t *testing.T) {
+	t.Parallel()
+	files := mermaidCalloutsDoc(
+		mermaidCalloutsDiagram(`Container(app, "2", "UI")`, `Rel(app, api, "2")`),
+		mermaidCalloutsTable("2"),
+	)
+	repo := example(t, "happyRepo", files)
+	out, code := fitness(t, repo, nil, "mermaid-callouts", "--fix")
+	sees(t, out, code, 1,
+		"docs/flow.md: --fix left the mermaid diagram at line 1 unchanged: callout 2 marks a node too",
+		"--fix changed 0 files",
+		"docs/flow.md: connector callout 2 must be a letter")
+	if got := mermaidCalloutsFlow(t, repo); got != files["docs/flow.md"] {
+		t.Errorf("--fix must leave a diagram it cannot convert byte for byte, got:\n%s", got)
+	}
 }

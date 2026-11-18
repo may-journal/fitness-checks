@@ -1,69 +1,95 @@
 package requirements
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// planStructure runs `fitness-install -- plan-structure --body-file plan.md`
-// on happyRepo with body as plan.md.
-func planStructure(t *testing.T, body string) (string, int) {
+// goComplexity runs `fitness-install -- go-complexity` on happyRepo with
+// files written over it.
+func goComplexity(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	repo := example(t, "happyRepo", map[string]string{"plan.md": body})
-	return fitness(t, repo, nil, "plan-structure", "--body-file", "plan.md")
+	return fitness(t, example(t, "happyRepo", files), nil, "go-complexity")
 }
 
-// planStructureOf is a plan with pitch, then Background, then the steps.
-func planStructureOf(pitch, steps string) string {
-	return pitch + "\n\n## Background\n\nThe sync job drops edits made offline.\n\n## What needs to happen\n\n" + steps + "\n"
+// goComplexityIfs returns n `if` branches, one point each.
+func goComplexityIfs(n int) string {
+	return strings.Repeat("\tif ok {\n\t}\n", n)
 }
 
-const planStructurePitch = "> Offline edits survive the next sync."
+// goComplexityFile is a Go file holding decl and its body of n branches.
+func goComplexityFile(decl string, n int) string {
+	return "package p\n\nvar ok bool\n\n" + decl + " {\n" + goComplexityIfs(n) + "}\n"
+}
 
 func Test0048_1(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planBody("- [ ] Write the tests."))
-	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+	out, code := goComplexity(t, map[string]string{"a.go": goComplexityFile("func f()", 6)})
+	sees(t, out, code, 1, "a.go:5: func f has a complexity of 7; maximum allowed is 5")
 }
 
 func Test0048_2(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planStructureOf("Offline edits survive the next sync.", "- [ ] Keep queued edits."))
-	sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
+	body := "package p\n\nfunc f(n int, ch chan int, a, b bool) bool {\n" +
+		"\tswitch n {\n\tcase 1:\n\tcase 2:\n\tdefault:\n\t}\n" +
+		"\tselect {\n\tcase <-ch:\n\tdefault:\n\t}\n" +
+		"\tfor n > 0 {\n\t\tn--\n\t}\n" +
+		"\tfor range ch {\n\t}\n" +
+		"\treturn a && b || a\n}\n"
+	out, code := goComplexity(t, map[string]string{"a.go": body})
+	sees(t, out, code, 1, "a.go:3: func f has a complexity of 8; maximum allowed is 5")
 }
 
 func Test0048_3(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planStructureOf("> REPLACE-ME", "- [ ] Keep queued edits."))
-	sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
+	body := "package p\n\nvar ok bool\n\nfunc outer() {\n\tg := func() {\n" + goComplexityIfs(5) + "\t}\n\tg()\n}\n"
+	out, code := goComplexity(t, map[string]string{"a.go": body})
+	sees(t, out, code, 1, "a.go:6: function literal has a complexity of 6; maximum allowed is 5")
+	if strings.Contains(out, "func outer") {
+		t.Errorf("outer must not carry the literal's branches:\n%s", out)
+	}
 }
 
 func Test0048_4(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planStructurePitch+"\n\n## What needs to happen\n\n- [ ] Keep queued edits.\n")
-	sees(t, out, code, 1, "Missing `## Background` section")
+	file := "package p\n\ntype T struct{}\n\n" + strings.TrimPrefix(goComplexityFile("func (T) m()", 5), "package p\n\n")
+	out, code := goComplexity(t, map[string]string{"a.go": file})
+	sees(t, out, code, 1, "a.go:7: method m has a complexity of 6; maximum allowed is 5")
 }
 
 func Test0048_5(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planStructureOf(planStructurePitch, "```\n- [ ] Keep queued edits.\n```"))
-	sees(t, out, code, 1, "`## What needs to happen` has no checklist item (- [ ] …)")
+	out, code := goComplexity(t, map[string]string{"a_test.go": goComplexityFile("func TestF()", 5)})
+	sees(t, out, code, 1, "a_test.go:5: func TestF has a complexity of 6; maximum allowed is 5")
 }
 
 func Test0048_6(t *testing.T) {
 	t.Parallel()
-	out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Keep queued edits.\n\n## Notes\n\nSee the sync design."))
-	sees(t, out, code, 1, "Unexpected `## Notes` section — a plan has only Background and What needs to happen")
+	out, code := goComplexity(t, map[string]string{
+		".fitnessrc.json": `{"goComplexity": {"max": 2}}` + "\n",
+		"a.go":            goComplexityFile("func f()", 2),
+	})
+	sees(t, out, code, 1, "a.go:5: func f has a complexity of 3; maximum allowed is 2")
 }
 
 func Test0048_7(t *testing.T) {
 	t.Parallel()
-	for _, heading := range []string{"Open questions", "Unresolved questions", "Questions for the owner"} {
-		out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Keep queued edits.\n\n## "+heading+"\n\n- Which sync wins?"))
-		sees(t, out, code, 1, "Remove the `## "+heading+"` section — turn unknowns into checklist steps")
+	out, code := goComplexity(t, map[string]string{"bad.go": "package p\nfunc {"})
+	sees(t, out, code, 1, "✖ bad.go:")
+	if !strings.Contains(goComplexityJoined(out), goComplexityJoined("bad.go:2:6: expected 'IDENT', found '{'")) {
+		t.Errorf("output is missing the parser's error:\n%s", out)
 	}
 }
 
 func Test0048_8(t *testing.T) {
 	t.Parallel()
-	out, code := fitness(t, example(t, "happyRepo", nil), nil, "plan-structure")
+	out, code := goComplexity(t, nil)
 	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "plan-structure")
+	passedWithNoFiles(t, out, "go-complexity")
+}
+
+// goComplexityJoined drops the table borders and every space, so a long
+// message the table wrapped mid-word reads whole.
+func goComplexityJoined(out string) string {
+	return strings.Join(strings.Fields(strings.ReplaceAll(out, "│", " ")), "")
 }

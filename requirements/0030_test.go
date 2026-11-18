@@ -1,81 +1,83 @@
 package requirements
 
 import (
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-// gofmtCheck runs `fitness-install -- gofmt` on happyRepo with files written
-// over it and env added.
-func gofmtCheck(t *testing.T, env []string, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), env, "gofmt")
+// commitAttributionTrailers is a commit message carrying both AI trailers.
+const commitAttributionTrailers = "feat(api): add endpoint\n\nAI-Tools: Claude Code\nAI-Models: Opus 4.8\n"
+
+// commitAttributionMissing is the error for a missing trailer key.
+func commitAttributionMissing(key string) string {
+	return `commit message missing "` + key + `:" trailer`
 }
 
-// gofmtTidy is a Go file gofmt leaves as it is; gofmtMessy is one it rewrites.
-const (
-	gofmtTidy  = "package m\n\nfunc F() int { return 1 }\n"
-	gofmtMessy = "package m\nfunc   G( ) int {return 2}\n"
-)
+// commitAttribution commits each message on happyRepo in order, the last at
+// HEAD, then runs `fitness-install -- commit-attribution <args>`.
+func commitAttribution(t *testing.T, messages []string, args ...string) (string, int) {
+	t.Helper()
+	repo := example(t, "happyRepo", nil)
+	for _, m := range messages {
+		commit(t, repo, nil, m)
+	}
+	return fitness(t, repo, nil, append([]string{"commit-attribution"}, args...)...)
+}
 
 func Test0030_1(t *testing.T) {
 	t.Parallel()
-	out, code := gofmtCheck(t, nil, map[string]string{"ok.go": gofmtTidy, "bad.go": gofmtMessy})
-	sees(t, out, code, 1, "bad.go: not gofmt-formatted (run: gofmt -w bad.go)")
+	out, code := commitAttribution(t, []string{"feat(api): add endpoint\n\nNo trailers here.\n"})
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "commit-attribution")
+
+	folder := example(t, "happyRepo", nil)
+	mustDo(t, os.RemoveAll(filepath.Join(folder, ".git")))
+	out, code = fitness(t, folder, nil, "commit-attribution")
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "commit-attribution")
 }
 
 func Test0030_2(t *testing.T) {
 	t.Parallel()
-	out, code := gofmtCheck(t, nil, map[string]string{"ok.go": gofmtTidy})
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := commitAttribution(t, []string{commitAttributionTrailers})
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 }
 
 func Test0030_3(t *testing.T) {
 	t.Parallel()
-	out, code := gofmtCheck(t, nil, map[string]string{
-		"ok.go":                 gofmtTidy,
-		"x/testdata/fixture.go": gofmtMessy,
-		"vendor/lib/lib.go":     gofmtMessy,
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nJust a body.\n"})
+	sees(t, out, code, 1, commitAttributionMissing("AI-Models"), commitAttributionMissing("AI-Tools"))
 }
 
 func Test0030_4(t *testing.T) {
 	t.Parallel()
-	out, code := gofmtCheck(t, nil, nil)
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "gofmt")
+	out, code := commitAttribution(t, []string{commitAttributionTrailers}, "--message=feat(api): add paging\n\nJust a body.\n")
+	sees(t, out, code, 1, commitAttributionMissing("AI-Models"), commitAttributionMissing("AI-Tools"))
 }
 
 func Test0030_5(t *testing.T) {
 	t.Parallel()
-	out, code := gofmtCheck(t, []string{pathWithout(t, "go", "gofmt")}, map[string]string{"ok.go": gofmtTidy})
-	showsInfo(t, out, code, "gofmt", "Go not installed: see https://go.dev/dl")
-}
-
-func Test0030_7(t *testing.T) {
-	t.Parallel()
-	crashed := brokenTool(t, "gofmt", "echo 'fatal error: runtime: out of memory' >&2\nexit 2\n")
-	out, code := gofmtCheck(t, []string{crashed}, map[string]string{"ok.go": gofmtTidy})
-	showsInfo(t, out, code, "gofmt", "gofmt -l exited 2 without a finding: fatal error: runtime: out of memory")
-	if strings.Contains(out, "not gofmt-formatted") {
-		t.Errorf("a crash must not read as an unformatted file:\n%s", out)
-	}
-}
-
-func Test0030_8(t *testing.T) {
-	t.Parallel()
-	out, code := gofmtCheck(t, nil, map[string]string{"ok.go": gofmtTidy, "broken.go": "package m\n\nfunc {\n"})
-	sees(t, out, code, 1, "broken.go:3:6: expected 'IDENT', found '{'")
-	if strings.Contains(out, "not gofmt-formatted") {
-		t.Errorf("a syntax error must fail as itself, not as an unformatted file:\n%s", out)
-	}
+	out, code := commitAttribution(t, []string{commitAttributionTrailers}, "--message=")
+	sees(t, out, code, 1, `No commit message to validate; add "AI-Tools:" and "AI-Models:" trailers to disclose AI usage`)
 }
 
 func Test0030_6(t *testing.T) {
 	t.Parallel()
-	repo := example(t, "happyRepo", map[string]string{"ok.go": gofmtTidy})
-	write(t, repo, map[string]string{"scratch.go": gofmtMessy})
-	out, code := fitness(t, repo, nil, "gofmt")
-	sees(t, out, code, 0, "All 1 checks passed")
+	for _, subject := range []string{"Merge branch 'feature' into main", `Revert "feat(api): add endpoint"`} {
+		out, code := commitAttribution(t, []string{commitAttributionTrailers, subject})
+		sees(t, out, code, 0, "All 1 checks passed")
+	}
+}
+
+func Test0030_7(t *testing.T) {
+	t.Parallel()
+	out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nAI-Tools: Claude Code\nAI-Models:   \n"})
+	sees(t, out, code, 1, commitAttributionMissing("AI-Models"))
+}
+
+func Test0030_8(t *testing.T) {
+	t.Parallel()
+	out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nAI-Tools: Claude Code\nWe set AI-Models: Opus 4.8 later.\n"})
+	sees(t, out, code, 1, commitAttributionMissing("AI-Models"))
 }

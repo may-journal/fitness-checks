@@ -1,250 +1,236 @@
 package requirements
 
 import (
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 )
 
-// docTemplate runs `fitness-install -- doc-template` on happyRepo with files
-// written over it.
-func docTemplate(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "doc-template")
-}
-
-// docTemplateNote guides its one section with a comment.
-const docTemplateNote = "# Note\n\n## Summary\n\n<!-- gist -->\n"
-
-// docTemplateADR guides each of its three sections with a comment.
-const docTemplateADR = "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\n<!-- what -->\n\n## Consequences\n\n<!-- fallout -->\n"
-
 const (
-	dtViews     = "docs/architecture/"
-	dtTemplates = dtViews + "templates/"
+	accCheck    = "architecture-containers"
+	accNoOwner  = " has no container in the containers view"
+	accProject  = "project.yml"
+	accPackage  = "package.json"
+	accPbxproj  = "App.xcodeproj/project.pbxproj"
+	accDevTools = "{\n  \"name\": \"portal\",\n  \"private\": true,\n  \"bin\": null,\n  \"devDependencies\": {\n    \"prettier\": \"3.0.0\"\n  }\n}\n"
+	accService  = "{\n  \"name\": \"portal\",\n  \"scripts\": {\n    \"start\": \"node server.js\"\n  }\n}\n"
 )
 
-// dtShipped is a user's docs/architecture after following the
-// architecture-contract README: each view copied from its template, templates
-// left behind.
-func dtShipped(t *testing.T) map[string]string {
-	t.Helper()
-	files := map[string]string{}
-	for _, view := range []string{acContext, acContainer, acComponent, acCode, acJourney} {
-		body, err := os.ReadFile(filepath.Join("..", "internal", "architecture", "templates", view))
-		mustDo(t, err)
-		files[dtViews+view] = string(body)
-	}
+// accRootCommand is a Go command at the repository root, which go build
+// names after the module path's last element.
+var accRootCommand = map[string]string{"go.mod": "module example.com/tool\n\ngo 1.26\n", "main.go": "package main\n"}
+
+// accNative is a native app with Node tools whose XcodeGen project puts the
+// Notify target on line 17 of project.yml.
+func accNative() map[string]string {
+	files := acFixture(acRoot)
+	files["src/cmd/service/main.go"] = "package service\n\n// Service is a library.\n"
+	files[acRoot+acContainer] = acView("C4Container\nPerson(user, \"1 User\")\nSystem_Boundary(app, \"2 App\") {\nContainer(main, \"3 App\", \"Swift 6, SwiftUI\", \"App/\")\nContainer(widget, \"4 Widget\", \"Swift\")\nContainer(notify, \"5 Notify\", \"Swift\")\n}\nRel(user, main, \"6\")",
+		"Same person.", "The app.", "The app target.", "The widget target.", "The notification target.", "Opens it.")
+	files[accProject] = "name: App\ntargetTemplates:\n  Extension:\n    type: app-extension\n    sources: [\"${target_name}\"]\ntargets:\n  App:\n    type: application # the app\n    platform: iOS\n    sources: [App]\n  Widget:\n    templates: [Extension]\n    sources: # folders\n      - path: Widget\n        excludes:\n          - \"**/*.md\"\n  Notify:\n    templates: [Extension]\n    sources: Notify\n  AppTests:\n    type: bundle.unit-test\n    platform: iOS\n    sources: [Tests]\n"
+	files["App/App.swift"] = "import SwiftUI\n"
+	files["Widget/Widget.swift"] = "import WidgetKit\n"
+	files["Notify/Notify.swift"] = "import UserNotifications\n"
+	files["Tests/AppTests.swift"] = "import XCTest\n"
+	files[accPackage] = accDevTools
 	return files
 }
 
-// dtCopied is dtShipped with the five templates also copied into
-// docs/architecture/templates, as repos did before fitness shipped them.
-func dtCopied(t *testing.T) map[string]string {
-	t.Helper()
-	files := dtShipped(t)
-	for _, view := range []string{acContext, acContainer, acComponent, acCode, acJourney} {
-		files[dtTemplates+view] = files[dtViews+view]
-	}
+// accXcode is the native app with an Xcode project instead of XcodeGen,
+// declaring the app and the widget.
+func accXcode(targets ...[2]string) map[string]string {
+	files := accNative()
+	delete(files, accProject)
+	files[acRoot+acContainer] = strings.Replace(files[acRoot+acContainer], "Container(notify, \"5 Notify\", \"Swift\")\n", "", 1)
+	files[accPbxproj] = pbxproj(targets...)
 	return files
 }
 
-// dtShippedName is how a message names a view's shipped template.
-func dtShippedName(view string) string {
-	return "the shipped " + view
-}
-
-// dtEdit replaces old with new in one copied view, failing when old is not
-// there to replace.
-func dtEdit(t *testing.T, files map[string]string, view, old, new string) {
-	t.Helper()
-	if !strings.Contains(files[dtViews+view], old) {
-		t.Fatalf("%s has no %q", view, old)
-	}
-	files[dtViews+view] = strings.Replace(files[dtViews+view], old, new, 1)
-}
-
-// dtLine is the 1-based line of the first line in a view starting with
-// prefix, as an error names it.
-func dtLine(t *testing.T, files map[string]string, view, prefix string) string {
-	t.Helper()
-	for i, line := range strings.Split(files[dtViews+view], "\n") {
-		if strings.HasPrefix(line, prefix) {
-			return dtViews + view + ":" + strconv.Itoa(i+1)
+// pbxproj renders native targets as Xcode writes them; an empty type leaves
+// the productType line out.
+func pbxproj(targets ...[2]string) string {
+	body := "// !$*UTF8*$!\n{\n\tobjects = {\n"
+	for _, t := range targets {
+		body += "\t\tA /* " + t[0] + " */ = {\n\t\t\tisa = PBXNativeTarget;\n\t\t\tname = " + t[0] + ";\n"
+		if t[1] != "" {
+			body += "\t\t\tproductType = \"com.apple.product-type." + t[1] + "\";\n"
 		}
+		body += "\t\t};\n"
 	}
-	t.Fatalf("%s has no line starting %q", view, prefix)
-	return ""
+	return body + "\t};\n}\n"
 }
 
-func Test0023_12(t *testing.T) {
+func accRun(t *testing.T, files map[string]string, env ...string) (string, int) {
+	t.Helper()
+	return fitness(t, example(t, "happyRepo", files), env, accCheck)
+}
+
+// accEdit replaces old with new in the containers view of files.
+func accEdit(files map[string]string, old, new string) map[string]string {
+	files[acRoot+acContainer] = strings.Replace(files[acRoot+acContainer], old, new, 1)
+	return files
+}
+
+func Test0023_1(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/arch/templates/adr.md":       docTemplateADR,
-		"docs/arch/templates/note.md":      docTemplateNote,
-		"docs/arch/04-code.md":             "# Code\n\n## Summary\n\ns\n",
-		".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\n<!-- context -->\n",
-		".github/other.md":                 "# Other\n\n## Totally\n\ndifferent\n",
-	})
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := accRun(t, accNative())
+	sees(t, out, code, 0)
+	passedWith(t, out, accCheck, "1")
+	out, code = accRun(t, acFixture(acRoot))
+	sees(t, out, code, 0)
+	generated := accEdit(accNative(), "\"3 App\"", "\"3 Main\"")
+	generated[accPbxproj] = pbxproj([2]string{"App", "application"})
+	out, code = accRun(t, generated)
+	sees(t, out, code, 0)
+	out, code = accRun(t, accEdit(accNative(), "Container(notify, \"5 Notify\", \"Swift\")\n", ""))
+	sees(t, out, code, 1, "project.yml:17: extension target Notify"+accNoOwner)
+}
+
+func Test0023_2(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		files map[string]string
+		want  string
+	}{
+		{map[string]string{"src/cmd/api/main.go": "package main\n"}, "src/cmd/api/main.go:1: Go command api" + accNoOwner},
+		{map[string]string{accPackage: accService}, "package.json:4: Node service portal" + accNoOwner},
+		{map[string]string{accPackage: "{\n  \"name\": \"portal\",\n  \"bin\": \"cli.js\"\n}\n"}, "package.json:3: Node service portal" + accNoOwner},
+		{map[string]string{accPackage: accDevTools, "Dockerfile": "FROM node\n"}, "Dockerfile:1: Node service portal" + accNoOwner},
+		{accRootCommand, "main.go:1: Go command tool" + accNoOwner},
+		{accJavaApp, "api/src/main/java/Api.java:4: Java application api" + accNoOwner},
+		{with(accJavaApp, map[string]string{"pom.xml": javaPom(""), accJavaMain: "public class Api {\n  public static void main(\n      String[] args) {}\n}\n"}), accJavaMain + ":2: Java application api" + accNoOwner},
+	}
+	for _, c := range cases {
+		out, code := accRun(t, with(acFixture(acRoot), c.files))
+		sees(t, out, code, 1, c.want)
+	}
+	out, code := accRun(t, accEdit(with(acFixture(acRoot), accRootCommand), "}\nRel", "Container(tool, \"5 Tool\", \"Go\")\n}\nRel"))
+	sees(t, out, code, 0)
+	out, code = accRun(t, with(acFixture(acRoot), map[string]string{accPackage: accDevTools, "src/gen/gen.go": "//go:build ignore\n\npackage main\n"}))
+	sees(t, out, code, 0)
+	out, code = accRun(t, accEdit(with(acFixture(acRoot), accJavaApp), "}\nRel", "Container(api, \"5 Api\", \"Java\")\n}\nRel"))
+	sees(t, out, code, 0)
+	out, code = accRun(t, with(acFixture(acRoot), with(accJavaApp, map[string]string{accJavaMain: "public class Api {\n  private static void main(String[] args) {}\n\n  static void main(String name) {}\n}\n"})))
+	sees(t, out, code, 0)
+}
+
+// accJavaMain is the product source of accJavaApp.
+const accJavaMain = "api/src/main/java/Api.java"
+
+// accJavaApp is a Maven project in api/ whose product source declares a
+// main method below a commented-out one.
+var accJavaApp = map[string]string{
+	"api/pom.xml":                  javaPom(""),
+	accJavaMain:                    "// static void main(String[] args) proves nothing here.\npublic class Api {\n\n  public static void main(String[] args) {}\n}\n",
+	"api/src/test/java/ApiIT.java": "class ApiIT {\n  public static void main(String[] args) {}\n}\n",
 }
 
 func Test0023_10(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/adr/template.md":   docTemplateADR,
-		"docs/adr/0001-extra.md": "# 0001 Extra\n\n## Context\n\nc\n\n## Status\n\ns\n\n## Decision\n\nd\n\n## Consequences\n\ne\n",
-		"docs/adr/0002-short.md": "# 0002 Short\n\n## Context\n\nc\n\n## Consequences\n\ne\n",
-	})
-	sees(t, out, code, 1,
-		"docs/adr/0001-extra.md: Unexpected `## Status` section",
-		"docs/adr/0002-short.md: Missing `## Decision` section")
+	want := "architecture/02-containers.md:8: container widget matches no build target, entry point, or deploy file by name"
+	out, code := accRun(t, accXcode([2]string{"App", "application"}, [2]string{"Widget", "app-extension"}))
+	sees(t, out, code, 0)
+	out, code = accRun(t, accXcode([2]string{"App", "application"}))
+	sees(t, out, code, 1, want)
+	files := accNative()
+	files[accProject] = strings.Replace(files[accProject], "  Widget:\n    templates: [Extension]\n    sources: # folders\n      - path: Widget\n        excludes:\n          - \"**/*.md\"\n", "", 1)
+	out, code = accRun(t, files)
+	sees(t, out, code, 1, want)
+	files = accEdit(acFixture(acRoot), "}\nRel", "Container(store, \"5 Store\", \"Go\", \"src/store\")\n}\nRel")
+	out, code = accRun(t, files)
+	sees(t, out, code, 1, "architecture/02-containers.md:8: container store claims only source layers (src/store): no build target, entry point, or deploy file is under them; show them in the component view")
+	files["src/store/store.go"] = "package main\n"
+	out, code = accRun(t, files)
+	sees(t, out, code, 0)
 }
 
 func Test0023_4(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/templates/adr.md":           docTemplateADR,
-		"docs/deep/note.template.md":      "# Note\n\n## Summary\n\n<!-- gist -->\n",
-		"docs/deep/sub/0001-note.md":      "# 0001 Note\n\n## Context\n\nc\n",
-		"docs/views/templates/04-code.md": docTemplateNote,
-		"docs/views/04-code.md":           "# Code\n\n## Summary\n\ns\n",
-		"docs/views/notes.md":             "# Notes\n\n## Open threads\n\no\n",
-	})
-	sees(t, out, code, 1,
-		"docs/deep/sub/0001-note.md: Missing `## Summary` section",
-		"docs/views/notes.md: Missing `## Context` section",
-		"docs/views/notes.md: Unexpected `## Open threads` section")
+	out, code := accRun(t, acEdit(acContainer, "\"Go\", \"src/cmd/service\"", "\"Node\", \"src/cmd/service\""))
+	sees(t, out, code, 1, "architecture/02-containers.md:7: container service says \"Node\" but Go command service at src/cmd/service/main.go:1 is Go")
+	out, code = accRun(t, acEdit(acContainer, "\"Go\", \"src/cmd/service\"", "\"Go 1.26\", \"src/cmd/service\""))
+	sees(t, out, code, 0)
 }
 
-func Test0023_11(t *testing.T) {
+func Test0023_6(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/adr/template.md":             "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\nno comment here\n",
-		".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\nno comment\n",
-		".github/ISSUE_TEMPLATE/plan.md":   "## Goal\n\nno comment\n",
-	})
-	sees(t, out, code, 1,
-		"docs/adr/template.md: section `## Decision` needs a guiding <!-- comment -->",
-		".github/PULL_REQUEST_TEMPLATE.md: section `## Background` needs a guiding <!-- comment -->",
-		".github/ISSUE_TEMPLATE/plan.md: section `## Goal` needs a guiding <!-- comment -->")
+	files := accEdit(acFixture(acRoot), "}\nRel", "ContainerDb(db, \"5 Records\", \"SQLite\")\n}\nRel")
+	out, code := accRun(t, files)
+	sees(t, out, code, 1, "architecture/02-containers.md:8: store db names no schema, configuration, or source path")
+	out, code = accRun(t, accEdit(files, "\"SQLite\")", "\"SQLite\", \"src/store\")"))
+	sees(t, out, code, 0)
+	files = with(accNative(), map[string]string{"App/Sync.swift": "import CloudKit\n"})
+	out, code = accRun(t, files)
+	sees(t, out, code, 1, "App/Sync.swift:1: CloudKit is used here but no external system in the containers view names it")
+	out, code = accRun(t, accEdit(files, "}\nRel", "}\nSystem_Ext(icloud, \"7 Sync\", \"Apple\", \"CloudKit records\")\nRel"))
+	sees(t, out, code, 0)
+}
+
+func Test0023_7(t *testing.T) {
+	t.Parallel()
+	out, code := accRun(t, with(acFixture(acRoot), map[string]string{accPackage: "{\n  \"name\": \"portal\",\n"}))
+	sees(t, out, code, 1, "package.json:1: cannot read package.json")
+	files := accNative()
+	files[accProject] = strings.Replace(files[accProject], "    templates: [Extension]\n    sources: Notify\n", "    sources: Notify\n", 1)
+	out, code = accRun(t, files)
+	sees(t, out, code, 1, "project.yml:17: target Notify has no type")
+	files = accNative()
+	files[accProject] = strings.Replace(files[accProject], "sources: Notify", "sources: Missing", 1)
+	out, code = accRun(t, files)
+	sees(t, out, code, 1, "project.yml:17: target Notify names a source Missing that does not exist")
+	out, code = accRun(t, accXcode([2]string{"App", "application"}, [2]string{"Widget", ""}))
+	sees(t, out, code, 1, "App.xcodeproj/project.pbxproj:11: target Widget has no type")
 }
 
 func Test0023_9(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/adr/adr.template.md":  docTemplateADR,
-		"docs/adr/note.template.md": docTemplateNote,
-		"docs/adr/0001-bad.md":      "# 0001 Bad\n\n## Other\n\no\n",
-	})
-	sees(t, out, code, 1,
-		"docs/adr/0001-bad.md: sections match none of its templates: docs/adr/adr.template.md, docs/adr/note.template.md")
+	files := accXcode([2]string{"App", "application"}, [2]string{"Widget", "app-extension"})
+	files[".gitattributes"] = "*.pbxproj linguist-generated\n"
+	out, code := accRun(t, files)
+	sees(t, out, code, 0)
+	files = accNative()
+	files[".gitattributes"] = "project.yml linguist-generated\n"
+	out, code = accRun(t, files)
+	sees(t, out, code, 0)
+	// A Java build at the repo root beside the service, owned by the root
+	// path alone.
+	root := accEdit(with(acFixture(acRoot), map[string]string{
+		"pom.xml":                  javaPom(""),
+		"src/main/java/Start.java": "public class Start {\n  public static void main(String[] args) {}\n}\n",
+	}), "}\nRel", "Container(start, \"5 Start\", \"Java\", \".\")\n}\nRel")
+	out, code = accRun(t, root)
+	sees(t, out, code, 0)
 }
 
-func Test0023_16(t *testing.T) {
-	t.Parallel()
-	files := dtCopied(t)
-	dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Example", "```mermaid\nflowchart TB\n    class Example")
-	dtEdit(t, files, acJourney, "## Journey", "## Steps")
-	out, code := docTemplate(t, files)
-	sees(t, out, code, 1,
-		dtViews+acCode+": the opening needs a classDiagram legend as "+dtTemplates+acCode+" has",
-		dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtTemplates+acJourney+" does")
+// accLibrary is an npm library shipping only built files, with main on line
+// 3 and a build script making them.
+const accLibrary = "{\n  \"name\": \"@acme/kit\",\n  \"main\": \"dist/cjs/index.js\",\n  \"module\": \"dist/esm/index.js\",\n  \"exports\": {\n    \".\": {\n      \"types\": \"./dist/types/index.d.ts\",\n      \"import\": \"./dist/esm/index.js\"\n    }\n  },\n  \"files\": [\"dist\"],\n  \"scripts\": {\n    \"build\": \"rollup -c\"\n  }\n}\n"
 
-	files = dtCopied(t)
-	dtEdit(t, files, acJourney, "| Type    |", "| Kind    |")
-	dtEdit(t, files, acCode, "Numbers on classes", "Labels on classes")
-	files[dtViews+acContainer] = files[dtViews+acContainer][:strings.Index(files[dtViews+acContainer], "| #")]
-	journey := dtLine(t, files, acJourney, "| #   | Description          | Kind")
-	table := dtLine(t, files, acCode, "| #")
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 1,
-		journey+": callout table columns #, Description, Kind, Why must be #, Description, Type, Why as "+dtTemplates+acJourney+" has",
-		table+`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtTemplates+acCode+" has",
-		dtViews+acContainer+": the opening needs a callout table with columns #, Description, Why as "+dtTemplates+acContainer+" has")
-
-	files = dtShipped(t)
-	dtEdit(t, files, acContainer, "C4Container\n    title Product", "C4Context\n    title Product")
-	dtEdit(t, files, acComponent, "C4Component\n    title Legend", "C4Container\n    title Legend")
-	dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Record", "```mermaid\nflowchart TB\n    class Record")
-	dtEdit(t, files, acJourney, "flowchart TB", "flowchart LR")
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 1,
-		dtLine(t, files, acContainer, "```mermaid")+": diagram type C4Context must be C4Container as "+dtShippedName(acContainer)+" has",
-		dtViews+acComponent+": the opening needs a C4Component legend as "+dtShippedName(acComponent)+" has",
-		": legend type C4Container must be C4Component as "+dtShippedName(acComponent)+" has",
-		dtLine(t, files, acCode, "```mermaid")+": diagram type flowchart TB must be classDiagram as "+dtShippedName(acCode)+" has",
-		dtLine(t, files, acJourney, "```mermaid")+": legend type flowchart LR must be flowchart TB as "+dtShippedName(acJourney)+" has")
+// accKit adds a kit container with label and description to the library.
+func accKit(files map[string]string, label, description string) map[string]string {
+	return accEdit(with(files, nil), "}\nRel", "Container(kit, \"5 "+label+"\", \"TypeScript\", \""+description+"\")\n}\nRel")
 }
 
-func Test0023_17(t *testing.T) {
+func Test0023_11(t *testing.T) {
 	t.Parallel()
-	files := dtCopied(t)
-	files[dtViews+acContainer] += "\n## Setup\n\nHow a consumer runs the app.\n"
-	files[dtViews+acJourney] += "\n## Notes\n\nWhat the journey leaves out.\n"
-	dtEdit(t, files, acComponent, "match the callout table.", "match the callout table. <!-- kept in step with the diagram -->")
-	files[dtViews+"notes.md"] = "# Notes\n\n## Open threads\n\nWhat the views leave out.\n"
-	files[dtViews+"archive/"+acCode] = "# Old code\n\n## Before\n\nThe first layout.\n"
-	out, code := docTemplate(t, files)
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWith(t, out, "doc-template", "14")
-
-	files = dtShipped(t)
-	files[dtViews+acContainer] += "\n## Setup\n\nHow a consumer runs the app.\n"
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 0, "All 1 checks passed")
-	dtEdit(t, files, acJourney, "## Journey", "## Steps")
-	dtEdit(t, files, acCode, "Numbers on classes", "Labels on classes")
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 1,
-		dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtShippedName(acJourney)+" does",
-		`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtShippedName(acCode)+" has")
-}
-
-func Test0023_18(t *testing.T) {
-	t.Parallel()
-	files := dtShipped(t)
-	dtEdit(t, files, acContext, "    UpdateElementStyle(user,",
-		"    SystemDb_Ext(db, \"4 Records\", \"Keeps records.\")\n    UpdateElementStyle(db, $fontColor=\"#FFFFFF\", $bgColor=\"#64748b\",  $borderColor=\"#475569\")\n    UpdateLayoutConfig($c4ShapeInRow=\"3\")\n    Lay_R(user, product)\n    UpdateElementStyle(user,")
-	dtEdit(t, files, acCode, "    save --> Record : A", "    save --> Record : A\n    Store : +save()\n    <<interface>> Store\n    style Store "+paletteClass)
-	dtEdit(t, files, acContainer, `Container(app, "3 App", "Language", "src/app")`, `Container(app, "3 App", $techn="Language")`)
-	out, code := docTemplate(t, files)
-	sees(t, out, code, 0, "All 1 checks passed")
-	dtEdit(t, files, acContext, "UpdateElementStyle(product, $bgColor=\"#1d4ed8\"", "UpdateElementStyle(product, $bgColor=\"#ff0000\"")
-	dtEdit(t, files, acContainer, "    UpdateElementStyle(app, "+paletteContainer+"\n", "")
-	dtEdit(t, files, acComponent, "Container_Boundary(app,", "System_Boundary(app,")
-	dtEdit(t, files, acComponent, "    Rel(user, entry, \"A\")", "    Rel(user, entry, \"A\")\n    UpdateRelStyle(user, entry, $textColor=\"red\")")
-	dtEdit(t, files, acCode, "    save --> Record : A", "    save --> Record : A\n    classDef hot fill:#ff0000")
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 1,
-		"`UpdateElementStyle(product, $bgColor=\"#ff0000\", $borderColor=\"#1e3a8a\", $fontColor=\"#ffffff\")` must be `UpdateElementStyle(product, "+paletteSystem+"` as "+dtShippedName(acContext)+" styles each System",
-		"Container app needs `UpdateElementStyle(app, "+paletteContainer+"` as "+dtShippedName(acContainer)+" styles each Container",
-		dtLine(t, files, acComponent, "    System_Boundary(app,")+": System_Boundary app is a kind "+dtShippedName(acComponent)+" does not use; use Person, Container_Boundary, Component, System_Ext",
-		"`UpdateRelStyle(user, entry, $textColor=\"red\")` is a style "+dtShippedName(acComponent)+" does not use",
-		"`classDef hot fill:#ff0000` is a style "+dtShippedName(acCode)+" does not use")
-	for _, styled := range []string{"Person user", "Component entry", "class save", "class Record"} {
-		if strings.Contains(read(out), styled) {
-			t.Errorf("%s keeps its palette and must not fail, got:\n%s", styled, out)
-		}
+	library := with(acFixture(acRoot), map[string]string{accPackage: accLibrary, "lib/index.ts": "export const kit = 1;\n"})
+	out, code := accRun(t, library)
+	sees(t, out, code, 1, "package.json:3: Node library @acme/kit"+accNoOwner)
+	for _, kit := range [][2]string{{"Kit dist/esm", "Bundles"}, {"@acme/kit", "Bundles"}, {"Kit", "Builds dist/esm/index.js."}} {
+		out, code = accRun(t, accKit(library, kit[0], kit[1]))
+		sees(t, out, code, 0)
 	}
-
-	files = dtShipped(t)
-	dtEdit(t, files, acContext, "C4Context\n    title Product\n", "C4Context\n")
-	dtEdit(t, files, acComponent, "C4Component\n    title Legend\n", "C4Component\n")
-	dtEdit(t, files, acContainer, `Container(app, "3 App", "Language", "src/app")`, `Container(app, "3 App", "", "src/app")`)
-	dtEdit(t, files, acComponent, `Component(store, "4 Store", "Language",`, `Component(store, "4 Store", " ",`)
-	dtEdit(t, files, acContext, "    System_Ext(e, \"External\", \"Outside our boundary\")\n", "")
-	dtEdit(t, files, acContext, c4Styled("e", paletteExternal), "")
-	dtEdit(t, files, acContainer, "    System_Ext(service, \"4 Outside service\"", "    Person(service, \"4 Outside service\"")
-	dtEdit(t, files, acContainer, c4Styled("service", paletteExternal), c4Styled("service", palettePerson))
-	out, code = docTemplate(t, files)
-	sees(t, out, code, 1,
-		dtLine(t, files, acContext, "```mermaid")+": C4Context diagram needs a `title` line as "+dtShippedName(acContext)+" has",
-		": C4Component legend needs a `title` line as "+dtShippedName(acComponent)+" has",
-		dtLine(t, files, acContainer, "        Container(app,")+": Container app needs a technology as "+dtShippedName(acContainer)+" gives each Container",
-		dtLine(t, files, acComponent, "        Component(store,")+": Component store needs a technology as "+dtShippedName(acComponent)+" gives each Component",
-		dtViews+acContext+":", "legend needs a System_Ext sample, a kind the diagram uses",
-		dtViews+acContainer+":", "legend shows System_Ext, a kind the diagram does not use")
+	out, code = accRun(t, accKit(library, "Kit", "Wraps @acme/kit in dist/esm"))
+	sees(t, out, code, 1, "package.json:3: Node library @acme/kit"+accNoOwner, "architecture/02-containers.md:8: container kit matches no build target, entry point, or deploy file by name")
+	for _, tools := range []string{
+		"{\n  \"name\": \"tools\",\n  \"private\": true,\n  \"main\": \"lib/index.ts\"\n}\n",
+		"{\n  \"name\": \"tools\",\n  \"main\": \"index.js\",\n  \"scripts\": {\n    \"test\": \"vitest\"\n  }\n}\n",
+	} {
+		out, code = accRun(t, with(library, map[string]string{accPackage: tools}))
+		sees(t, out, code, 0)
+	}
+	tracked := with(library, map[string]string{accPackage: "{\n  \"name\": \"kit\",\n  \"exports\": \"./lib/index.ts\"\n}\n"})
+	out, code = accRun(t, tracked)
+	sees(t, out, code, 1, "package.json:3: Node library kit"+accNoOwner)
+	out, code = accRun(t, accKit(tracked, "Kit", "Loads lib/index.ts"))
+	sees(t, out, code, 0)
 }

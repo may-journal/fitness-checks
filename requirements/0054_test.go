@@ -2,82 +2,98 @@ package requirements
 
 import "testing"
 
-// releaseChangelog runs `fitness-install -- release-changelog` on happyRepo
-// with files written over it.
-func releaseChangelog(t *testing.T, files map[string]string) (string, int) {
+// noEslintDisableRun runs `fitness-install -- no-eslint-disable <args>` in repo.
+func noEslintDisableRun(t *testing.T, repo string, args ...string) (string, int) {
 	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "release-changelog")
+	return fitness(t, repo, nil, append([]string{"no-eslint-disable"}, args...)...)
 }
 
-// releaseChangelogRelease is a repo releasing 1.2.3 with changelog as its
-// CHANGELOG.md, or none when it is empty.
-func releaseChangelogRelease(changelog string) map[string]string {
-	return map[string]string{
-		".release-please-manifest.json": `{".":"1.2.3"}` + "\n",
-		"version.txt":                   "1.2.3\n",
-		"CHANGELOG.md":                  changelog,
-	}
-}
-
-// releaseChangelogCase is one Given a test runs, with the text it must show.
-type releaseChangelogCase struct {
-	files map[string]string
-	want  string
-}
-
-// releaseChangelogFails runs each case and asserts it fails showing its text.
-func releaseChangelogFails(t *testing.T, cases []releaseChangelogCase) {
+// noEslintDisableCheck runs the check on happyRepo with files written over it.
+func noEslintDisableCheck(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
-	for _, c := range cases {
-		out, code := releaseChangelog(t, c.files)
-		sees(t, out, code, 1, c.want)
-	}
+	return noEslintDisableRun(t, example(t, "happyRepo", files))
 }
+
+// noEslintDisableNext is a next-line directive comment.
+const noEslintDisableNext = "// eslint-disable-next-line no-console\n"
+
+// noEslintDisableExts are the extensions the check scans.
+var noEslintDisableExts = []string{".cts", ".mts", ".ts", ".cjs", ".js", ".mjs", ".tsx"}
 
 func Test0054_1(t *testing.T) {
 	t.Parallel()
-	out, code := releaseChangelog(t, nil)
-	sees(t, out, code, 0, "All 1 checks passed")
-	passedWithNoFiles(t, out, "release-changelog")
+	legacy := "export const x = 1;\n" + noEslintDisableNext + "console.log(x);\n" +
+		"const y = 2; // eslint-disable-line\n/* eslint-disable */\n"
+	out, code := noEslintDisableCheck(t, map[string]string{"src/legacy.ts": legacy})
+	sees(t, out, code, 1,
+		"src/legacy.ts:2: eslint-disable-next-line",
+		"src/legacy.ts:4: eslint-disable-line",
+		"src/legacy.ts:5: eslint-disable")
 }
 
 func Test0054_2(t *testing.T) {
 	t.Parallel()
-	out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": "{}\n"})
-	sees(t, out, code, 0, "All 1 checks passed")
+	out, code := noEslintDisableCheck(t, map[string]string{
+		"src/a.ts": "export const a = 1;\n",
+		"src/b.js": "export const b = 2;\n",
+	})
+	sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
+}
+
+func Test0054_3(t *testing.T) {
+	t.Parallel()
+	files := map[string]string{}
+	var want []string
+	for _, ext := range noEslintDisableExts {
+		files["src/f"+ext] = "export const hint = 'add eslint-disable-next-line to skip';\n"
+		want = append(want, "src/f"+ext+":1: eslint-disable-next-line")
+	}
+	out, code := noEslintDisableCheck(t, files)
+	sees(t, out, code, 1, append(want, "7 files scanned")...)
 }
 
 func Test0054_4(t *testing.T) {
 	t.Parallel()
-	releaseChangelogFails(t, []releaseChangelogCase{
-		{map[string]string{".release-please-manifest.json": "{\n"}, ".release-please-manifest.json is invalid JSON"},
-		{map[string]string{".release-please-manifest.json": "null\n"}, ".release-please-manifest.json must be a JSON object"},
-		{map[string]string{".release-please-manifest.json": `{"go":"1.2.3"}`}, `.release-please-manifest.json must contain a root "." release version`},
-		{map[string]string{".release-please-manifest.json": `{".":"v1.2.3"}`}, `.release-please-manifest.json root version must be numeric major.minor.patch (got "v1.2.3")`},
+	out, code := noEslintDisableCheck(t, map[string]string{
+		"docs/lint.md": "Never write " + noEslintDisableNext,
+		"src/a.ts":     "export const a = 1;\n",
 	})
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 }
 
 func Test0054_5(t *testing.T) {
 	t.Parallel()
-	files := releaseChangelogRelease(upstreamChangelog)
-	files["version.txt"] = "1.2.4\n"
-	out, code := releaseChangelog(t, files)
-	sees(t, out, code, 1, `version.txt version "1.2.4" must match .release-please-manifest.json version "1.2.3"`)
+	out, code := noEslintDisableCheck(t, nil)
+	sees(t, out, code, 0, "All 1 checks passed")
+	passedWithNoFiles(t, out, "no-eslint-disable")
 }
 
-func Test0054_11(t *testing.T) {
+func Test0054_6(t *testing.T) {
 	t.Parallel()
-	out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": `{".":"1.2.3"}` + "\n"})
-	sees(t, out, code, 1, "version.txt is missing; it must match release 1.2.3")
+	out, code := noEslintDisableCheck(t, map[string]string{
+		"node_modules/pkg/index.js": "/* eslint-disable */\n",
+		"dist/out.js":               "/* eslint-disable */\n",
+		"src/clean.ts":              "export const a = 1;\n",
+	})
+	sees(t, out, code, 1,
+		"node_modules/pkg/index.js:1: eslint-disable",
+		"dist/out.js:1: eslint-disable",
+		"3 files scanned")
 }
 
-func Test0054_12(t *testing.T) {
+func Test0054_7(t *testing.T) {
 	t.Parallel()
-	for _, changelog := range []string{upstreamChangelog, ""} {
-		repo := example(t, "happyRepo", releaseChangelogRelease(changelog))
-		write(t, repo, map[string]string{".release-please-manifest.json": `{".": "1.2.3"}` + "\n"})
-		git(t, repo, "add", ".release-please-manifest.json")
-		out, code := fitness(t, repo, nil, "release-changelog")
-		sees(t, out, code, 0, "All 1 checks passed")
-	}
+	repo := example(t, "happyRepo", map[string]string{"src/a.ts": "export const a = 1;\n"})
+	write(t, repo, map[string]string{"src/scratch.ts": noEslintDisableNext})
+	out, code := noEslintDisableRun(t, repo)
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+}
+
+func Test0054_8(t *testing.T) {
+	t.Parallel()
+	repo := example(t, "happyRepo", map[string]string{"src/old.ts": noEslintDisableNext})
+	write(t, repo, map[string]string{"src/new.ts": "export const a = 1;\n"})
+	git(t, repo, "add", "src/new.ts")
+	out, code := noEslintDisableRun(t, repo)
+	sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 }
