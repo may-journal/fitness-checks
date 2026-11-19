@@ -12,7 +12,7 @@ fitness-check-changelog	4260002
 fitness-check-changelog-bullets	4260002
 fitness-check-changelog-updated	4456610
 fitness-check-checkstyle	4718754
-fitness-check-comment-structure	4522146
+fitness-check-comment-structure	4391074
 fitness-check-commit-attribution	4391074
 fitness-check-cspell	8519842
 fitness-check-dependency-currency	6619298
@@ -57,7 +57,7 @@ fitness-check-prettier	4718754
 fitness-check-prose-budget	4849826
 fitness-check-read-repo-first	4325538
 fitness-check-release-changelog	4391074
-fitness-check-repeated-string-literals	6226082
+fitness-check-repeated-string-literals	4718754
 fitness-check-requirements	6357154
 fitness-check-requirements-changed	6291618
 fitness-check-semantic-commit	4391074
