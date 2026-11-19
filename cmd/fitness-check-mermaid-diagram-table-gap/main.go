@@ -1,4 +1,4 @@
-// The shared parser lives in pkg/mermaid, which keeps its JS space and fence helpers unexported, so this package duplicates them.
+// The shared parser lives in pkg/mermaid, which keeps its fence helpers unexported, so this package duplicates them.
 
 package main
 
@@ -7,66 +7,18 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/diagrams"
 	"github.com/may-journal/fitness-checks/internal/program"
-	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
-	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
-		Describe: checkkit.Describe{
-			Name:  "mermaid-diagram-table-gap",
-			Scope: checkkit.ScopeFiles,
-			Blob:  true,
-			Files: match.Exts(mdx.WithMDX...),
-		},
-		Run: run,
-	})
+	program.Main(docSource, diagrams.Check("mermaid-diagram-table-gap", mdx.WithMDX, mermaid.RunDocCheck, validateDoc))
 }
-
-func run(root string, args []string) (checkkit.Result, error) {
-	if res, handled, err := bodycheck.RunDoc(root, args, func(_, content string) []string {
-		return validateDoc("(description)", content)
-	}); err != nil {
-		return checkkit.Result{}, err
-	} else if handled {
-		return res, nil
-	}
-	errors, filesChecked, err := mermaid.RunDocCheck(root, validateDoc)
-	if err != nil {
-		return checkkit.Result{}, err
-	}
-	if len(errors) > 0 {
-		return checkkit.Fail(filesChecked, errors...), nil
-	}
-	return checkkit.Pass(filesChecked), nil
-}
-
-// jsWS is the JavaScript \s character class (ASCII whitespace incl. \v,
-// Unicode spaces, line separators, and the BOM) as an RE2 class body —
-// duplicated from pkg/mermaid, where it is unexported.
-const jsWS = `\t\n\v\f\r \x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}`
-
-// isJSSpace reports whether r is in the JavaScript \s class — the rune-level
-// twin of jsWS.
-func isJSSpace(r rune) bool {
-	switch r {
-	case '\t', '\n', '\v', '\f', '\r', ' ',
-		0x00A0, 0x1680, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF:
-		return true
-	}
-	return r >= 0x2000 && r <= 0x200A
-}
-
-// trimStartJS trims leading JavaScript whitespace — String.prototype.trimStart,
-// matching how pkg/mermaid finds a fence's closing marker.
-func trimStartJS(s string) string { return strings.TrimLeftFunc(s, isJSSpace) }
 
 // fenceMarker captures a mermaid fence's opening backticks or tildes, so the closing fence matches as the parser does.
-var fenceMarker = regexp.MustCompile("^[" + jsWS + "]*(`{3,}|~{3,})")
+var fenceMarker = regexp.MustCompile("^[" + diagrams.JSWhitespace + "]*(`{3,}|~{3,})")
 
 // captionLine matches the one caption the C4 docs place between diagram and table, opening "Numbers" and containing "match the callout table". Everything else in the gap is prose that belongs in the table.
 var captionLine = regexp.MustCompile(`(?i)^numbers\b.*\bmatch the callout table\b`)
@@ -134,7 +86,7 @@ func closingFenceLine(lines []string, openLine int) int {
 		marker = m[1]
 	}
 	for i := open + 1; i < len(lines); i++ {
-		if strings.HasPrefix(trimStartJS(lines[i]), marker) {
+		if strings.HasPrefix(diagrams.TrimStartJS(lines[i]), marker) {
 			return i + 1
 		}
 	}

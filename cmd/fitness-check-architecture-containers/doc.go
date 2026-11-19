@@ -62,10 +62,10 @@
 //
 // # Requirements
 //
-// [Requirement 0073] has one installed-command test per acceptance.
+// [Requirement 0005] proves this check with installed-command cases.
 //
 // [language module]: https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go
-// [Requirement 0073]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0073-checks-architecture-containers.md
+// [Requirement 0005]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0005-diagrams-match-the-code.md
 package main
 
 import _ "embed"

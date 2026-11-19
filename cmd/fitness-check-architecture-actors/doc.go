@@ -58,12 +58,12 @@
 //
 // # Requirements
 //
-// [Requirement 0074] has one installed-command test per acceptance.
+// [Requirement 0005] proves this check with installed-command cases.
 //
 // [architecture-contract]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-architecture-contract
 // [requirements]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-requirements
 // [template]: https://github.com/may-journal/fitness-checks/blob/main/internal/architecture/templates/01-system-context.md
-// [Requirement 0074]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0074-checks-architecture-actors.md
+// [Requirement 0005]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0005-diagrams-match-the-code.md
 package main
 
 import _ "embed"

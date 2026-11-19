@@ -53,10 +53,17 @@ func reworded(doc string) string {
 // the requirements check on the staged changes.
 func stagedRun(t *testing.T, given, files map[string]string) (string, int) {
 	t.Helper()
+	return stagedCheck(t, given, files, "requirements")
+}
+
+// stagedCheck writes files over a fresh copy of given, stages them, and runs
+// check on the staged changes.
+func stagedCheck(t *testing.T, given, files map[string]string, check string) (string, int) {
+	t.Helper()
 	repo := example(t, "happyRepo", given)
 	write(t, repo, files)
 	git(t, repo, "add", "-A")
-	return fitness(t, repo, nil, "requirements")
+	return fitness(t, repo, nil, check)
 }
 
 // prRun commits files with message on a pull request branch off a fresh copy

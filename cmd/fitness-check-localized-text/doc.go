@@ -59,12 +59,12 @@
 //
 // # Requirements
 //
-// [Requirement 0097] has one installed-command test per acceptance.
+// [Requirement 0006] proves this check with installed-command cases.
 //
 // [String Catalog]: https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog
 // [#527]: https://github.com/may-journal/fitness-runner/issues/527
 // [LocalizedStringKey]: https://developer.apple.com/documentation/swiftui/localizedstringkey
-// [Requirement 0097]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0097-checks-localized-text.md
+// [Requirement 0006]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0006-code-is-tested-by-its-own-tools.md
 // [ADR 0009]: https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0009/README.md
 package main
 

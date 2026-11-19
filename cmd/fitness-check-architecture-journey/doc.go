@@ -53,9 +53,9 @@
 //
 // # Requirements
 //
-// [Requirement 0072] has one installed-command test per acceptance.
+// [Requirement 0005] proves this check with installed-command cases.
 //
-// [Requirement 0072]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0072-checks-architecture-journey.md
+// [Requirement 0005]: https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0005-diagrams-match-the-code.md
 package main
 
 import _ "embed"
