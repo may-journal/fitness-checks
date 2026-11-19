@@ -6,17 +6,16 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
-	"github.com/may-journal/fitness-runner/go/pkg/lang"
-	"github.com/may-journal/fitness-runner/go/pkg/lang/langs"
+	"github.com/may-journal/fitness-runner/go/pkg/lang/node"
 	"github.com/may-journal/fitness-runner/go/pkg/par"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// name is the check's name, which language modules key their scans by.
+// name is the check's name.
 const name = "repeated-string-literals"
 
 // minLength: string literals shorter than this many runes are ignored as
@@ -113,22 +112,32 @@ func scanFile(root, file string) scanRead {
 	return scanRead{scanned: scannedFile{file: file, literals: scanStringLiterals(string(content))}}
 }
 
-// findSourceFiles returns sorted relative paths of every tracked source
-// file.
+// findSourceFiles returns sorted relative paths of every tracked
+// TypeScript and JavaScript source file.
 func findSourceFiles(root string) []string {
-	return walkfs.FilesByExt(root, lang.ScanExts(langs.All, name)...)
+	return walkfs.FilesByExt(root, node.SourceExts...)
+}
+
+// key is the check's key in .fitnessrc.json.
+const key = "repeatedStringLiterals"
+
+// options holds what a repo sets under repeatedStringLiterals.
+type options struct {
+	// Allow lists exact values the check never flags, for the rare repeat
+	// no shared constant can fix. Keep it a shrinking list.
+	Allow []string `json:"allow"`
 }
 
 // allowedValues returns the exact values allowed via .fitnessrc.json
-// `repeatedStringLiterals.allow` (project baseline). Any load error — a
-// legacy JS/TS config or malformed JSON — degrades to no allow list.
+// `repeatedStringLiterals.allow` (project baseline). Malformed JSON
+// degrades to no allow list.
 func allowedValues(root string) map[string]bool {
-	cfg, err := conf.Load(root)
-	if err != nil || cfg == nil {
+	var opts options
+	if config.Read(root, key, &opts) != nil {
 		return nil
 	}
-	allow := make(map[string]bool, len(cfg.RepeatedStringLiterals.Allow))
-	for _, v := range cfg.RepeatedStringLiterals.Allow {
+	allow := make(map[string]bool, len(opts.Allow))
+	for _, v := range opts.Allow {
 		allow[v] = true
 	}
 	return allow

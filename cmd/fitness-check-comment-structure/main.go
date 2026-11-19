@@ -7,11 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 )
@@ -29,11 +29,22 @@ func main() {
 	})
 }
 
+// key is the check's key in .fitnessrc.json.
+const key = "comment"
+
+// options holds the budget a repo sets under comment for an issue or PR
+// comment. Each limit falls back to its default when zero.
+type options struct {
+	// MaxWords is the most words one comment may hold.
+	MaxWords int `json:"maxWords"`
+	// MaxTables is the most tables one comment may hold.
+	MaxTables int `json:"maxTables"`
+}
+
 // Default limits, which .fitnessrc.json's comment key may replace.
-// conf.Defaults holds them, so the config schema shows the same values.
-var (
-	defaultMaxWords  = conf.Defaults.Comment.MaxWords
-	defaultMaxTables = conf.Defaults.Comment.MaxTables
+const (
+	defaultMaxWords  = 100
+	defaultMaxTables = 1
 )
 
 // limits is one repo's comment budget.
@@ -58,12 +69,12 @@ func isComment(body string) bool {
 // loadLimits reads the repo's comment budget over the defaults.
 func loadLimits(root string) (limits, error) {
 	lim := limits{defaultMaxWords, defaultMaxTables}
-	cfg, err := conf.Load(root)
-	if err != nil || cfg == nil {
+	var opts options
+	if err := config.Read(root, key, &opts); err != nil {
 		return lim, err
 	}
-	lim.words = positiveOr(cfg.Comment.MaxWords, lim.words)
-	lim.tables = positiveOr(cfg.Comment.MaxTables, lim.tables)
+	lim.words = positiveOr(opts.MaxWords, lim.words)
+	lim.tables = positiveOr(opts.MaxTables, lim.tables)
 	return lim, nil
 }
 

@@ -16,10 +16,11 @@ import (
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/langs"
+	"github.com/may-journal/fitness-runner/go/pkg/lang/node"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// name is the check's name, which language modules key their scans by.
+// name is the check's name.
 const name = "build-output-untracked"
 
 // Messages verbatim from the TS enUS catalog.
@@ -162,10 +163,10 @@ func dedupeSorted(lists ...[]string) []string {
 	return out
 }
 
-// collectSourceFiles returns the sorted source files under root, tests
-// included, in the endings each language module scans for this check.
+// collectSourceFiles returns the sorted TypeScript source files under root,
+// tests included, the files whose imports can reach into dist.
 func collectSourceFiles(root string) []string {
-	return walkfs.FilesByExt(root, lang.ScanExts(langs.All, name)...)
+	return walkfs.FilesByExt(root, node.TypeScriptExts...)
 }
 
 // scanFileForDistImports reports rule B: a `path:line imports build output`

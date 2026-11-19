@@ -17,7 +17,7 @@ Checks
 - 0001.1
   - Given Developer has every check folder in the repo
     - When each check is built on its own and its Go dependencies are listed
-      - Then it holds no engine or other check, describes itself, and the installed engine runs it
+      - Then it holds no engine, other check or engine config, describes itself, and the installed engine runs it
 - 0001.2
   - Given Developer has a change to a check, a shared helper or `go.mod`
     - When CI picks the checks to build and test for the change

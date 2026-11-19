@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-checks/internal/waiting"
 	"github.com/may-journal/fitness-runner/go/pkg/adr"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/repocheck"
 )
 
@@ -19,7 +20,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:     "adr-checks",
 			Scope:    checkkit.ScopeFiles,
-			Files:    match.Any(match.Under(repocheck.Folder+"/"+repocheck.ADRPrefix), match.Base(conf.FileName)),
+			Files:    match.Any(match.Under(repocheck.Folder+"/"+repocheck.ADRPrefix), match.Base(config.FileName)),
 			Needs:    match.Under(repocheck.Folder + "/"),
 			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
 		},
@@ -42,7 +43,7 @@ func run(root string, _ []string) (checkkit.Result, error) {
 	if err != nil {
 		return checkkit.Pass(0), err
 	}
-	allow, _, _ := adr.LoadAllow(root) // adr-as-issue reports a bad config
+	allow, _, _ := waiting.Load(root) // adr-as-issue reports a bad config
 	errs := append(linkErrors(decisions, allow), changeErrors(root, decisions, checkkit.DiffFiles())...)
 	if len(errs) > 0 {
 		return checkkit.Fail(len(decisions), errs...), nil
@@ -84,7 +85,7 @@ func adrFolder(name string) bool {
 
 // linkErrors fails each ADR folder whose README links no ADR issue, so each
 // check names its decision. An adrAsIssue.allow glob lets a README wait.
-func linkErrors(decisions []record, allow adr.Allow) []string {
+func linkErrors(decisions []record, allow waiting.Allow) []string {
 	var errs []string
 	for _, r := range decisions {
 		if r.issue == "" && allow.Covering(r.readme) == "" {
