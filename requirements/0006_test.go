@@ -289,6 +289,31 @@ func Test0006_3(t *testing.T) {
 			out, code := fitness(t, repo, nil)
 			sees(t, out, code, 1, "0001.2 was deleted before")
 		}},
+		{"whole restructure reuses numbers, then counts removals afresh", func(t *testing.T) {
+			t.Parallel()
+			two := with(goRepo(), map[string]string{
+				"adder_test.go":                          testFile("adder", "Test0001_1", "Test0001_2"),
+				"docs/requirements/0001-adds-numbers.md": requirementDoc("0001.1", "0001.2"),
+			})
+			repo := example(t, "happyRepo", two)
+			commit(t, repo, goRepo(), "docs(requirements): drop 0001.2")
+			restructured := with(two, map[string]string{
+				"docs/requirements/0001-adds-numbers.md": "",
+				"docs/requirements/0001-sums-numbers.md": requirementDoc("0001.1", "0001.2"),
+			})
+			write(t, repo, restructured)
+			git(t, repo, "add", "-A")
+			out, code := fitness(t, repo, nil, "requirements")
+			sees(t, out, code, 0)
+			commit(t, repo, restructured, "docs(requirements): restart the numbers")
+			out, code = fitness(t, repo, nil, "requirements")
+			sees(t, out, code, 0)
+			dropped := map[string]string{"adder_test.go": goRepo()["adder_test.go"], "docs/requirements/0001-sums-numbers.md": requirementDoc("0001.1")}
+			commit(t, repo, dropped, "docs(requirements): drop 0001.2 again")
+			write(t, repo, restructured)
+			out, code = fitness(t, repo, nil, "requirements")
+			sees(t, out, code, 1, "0001.2 was deleted before")
+		}},
 		{"test or doc without partner fails", func(t *testing.T) {
 			t.Parallel()
 			repo, env := hooked(t, pairedRepo())
