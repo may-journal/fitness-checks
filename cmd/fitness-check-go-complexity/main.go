@@ -7,24 +7,32 @@ import (
 	"go/token"
 	"sort"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/golang"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// defaultMax is the ceiling when the config sets none. golang.Defaults
-// holds it, so the config schema shows the same value.
-var defaultMax = golang.Defaults.Complexity.Max
+// defaultMax is the ceiling when the config sets none.
+const defaultMax = 5
+
+// key is the check's key in .fitnessrc.json.
+const key = "goComplexity"
+
+// options holds what a repo sets under goComplexity.
+type options struct {
+	// Max is the highest cyclomatic complexity one Go function may have.
+	Max int `json:"max"`
+}
 
 func main() {
 	program.Main(docSource, checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:  "go-complexity",
 			Scope: checkkit.ScopeFiles,
-			Files: match.Any(match.Exts(golang.Ext), match.Base(conf.FileName)),
+			Files: match.Any(match.Exts(golang.Ext), match.Base(config.FileName)),
 		},
 		Run: run,
 	})
@@ -40,8 +48,9 @@ func run(root string, _ []string) (checkkit.Result, error) {
 // maxComplexity resolves the ceiling: the .fitnessrc.json goComplexity.max
 // value when positive, else defaultMax.
 func maxComplexity(root string) int {
-	if cfg, err := golang.LoadConfig(root); err == nil && cfg != nil && cfg.Complexity.Max > 0 {
-		return cfg.Complexity.Max
+	var opts options
+	if config.Read(root, key, &opts) == nil && opts.Max > 0 {
+		return opts.Max
 	}
 	return defaultMax
 }

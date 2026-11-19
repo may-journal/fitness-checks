@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
@@ -27,16 +27,52 @@ type limits struct {
 	bodyComments       int
 }
 
-// defaults are the tight technical-doc limits conf.Defaults holds, so the config schema shows them too.
+// defaults are the tight technical-doc limits a repo gets when it sets none.
 var defaults = limits{
-	sentenceWords:      conf.Defaults.ProseBudget.MaxSentenceWords,
-	paragraphSentences: conf.Defaults.ProseBudget.MaxParagraphSentences,
-	sectionParagraphs:  conf.Defaults.ProseBudget.MaxSectionParagraphs,
-	listItemWords:      conf.Defaults.ProseBudget.MaxListItemWords,
-	listItems:          conf.Defaults.ProseBudget.MaxListItems,
-	words:              conf.Defaults.ProseBudget.MaxWords,
-	commentWordsPerTok: conf.Defaults.Prose.Comments.MaxWordsPerToken,
-	bodyComments:       conf.Defaults.Prose.Comments.MinBodyComments,
+	sentenceWords:      23,
+	paragraphSentences: 4,
+	sectionParagraphs:  3,
+	listItemWords:      23,
+	listItems:          8,
+	words:              300,
+	commentWordsPerTok: 3,
+	bodyComments:       2,
+}
+
+// budgetKey and proseKey are the check's keys in .fitnessrc.json.
+const (
+	budgetKey = "proseBudget"
+	proseKey  = "prose"
+)
+
+// budget holds the hard caps a repo sets under proseBudget. Each limit
+// falls back to its default when zero.
+type budget struct {
+	// MaxSentenceWords is the most words one sentence may hold.
+	MaxSentenceWords int `json:"maxSentenceWords"`
+	// MaxParagraphSentences is the most sentences one paragraph may hold.
+	MaxParagraphSentences int `json:"maxParagraphSentences"`
+	// MaxSectionParagraphs is the most paragraphs one section may hold.
+	MaxSectionParagraphs int `json:"maxSectionParagraphs"`
+	// MaxListItemWords is the most words one list item may hold.
+	MaxListItemWords int `json:"maxListItemWords"`
+	// MaxListItems is the most items one list may hold.
+	MaxListItems int `json:"maxListItems"`
+	// MaxWords is the most prose words one section may hold.
+	MaxWords int `json:"maxWords"`
+}
+
+// prose holds the settings a repo sets under prose, for each kind of text.
+type prose struct {
+	// Comments holds the `overlong` thresholds for code comments.
+	Comments struct {
+		// MaxWordsPerToken is the most comment words a function body may
+		// hold for each code token before `overlong` fails it.
+		MaxWordsPerToken int `json:"maxWordsPerToken"`
+		// MinBodyComments is the fewest comments a function body needs
+		// before `overlong` judges it.
+		MinBodyComments int `json:"minBodyComments"`
+	} `json:"comments"`
 }
 
 // descriptionName labels the pseudo-file in body-mode errors, where the
@@ -51,7 +87,7 @@ func main() {
 			Name:  "prose-budget",
 			Scope: checkkit.ScopeFiles,
 			Blob:  true,
-			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt(), match.Base(conf.FileName)),
+			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt(), match.Base(config.FileName)),
 		},
 		Run: run,
 	})
@@ -82,24 +118,25 @@ func walkFiles(root string, lim limits) checkkit.Result {
 // overlaid.
 func settings(root string) limits {
 	lim := defaults
-	cfg, err := conf.Load(root)
-	if err != nil || cfg == nil {
+	var b budget
+	var p prose
+	if config.Read(root, budgetKey, &b) != nil || config.Read(root, proseKey, &p) != nil {
 		return lim
 	}
-	applyLimits(&lim, cfg)
+	applyLimits(&lim, b, p)
 	return lim
 }
 
 // applyLimits overlays every positive proseBudget and prose.comments config value onto lim.
-func applyLimits(lim *limits, cfg *conf.Config) {
-	over(&lim.sentenceWords, cfg.ProseBudget.MaxSentenceWords)
-	over(&lim.paragraphSentences, cfg.ProseBudget.MaxParagraphSentences)
-	over(&lim.sectionParagraphs, cfg.ProseBudget.MaxSectionParagraphs)
-	over(&lim.listItemWords, cfg.ProseBudget.MaxListItemWords)
-	over(&lim.listItems, cfg.ProseBudget.MaxListItems)
-	over(&lim.words, cfg.ProseBudget.MaxWords)
-	over(&lim.commentWordsPerTok, cfg.Prose.Comments.MaxWordsPerToken)
-	over(&lim.bodyComments, cfg.Prose.Comments.MinBodyComments)
+func applyLimits(lim *limits, b budget, p prose) {
+	over(&lim.sentenceWords, b.MaxSentenceWords)
+	over(&lim.paragraphSentences, b.MaxParagraphSentences)
+	over(&lim.sectionParagraphs, b.MaxSectionParagraphs)
+	over(&lim.listItemWords, b.MaxListItemWords)
+	over(&lim.listItems, b.MaxListItems)
+	over(&lim.words, b.MaxWords)
+	over(&lim.commentWordsPerTok, p.Comments.MaxWordsPerToken)
+	over(&lim.bodyComments, p.Comments.MinBodyComments)
 }
 
 func over(dst *int, v int) {

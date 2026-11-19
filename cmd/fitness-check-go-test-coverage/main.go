@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/describe"
 	"github.com/may-journal/fitness-checks/internal/lang/golang/coverage"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
-	"github.com/may-journal/fitness-runner/go/pkg/lang/golang"
 )
 
 func main() {
@@ -54,15 +54,24 @@ func finish(root, name string, report coverage.Report) (checkkit.Result, error) 
 }
 func parse(root string, args []string) (coverage.Options, error) {
 	var options coverage.Options
-	config, err := golang.LoadConfig(root)
-	if err != nil {
+	var opts settings
+	if err := config.Read(root, key, &opts); err != nil {
 		return options, err
 	}
-	if config != nil {
-		options.Entries = config.TestCoverage.Entries
-	}
+	options.Entries = opts.Entries
 	return parseFlags(options, args)
 }
+
+// key is the check's key in .fitnessrc.json.
+const key = "goTestCoverage"
+
+// settings holds what a repo sets under goTestCoverage.
+type settings struct {
+	// Entries lists the full import paths of library entry packages,
+	// which must reach full statement coverage, as command packages do.
+	Entries []string `json:"entries"`
+}
+
 func parseFlags(options coverage.Options, args []string) (coverage.Options, error) {
 	flags := flag.NewFlagSet("go-test-coverage", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)

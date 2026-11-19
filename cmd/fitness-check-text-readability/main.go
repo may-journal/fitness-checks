@@ -7,22 +7,31 @@ import (
 	"os"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// Defaults are calibrated to this repo's baseline of grade 11-15 and LIX 40-48, so only genuine outliers fire; conf.Defaults holds them.
-var (
-	defaultMaxGrade = conf.Defaults.TextReadability.MaxGrade
-	defaultMaxLix   = conf.Defaults.TextReadability.MaxLix
-	defaultMinWords = conf.Defaults.TextReadability.MinWords
-)
+// key is the check's key in .fitnessrc.json.
+const key = "textReadability"
+
+// options holds the alarm bands a repo sets under textReadability.
+type options struct {
+	// MaxGrade is the Coleman-Liau and ARI grade at which a file alarms.
+	MaxGrade float64 `json:"maxGrade"`
+	// MaxLix is the LIX score at which a file alarms.
+	MaxLix float64 `json:"maxLix"`
+	// MinWords is the fewest prose words a file needs to be judged.
+	MinWords int `json:"minWords"`
+}
+
+// Defaults are calibrated to this repo's baseline of grade 11-15 and LIX 40-48, so only genuine outliers fire.
+var defaults = options{MaxGrade: 18, MaxLix: 60, MinWords: 100}
 
 // thresholds are the resolved alarm bands for one run.
 type thresholds struct {
@@ -37,7 +46,7 @@ func main() {
 			Name:  "text-readability",
 			Scope: checkkit.ScopeFiles,
 			Blob:  true,
-			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt(), match.Base(conf.FileName)),
+			Files: match.Any(match.Exts(mdx.Exts...), comments.FilesPattern(), match.NoExt(), match.Base(config.FileName)),
 		},
 		Run: run,
 	})
@@ -79,25 +88,25 @@ func guidance() []string {
 // loadThresholds resolves the alarm bands: .fitnessrc.json textReadability
 // values when positive, else the calibrated defaults.
 func loadThresholds(root string) thresholds {
-	th := thresholds{maxGrade: defaultMaxGrade, maxLix: defaultMaxLix, minWords: defaultMinWords}
-	cfg, err := conf.Load(root)
-	if err != nil || cfg == nil {
+	th := thresholds{maxGrade: defaults.MaxGrade, maxLix: defaults.MaxLix, minWords: defaults.MinWords}
+	var opts options
+	if config.Read(root, key, &opts) != nil {
 		return th
 	}
-	applyConfig(&th, cfg)
+	applyConfig(&th, opts)
 	return th
 }
 
 // applyConfig overlays every positive config value onto the defaults.
-func applyConfig(th *thresholds, cfg *conf.Config) {
-	if cfg.TextReadability.MaxGrade > 0 {
-		th.maxGrade = cfg.TextReadability.MaxGrade
+func applyConfig(th *thresholds, opts options) {
+	if opts.MaxGrade > 0 {
+		th.maxGrade = opts.MaxGrade
 	}
-	if cfg.TextReadability.MaxLix > 0 {
-		th.maxLix = cfg.TextReadability.MaxLix
+	if opts.MaxLix > 0 {
+		th.maxLix = opts.MaxLix
 	}
-	if cfg.TextReadability.MinWords > 0 {
-		th.minWords = cfg.TextReadability.MinWords
+	if opts.MinWords > 0 {
+		th.minWords = opts.MinWords
 	}
 }
 

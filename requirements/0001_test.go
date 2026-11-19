@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -25,6 +31,12 @@ func Test0001_1(t *testing.T) {
 				for _, dep := range strayDeps(t, folder) {
 					t.Errorf("%s depends on %s", filepath.Base(folder), dep)
 				}
+			}
+		}},
+		{"checks read no config key the engine declares", func(t *testing.T) {
+			t.Parallel()
+			for _, use := range engineConfigReads(t, "..") {
+				t.Errorf("%s reads engine config; declare the key in the check", use)
 			}
 		}},
 		{"describe prints name summary and scope", func(t *testing.T) {
@@ -437,6 +449,65 @@ func engineOnly(dep string) bool {
 	return slices.ContainsFunc([]string{"metadata", "aftereffect", "dupe", "report"}, func(name string) bool {
 		return strings.HasSuffix(dep, "/internal/"+name) || strings.Contains(dep, "/internal/"+name+"/")
 	})
+}
+
+// engineConfig names, by import path, the engine identifiers that read a
+// check's config key or file list. A check declares its own instead.
+var engineConfig = map[string][]string{
+	"github.com/may-journal/fitness-runner/go/pkg/conf":        {"Load", "Defaults", "Config", "MaxListItems"},
+	"github.com/may-journal/fitness-runner/go/pkg/adr":         {"LoadAllow", "Allow"},
+	"github.com/may-journal/fitness-runner/go/pkg/lang/golang": {"LoadConfig", "Defaults", "Config"},
+	"github.com/may-journal/fitness-runner/go/pkg/lang":        {"ScanExts"},
+}
+
+// engineConfigReads lists each use, as file:line name, of an engineConfig
+// identifier in the Go files under root's cmd and internal folders.
+func engineConfigReads(t *testing.T, root string) []string {
+	t.Helper()
+	var uses []string
+	fset := token.NewFileSet()
+	for _, dir := range []string{"cmd", "internal"} {
+		mustDo(t, filepath.WalkDir(filepath.Join(root, dir), func(name string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || filepath.Ext(name) != ".go" {
+				return err
+			}
+			file, err := parser.ParseFile(fset, name, nil, parser.SkipObjectResolution)
+			if err != nil {
+				return err
+			}
+			uses = append(uses, configSelectors(fset, file)...)
+			return nil
+		}))
+	}
+	return uses
+}
+
+// configSelectors lists each selector in file that names an engineConfig
+// identifier through its import.
+func configSelectors(fset *token.FileSet, file *ast.File) []string {
+	names := map[string][]string{}
+	for _, spec := range file.Imports {
+		imported, _ := strconv.Unquote(spec.Path.Value)
+		if banned, ok := engineConfig[imported]; ok {
+			local := path.Base(imported)
+			if spec.Name != nil {
+				local = spec.Name.Name
+			}
+			names[local] = banned
+		}
+	}
+	var uses []string
+	ast.Inspect(file, func(n ast.Node) bool {
+		sel, ok := n.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		if pkg, ok := sel.X.(*ast.Ident); ok && slices.Contains(names[pkg.Name], sel.Sel.Name) {
+			uses = append(uses, fmt.Sprintf("%s %s.%s", fset.Position(sel.Pos()), pkg.Name, sel.Sel.Name))
+		}
+		return true
+	})
+	return uses
 }
 
 // checkFolders lists the check folders of the repo at root, such as

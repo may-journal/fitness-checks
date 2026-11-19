@@ -11,7 +11,7 @@ func BenchmarkRepositoryScan(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	th := thresholds{maxGrade: defaultMaxGrade, maxLix: defaultMaxLix, minWords: defaultMinWords}
+	th := thresholds{maxGrade: defaults.MaxGrade, maxLix: defaults.MaxLix, minWords: defaults.MinWords}
 	for b.Loop() {
 		walkFiles(root, th, false)
 	}

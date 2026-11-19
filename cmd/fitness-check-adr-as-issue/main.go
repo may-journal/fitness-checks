@@ -5,11 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-checks/internal/waiting"
 	"github.com/may-journal/fitness-runner/go/pkg/adr"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
-	"github.com/may-journal/fitness-runner/go/pkg/conf"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
@@ -19,7 +20,7 @@ func main() {
 		Describe: checkkit.Describe{
 			Name:     "adr-as-issue",
 			Scope:    checkkit.ScopeFiles,
-			Files:    match.Any(match.Fold(match.Exts(mdx.Exts...)), match.Base(conf.FileName)),
+			Files:    match.Any(match.Fold(match.Exts(mdx.Exts...)), match.Base(config.FileName)),
 			Exclude:  match.Under(".github/"),
 			Requires: []checkkit.Requirement{checkkit.RequiresRepo},
 		},
@@ -31,7 +32,7 @@ func main() {
 const toIssue = "open an `ADR` issue instead; `fitness adr-migrate` opens one per file and points each link at it"
 
 func run(root string, _ []string) (checkkit.Result, error) {
-	allow, problems, err := adr.LoadAllow(root)
+	allow, problems, err := waiting.Load(root)
 	if err != nil {
 		return checkkit.Fail(0, err.Error()), nil
 	}
@@ -48,7 +49,7 @@ func run(root string, _ []string) (checkkit.Result, error) {
 
 // judgeAll names each ADR file no allow glob covers, then each allow glob
 // that covers no ADR file.
-func judgeAll(root string, files []string, allow adr.Allow) []string {
+func judgeAll(root string, files []string, allow waiting.Allow) []string {
 	var errs []string
 	used := map[string]bool{}
 	for _, f := range files {
@@ -78,7 +79,7 @@ func ruleOf(root, rel string) (string, bool) {
 
 // judge is the error for ADR file rel, or none when an allow glob covers
 // it, which it marks used.
-func judge(rel, rule string, allow adr.Allow, used map[string]bool) []string {
+func judge(rel, rule string, allow waiting.Allow, used map[string]bool) []string {
 	if glob := allow.Covering(rel); glob != "" {
 		used[glob] = true
 		return nil
