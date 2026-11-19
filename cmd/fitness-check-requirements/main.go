@@ -63,7 +63,7 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 		return errs, append(notes, "ownership and history were not judged without every doc"), nil
 	}
 	errs = append(errs, missingDocs(paths)...)
-	hist, historyNote := readHistory(root)
+	hist, historyNote := readHistory(root, paths)
 	if historyNote != "" {
 		notes = append(notes, historyNote)
 	}
@@ -124,7 +124,7 @@ func collectTests(root string, modules []lang.Module) ([]reqTest, []string, []la
 func docPaths(root string) []string {
 	var out []string
 	for _, f := range walkfs.FilesByExt(root, ".md") {
-		if strings.HasPrefix(f, docsDir) && !strings.HasSuffix(f, "/template.md") {
+		if strings.HasPrefix(f, docsDir) && isDoc(f) {
 			out = append(out, f)
 		}
 	}

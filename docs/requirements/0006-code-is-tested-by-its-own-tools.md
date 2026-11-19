@@ -23,9 +23,9 @@ repos with code or requirement docs
     - When the requirement ownership checks run on the repo
       - Then each one fails naming the requirement and the test or check to add or remove
 - 0006.3
-  - Given Developer has product code, a test or a requirement doc changed without its partner
-    - When the paired change checks judge my commit or pull request
-      - Then the unpaired change fails naming both files, and a complete pair passes
+  - Given Developer has an unpaired change or a reused ID
+    - When the paired change and ID history checks judge my commit or pull request
+      - Then each fails naming the files or ID, and a pair or whole restructure passes
 - 0006.4
   - Given Developer has Go files with a format, vet or branch-count problem
     - When the Go tooling checks run on them

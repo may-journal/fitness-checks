@@ -46,7 +46,7 @@
 //
 //   - IDs: the file name's `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004].
 //   - Acceptance IDs: the title ID plus `.N`, unique in its doc.
-//   - Reuse: git history records every ID a commit removed. A doc or acceptance that brings one back fails.
+//   - Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
 //   - Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
 //   - Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.
 //   - Acceptance: one Given, one When, and one Then, nested in order; the Given starts with an [actor].
