@@ -9,37 +9,36 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
+	"github.com/may-journal/fitness-runner/go/pkg/conf"
 )
 
 // FileName is the config file at a repo's root.
 const FileName = ".fitnessrc.json"
 
-// Read fills into, a pointer holding the check's defaults, from the value
-// at key in root's config file. A missing file or key changes nothing.
-func Read(root, key string, into any) error {
-	value, err := valueAt(root, key)
-	if err != nil || value == nil {
-		return err
+// Keys lists the keys a check reads for its --describe. Defaults is the
+// struct Read fills, whose fields are top-level keys holding their defaults,
+// and source is the embedded file that documents them.
+func Keys(defaults any, source []byte) func() ([]checkkit.ConfigKey, error) {
+	return func() ([]checkkit.ConfigKey, error) {
+		return conf.KeysOf(defaults, source)
 	}
-	if err := json.Unmarshal(value, into); err != nil {
-		return fmt.Errorf("%s: %s: %w", FileName, key, err)
-	}
-	return nil
 }
 
-// valueAt is the raw value at key in root's config file, nil when the file
-// or the key is missing.
-func valueAt(root, key string) (json.RawMessage, error) {
+// Read fills into, a pointer to a struct whose fields are the check's
+// top-level keys, from root's config file. A missing file or key changes
+// nothing, and keys into does not name are left alone.
+func Read(root string, into any) error {
 	raw, err := os.ReadFile(filepath.Join(root, FileName))
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var top map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &top); err != nil {
-		return nil, fmt.Errorf("%s: %w", FileName, err)
+	if err := json.Unmarshal(raw, into); err != nil {
+		return fmt.Errorf("%s: %w", FileName, err)
 	}
-	return top[key], nil
+	return nil
 }

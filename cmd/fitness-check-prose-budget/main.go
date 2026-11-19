@@ -27,54 +27,6 @@ type limits struct {
 	bodyComments       int
 }
 
-// defaults are the tight technical-doc limits a repo gets when it sets none.
-var defaults = limits{
-	sentenceWords:      23,
-	paragraphSentences: 4,
-	sectionParagraphs:  3,
-	listItemWords:      23,
-	listItems:          8,
-	words:              300,
-	commentWordsPerTok: 3,
-	bodyComments:       2,
-}
-
-// budgetKey and proseKey are the check's keys in .fitnessrc.json.
-const (
-	budgetKey = "proseBudget"
-	proseKey  = "prose"
-)
-
-// budget holds the hard caps a repo sets under proseBudget. Each limit
-// falls back to its default when zero.
-type budget struct {
-	// MaxSentenceWords is the most words one sentence may hold.
-	MaxSentenceWords int `json:"maxSentenceWords"`
-	// MaxParagraphSentences is the most sentences one paragraph may hold.
-	MaxParagraphSentences int `json:"maxParagraphSentences"`
-	// MaxSectionParagraphs is the most paragraphs one section may hold.
-	MaxSectionParagraphs int `json:"maxSectionParagraphs"`
-	// MaxListItemWords is the most words one list item may hold.
-	MaxListItemWords int `json:"maxListItemWords"`
-	// MaxListItems is the most items one list may hold.
-	MaxListItems int `json:"maxListItems"`
-	// MaxWords is the most prose words one section may hold.
-	MaxWords int `json:"maxWords"`
-}
-
-// prose holds the settings a repo sets under prose, for each kind of text.
-type prose struct {
-	// Comments holds the `overlong` thresholds for code comments.
-	Comments struct {
-		// MaxWordsPerToken is the most comment words a function body may
-		// hold for each code token before `overlong` fails it.
-		MaxWordsPerToken int `json:"maxWordsPerToken"`
-		// MinBodyComments is the fewest comments a function body needs
-		// before `overlong` judges it.
-		MinBodyComments int `json:"minBodyComments"`
-	} `json:"comments"`
-}
-
 // descriptionName labels the pseudo-file in body-mode errors, where the
 // document is an Issue or PR description rather than a file on disk.
 const descriptionName = "(description)"
@@ -82,7 +34,7 @@ const descriptionName = "(description)"
 var htmlCommentRe = regexp.MustCompile(`(?s)<!--.*?-->`)
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(defaults, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:  "prose-budget",
 			Scope: checkkit.ScopeFiles,
@@ -117,26 +69,32 @@ func walkFiles(root string, lim limits) checkkit.Result {
 // settings resolves the limits: defaults with every positive config value
 // overlaid.
 func settings(root string) limits {
-	lim := defaults
-	var b budget
-	var p prose
-	if config.Read(root, budgetKey, &b) != nil || config.Read(root, proseKey, &p) != nil {
-		return lim
+	lim := defaultLimits()
+	var c fileConfig
+	if config.Read(root, &c) == nil {
+		applyLimits(&lim, c)
 	}
-	applyLimits(&lim, b, p)
 	return lim
 }
 
-// applyLimits overlays every positive proseBudget and prose.comments config value onto lim.
-func applyLimits(lim *limits, b budget, p prose) {
+// defaultLimits are the limits a repo gets when it sets none.
+func defaultLimits() limits {
+	var lim limits
+	applyLimits(&lim, defaults)
+	return lim
+}
+
+// applyLimits overlays every positive proseBudget and prose.comments value of c onto lim.
+func applyLimits(lim *limits, c fileConfig) {
+	b, p := c.ProseBudget, c.Prose.Comments
 	over(&lim.sentenceWords, b.MaxSentenceWords)
 	over(&lim.paragraphSentences, b.MaxParagraphSentences)
 	over(&lim.sectionParagraphs, b.MaxSectionParagraphs)
 	over(&lim.listItemWords, b.MaxListItemWords)
 	over(&lim.listItems, b.MaxListItems)
 	over(&lim.words, b.MaxWords)
-	over(&lim.commentWordsPerTok, p.Comments.MaxWordsPerToken)
-	over(&lim.bodyComments, p.Comments.MinBodyComments)
+	over(&lim.commentWordsPerTok, p.MaxWordsPerToken)
+	over(&lim.bodyComments, p.MinBodyComments)
 }
 
 func over(dst *int, v int) {

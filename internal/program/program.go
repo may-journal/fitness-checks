@@ -1,11 +1,12 @@
 // Package program runs one check as its own program. It answers
-// --describe with the check's summary, taken from its doc comment, and the
-// protocol number, then hands every other run to checkkit.
+// --describe with the check's summary, its keys and the protocol number.
+// It hands every other run to checkkit.
 package program
 
 import (
 	"cmp"
 	"encoding/json"
+	"fmt"
 	"go/doc"
 	"go/doc/comment"
 	"go/parser"
@@ -30,16 +31,31 @@ type described struct {
 
 // Main runs c, given its doc.go source.
 func Main(source string, c checkkit.Check) {
+	Configured(source, nil, c)
+}
+
+// Configured runs c as Main does, and its --describe also lists the
+// .fitnessrc.json keys that keys returns. Only --describe calls keys, so
+// other runs skip the work.
+func Configured(source string, keys func() ([]checkkit.ConfigKey, error), c checkkit.Check) {
 	if slices.Contains(os.Args[1:], "--describe") {
-		os.Exit(describe(os.Stdout, source, c.Describe))
+		os.Exit(describe(os.Stdout, source, keys, c.Describe))
 	}
 	checkkit.Main(c)
 }
 
-// describe prints d with its summary and the protocol, and returns the exit
-// code.
-func describe(out io.Writer, source string, d checkkit.Describe) int {
+// describe prints d with its summary, keys and the protocol, and returns
+// the exit code.
+func describe(out io.Writer, source string, keys func() ([]checkkit.ConfigKey, error), d checkkit.Describe) int {
 	d.Summary = cmp.Or(d.Summary, Summary(source))
+	if keys != nil {
+		config, err := keys()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "--describe:", err)
+			return checkkit.ExitInternal
+		}
+		d.Config = config
+	}
 	if err := json.NewEncoder(out).Encode(described{d, Protocol}); err != nil {
 		return checkkit.ExitInternal
 	}
