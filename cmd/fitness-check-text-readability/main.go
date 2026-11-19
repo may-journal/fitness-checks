@@ -17,22 +17,6 @@ import (
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// key is the check's key in .fitnessrc.json.
-const key = "textReadability"
-
-// options holds the alarm bands a repo sets under textReadability.
-type options struct {
-	// MaxGrade is the Coleman-Liau and ARI grade at which a file alarms.
-	MaxGrade float64 `json:"maxGrade"`
-	// MaxLix is the LIX score at which a file alarms.
-	MaxLix float64 `json:"maxLix"`
-	// MinWords is the fewest prose words a file needs to be judged.
-	MinWords int `json:"minWords"`
-}
-
-// Defaults are calibrated to this repo's baseline of grade 11-15 and LIX 40-48, so only genuine outliers fire.
-var defaults = options{MaxGrade: 18, MaxLix: 60, MinWords: 100}
-
 // thresholds are the resolved alarm bands for one run.
 type thresholds struct {
 	maxGrade float64
@@ -41,7 +25,7 @@ type thresholds struct {
 }
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(defaults, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:  "text-readability",
 			Scope: checkkit.ScopeFiles,
@@ -88,16 +72,17 @@ func guidance() []string {
 // loadThresholds resolves the alarm bands: .fitnessrc.json textReadability
 // values when positive, else the calibrated defaults.
 func loadThresholds(root string) thresholds {
-	th := thresholds{maxGrade: defaults.MaxGrade, maxLix: defaults.MaxLix, minWords: defaults.MinWords}
-	var opts options
-	if config.Read(root, key, &opts) != nil {
+	var th thresholds
+	applyConfig(&th, defaults.TextReadability)
+	var c fileConfig
+	if config.Read(root, &c) != nil {
 		return th
 	}
-	applyConfig(&th, opts)
+	applyConfig(&th, c.TextReadability)
 	return th
 }
 
-// applyConfig overlays every positive config value onto the defaults.
+// applyConfig overlays every positive value of opts onto th.
 func applyConfig(th *thresholds, opts options) {
 	if opts.MaxGrade > 0 {
 		th.maxGrade = opts.MaxGrade

@@ -15,20 +15,8 @@ import (
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// defaultMax is the ceiling when the config sets none.
-const defaultMax = 5
-
-// key is the check's key in .fitnessrc.json.
-const key = "goComplexity"
-
-// options holds what a repo sets under goComplexity.
-type options struct {
-	// Max is the highest cyclomatic complexity one Go function may have.
-	Max int `json:"max"`
-}
-
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(defaults, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:  "go-complexity",
 			Scope: checkkit.ScopeFiles,
@@ -46,13 +34,13 @@ func run(root string, _ []string) (checkkit.Result, error) {
 }
 
 // maxComplexity resolves the ceiling: the .fitnessrc.json goComplexity.max
-// value when positive, else defaultMax.
+// value when positive, else the default.
 func maxComplexity(root string) int {
-	var opts options
-	if config.Read(root, key, &opts) == nil && opts.Max > 0 {
-		return opts.Max
+	var c fileConfig
+	if config.Read(root, &c) == nil && c.GoComplexity.Max > 0 {
+		return c.GoComplexity.Max
 	}
-	return defaultMax
+	return defaults.GoComplexity.Max
 }
 
 // scanFile parses one file's source and reports every function over the

@@ -11,21 +11,6 @@ import (
 	"github.com/may-journal/fitness-checks/internal/config"
 )
 
-// Key is adr-as-issue's key in .fitnessrc.json.
-const Key = "adrAsIssue"
-
-// options holds what a repo sets under adrAsIssue.
-type options struct {
-	// Allow lists ADR files still waiting to move, each with its reason,
-	// as a shrinking fallback list.
-	Allow []struct {
-		// Path is a glob, as Go's path.Match reads it, of the waiting files.
-		Path string `json:"path"`
-		// Reason says why the files have not moved yet.
-		Reason string `json:"reason"`
-	} `json:"allow"`
-}
-
 // Allow is the loaded allow globs, each with a reason.
 type Allow struct {
 	// Globs are the entries' paths, in the config's order.
@@ -35,13 +20,13 @@ type Allow struct {
 // Load reads adrAsIssue.allow from root's config file. Each entry that
 // lacks a reason or is no glob is a problem the caller fails with.
 func Load(root string) (Allow, []string, error) {
-	var opts options
-	if err := config.Read(root, Key, &opts); err != nil {
+	var c fileConfig
+	if err := config.Read(root, &c); err != nil {
 		return Allow{}, nil, err
 	}
 	var allow Allow
 	var problems []string
-	for _, a := range opts.Allow {
+	for _, a := range c.AdrAsIssue.Allow {
 		if problem := allowProblem(a.Path, a.Reason); problem != "" {
 			problems = append(problems, problem)
 			continue

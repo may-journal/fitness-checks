@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(fileConfig{}, configSource), checkkit.Check{
 		Describe: describe.GoModule("go-test-coverage"),
 		Run:      run,
 	})
@@ -54,22 +54,12 @@ func finish(root, name string, report coverage.Report) (checkkit.Result, error) 
 }
 func parse(root string, args []string) (coverage.Options, error) {
 	var options coverage.Options
-	var opts settings
-	if err := config.Read(root, key, &opts); err != nil {
+	var c fileConfig
+	if err := config.Read(root, &c); err != nil {
 		return options, err
 	}
-	options.Entries = opts.Entries
+	options.Entries = c.GoTestCoverage.Entries
 	return parseFlags(options, args)
-}
-
-// key is the check's key in .fitnessrc.json.
-const key = "goTestCoverage"
-
-// settings holds what a repo sets under goTestCoverage.
-type settings struct {
-	// Entries lists the full import paths of library entry packages,
-	// which must reach full statement coverage, as command packages do.
-	Entries []string `json:"entries"`
 }
 
 func parseFlags(options coverage.Options, args []string) (coverage.Options, error) {

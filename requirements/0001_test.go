@@ -8,6 +8,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -39,13 +40,26 @@ func Test0001_1(t *testing.T) {
 				t.Errorf("%s reads engine config; declare the key in the check", use)
 			}
 		}},
-		{"describe prints name summary and scope", func(t *testing.T) {
+		{"describe prints name summary scope and the keys with their defaults", func(t *testing.T) {
 			t.Parallel()
 			ours := goBuild(t, "./cmd/...")
 			for _, folder := range checkFolders(t, "..") {
 				name := filepath.Base(folder)
-				for _, problem := range describeProblems(name, describeMap(t, filepath.Join(ours, name))) {
+				got := describeMap(t, filepath.Join(ours, name))
+				for _, problem := range append(describeProblems(name, got), keyProblems(name, got)...) {
 					t.Error(problem)
+				}
+			}
+		}},
+		{"config schema and explain show each check's keys", func(t *testing.T) {
+			t.Parallel()
+			repo := example(t, "happyRepo", nil)
+			var schema map[string]any
+			stdoutJSON(t, repo, &schema, "config", "schema")
+			for check, keys := range checkKeys {
+				schemaLists(t, schema, keys)
+				if check != byNameOnly {
+					explainLists(t, repo, check, keys)
 				}
 			}
 		}},
@@ -576,6 +590,110 @@ func describeProblems(name string, got map[string]any) []string {
 		problems = append(problems, fmt.Sprintf("%s --describe has scope %v, want files, blob, git or github", name, got["scope"]))
 	}
 	return problems
+}
+
+// keyProblems lists how the keys a check's --describe declares differ from
+// checkKeys.
+func keyProblems(name string, got map[string]any) []string {
+	declared := declaredLeaves(got["config"])
+	if want := checkKeys[strings.TrimPrefix(name, "fitness-check-")]; !reflect.DeepEqual(declared, want) {
+		return []string{fmt.Sprintf("%s --describe declares %v, want %v", name, declared, want)}
+	}
+	return nil
+}
+
+// checkKeys maps each check that reads .fitnessrc.json keys to each leaf key
+// it declares and that key's default, nil for none. No other check declares
+// a key; adr-checks reads adrAsIssue, which adr-as-issue declares.
+var checkKeys = map[string]map[string]any{
+	"repeated-string-literals": {"repeatedStringLiterals.allow": nil},
+	"text-readability":         {"textReadability.maxGrade": 18.0, "textReadability.maxLix": 60.0, "textReadability.minWords": 100.0},
+	"prose-budget": {
+		"proseBudget.maxSentenceWords": 23.0, "proseBudget.maxParagraphSentences": 4.0, "proseBudget.maxSectionParagraphs": 3.0,
+		"proseBudget.maxListItemWords": 23.0, "proseBudget.maxListItems": 8.0, "proseBudget.maxWords": 300.0,
+		"prose.comments.maxWordsPerToken": 3.0, "prose.comments.minBodyComments": 2.0,
+	},
+	"comment-structure": {"comment.maxWords": 100.0, "comment.maxTables": 1.0},
+	"adr-as-issue":      {"adrAsIssue.allow": nil},
+	"go-test-coverage":  {"goTestCoverage.entries": nil},
+	"go-complexity":     {"goComplexity.max": 5.0},
+}
+
+// byNameOnly is the check the engine's catalog leaves out, since it runs only
+// when named, so `fitness explain` does not answer for it.
+const byNameOnly = "go-test-coverage"
+
+// declaredLeaves maps each leaf key in a decoded config list, as --describe
+// and `fitness explain --json` print it, to its default; nil for no keys.
+func declaredLeaves(config any) map[string]any {
+	leaves := map[string]any{}
+	list, _ := config.([]any)
+	for _, item := range list {
+		key, _ := item.(map[string]any)
+		if inner, nested := key["keys"]; nested {
+			maps.Copy(leaves, declaredLeaves(inner))
+		} else if path, _ := key["key"].(string); path != "" {
+			leaves[path] = key["default"]
+		}
+	}
+	if len(leaves) == 0 {
+		return nil
+	}
+	return leaves
+}
+
+// schemaLists fails each of keys the schema leaves out or gives another
+// default.
+func schemaLists(t *testing.T, schema map[string]any, keys map[string]any) {
+	t.Helper()
+	for path, want := range keys {
+		if got, ok := schemaDefault(schema, path); !ok || got != want {
+			t.Errorf("the schema lists %s with default %v (found %v), want %v", path, got, ok, want)
+		}
+	}
+}
+
+// explainLists fails when `fitness explain --json` lists other keys for
+// check than keys.
+func explainLists(t *testing.T, repo, check string, keys map[string]any) {
+	t.Helper()
+	var explained map[string]any
+	stdoutJSON(t, repo, &explained, "explain", check, "--json")
+	if got := declaredLeaves(explained["config"]); !reflect.DeepEqual(got, keys) {
+		t.Errorf("fitness explain %s lists %v, want %v", check, got, keys)
+	}
+}
+
+// schemaDefault is the default the JSON Schema gives the dotted key path,
+// and whether the schema lists the key.
+func schemaDefault(schema map[string]any, path string) (any, bool) {
+	node := schema
+	for _, name := range strings.Split(path, ".") {
+		properties, _ := node["properties"].(map[string]any)
+		next, ok := properties[name].(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		node = next
+	}
+	return node["default"], true
+}
+
+// stdoutJSON runs fitness with args in repo and decodes its stdout into into.
+func stdoutJSON(t *testing.T, repo string, into any, args ...string) {
+	t.Helper()
+	var stdout, stderr strings.Builder
+	cmd := started(t, func() *exec.Cmd {
+		stdout.Reset()
+		stderr.Reset()
+		cmd := exec.Command(installer(t), append([]string{"--"}, args...)...)
+		cmd.Dir, cmd.Env, cmd.Stdout, cmd.Stderr = repo, userEnv(), &stdout, &stderr
+		return cmd
+	}, (*exec.Cmd).Run)
+	if code := cmd.ProcessState.ExitCode(); code != 0 {
+		t.Fatalf("fitness %s exited %d:\n%s%s", strings.Join(args, " "), code, stdout.String(), stderr.String())
+	}
+	mustDo(t, json.Unmarshal([]byte(stdout.String()), into))
 }
 
 // ranOurs reports whether out shows this repo's program for check ran,

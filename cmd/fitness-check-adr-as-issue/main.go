@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, waiting.Keys(), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:     "adr-as-issue",
 			Scope:    checkkit.ScopeFiles,

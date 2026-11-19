@@ -66,7 +66,7 @@ var idiomaticValues = map[string]bool{
 var moduleWords = map[string]bool{"from": true, "import": true, "require": true}
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(fileConfig{}, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:     name,
 			Scope:    checkkit.ScopeFiles,
@@ -118,26 +118,16 @@ func findSourceFiles(root string) []string {
 	return walkfs.FilesByExt(root, node.SourceExts...)
 }
 
-// key is the check's key in .fitnessrc.json.
-const key = "repeatedStringLiterals"
-
-// options holds what a repo sets under repeatedStringLiterals.
-type options struct {
-	// Allow lists exact values the check never flags, for the rare repeat
-	// no shared constant can fix. Keep it a shrinking list.
-	Allow []string `json:"allow"`
-}
-
 // allowedValues returns the exact values allowed via .fitnessrc.json
 // `repeatedStringLiterals.allow` (project baseline). Malformed JSON
 // degrades to no allow list.
 func allowedValues(root string) map[string]bool {
-	var opts options
-	if config.Read(root, key, &opts) != nil {
+	var c fileConfig
+	if config.Read(root, &c) != nil {
 		return nil
 	}
-	allow := make(map[string]bool, len(opts.Allow))
-	for _, v := range opts.Allow {
+	allow := make(map[string]bool, len(c.RepeatedStringLiterals.Allow))
+	for _, v := range c.RepeatedStringLiterals.Allow {
 		allow[v] = true
 	}
 	return allow

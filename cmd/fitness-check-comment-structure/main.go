@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(defaults, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:             "comment-structure",
 			Scope:            checkkit.ScopeBlob,
@@ -28,24 +28,6 @@ func main() {
 		Run: run,
 	})
 }
-
-// key is the check's key in .fitnessrc.json.
-const key = "comment"
-
-// options holds the budget a repo sets under comment for an issue or PR
-// comment. Each limit falls back to its default when zero.
-type options struct {
-	// MaxWords is the most words one comment may hold.
-	MaxWords int `json:"maxWords"`
-	// MaxTables is the most tables one comment may hold.
-	MaxTables int `json:"maxTables"`
-}
-
-// Default limits, which .fitnessrc.json's comment key may replace.
-const (
-	defaultMaxWords  = 100
-	defaultMaxTables = 1
-)
 
 // limits is one repo's comment budget.
 type limits struct{ words, tables int }
@@ -68,13 +50,13 @@ func isComment(body string) bool {
 
 // loadLimits reads the repo's comment budget over the defaults.
 func loadLimits(root string) (limits, error) {
-	lim := limits{defaultMaxWords, defaultMaxTables}
-	var opts options
-	if err := config.Read(root, key, &opts); err != nil {
+	lim := limits{defaults.Comment.MaxWords, defaults.Comment.MaxTables}
+	var c fileConfig
+	if err := config.Read(root, &c); err != nil {
 		return lim, err
 	}
-	lim.words = positiveOr(opts.MaxWords, lim.words)
-	lim.tables = positiveOr(opts.MaxTables, lim.tables)
+	lim.words = positiveOr(c.Comment.MaxWords, lim.words)
+	lim.tables = positiveOr(c.Comment.MaxTables, lim.tables)
 	return lim, nil
 }
 

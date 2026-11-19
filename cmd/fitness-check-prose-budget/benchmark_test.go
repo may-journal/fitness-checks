@@ -12,6 +12,6 @@ func BenchmarkRepositoryScan(b *testing.B) {
 		b.Fatal(err)
 	}
 	for b.Loop() {
-		walkFiles(root, defaults)
+		walkFiles(root, defaultLimits())
 	}
 }
