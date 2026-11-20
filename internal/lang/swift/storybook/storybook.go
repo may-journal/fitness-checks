@@ -1,6 +1,8 @@
 // Package storybook judges the swift-storybook-requirements check. Every
 // Storybook page a Swift app declares is named by the acceptance it shows,
 // and every acceptance has a page. A page is a `#Preview` or a `BookPage`.
+// It judges only a repo that uses Storybook: one whose Swift code imports a
+// Storybook module.
 package storybook
 
 import (
@@ -19,6 +21,10 @@ import (
 // Name is the check's name.
 const Name = "swift-storybook-requirements"
 
+// NoStorybook is the note a repo that imports no Storybook module passes
+// with, since its acceptances need no pages.
+const NoStorybook = "no Storybook in this repo: no Swift file imports a Storybook module or declares a BookPage, so acceptances need no pages"
+
 var (
 	// pageStart matches where a page is declared in a code view: the
 	// `#Preview` macro, or a `BookPage(` call.
@@ -31,6 +37,12 @@ var (
 	idLike = regexp.MustCompile(`^[0-9.:\s-]+`)
 	// titleLabel is a `title:` argument label at the start of args.
 	titleLabel = regexp.MustCompile(`^\s*title\s*:`)
+	// bookPage matches a `BookPage(` call, which only Storybook declares.
+	bookPage = regexp.MustCompile(`\bBookPage\s*\(`)
+	// storybookImport matches an import of a Storybook module in a code
+	// view, with any attributes or import kind. The modules are Storybook,
+	// StorybookSandbox, StorybookKit and SwiftUIStorybook.
+	storybookImport = regexp.MustCompile(`(?m)(?:^|;)[ \t]*(?:@\w+(?:\([^)\n]*\))?[ \t]+)*import[ \t]+(?:(?:struct|class|enum|protocol|typealias|func|var|let)[ \t]+)?(?:Storybook|StorybookSandbox|StorybookKit|SwiftUIStorybook)\b`)
 )
 
 // page is one declared Storybook page.
@@ -57,18 +69,20 @@ const (
 
 func (p page) at() string { return fmt.Sprintf("%s:%d", p.file, p.line) }
 
-// Run judges the repo at root, passing with no files judged when it has no
-// requirement docs or no Swift files. It reads every Swift file, even in a
-// scoped run, since names repeat and pages go missing across files.
+// Run judges every Swift file in the repo at root, even in a scoped run,
+// since names repeat across files. A repo without docs or Storybook passes.
 func Run(root string, _ []string) (checkkit.Result, error) {
 	docs := requirement.DocPaths(root)
 	files := walkfs.FilesByExt(root, swift.Ext)
 	if len(docs) == 0 || len(files) == 0 {
 		return checkkit.Pass(0), nil
 	}
-	pages, err := readPages(root, files)
+	pages, uses, err := readPages(root, files)
 	if err != nil {
 		return checkkit.Pass(0), err
+	}
+	if !uses {
+		return checkkit.Info(len(files), NoStorybook), nil
 	}
 	return verdict(len(files), judgeAgainst(root, docs, pages)), nil
 }
@@ -127,22 +141,26 @@ func acceptances(docs []requirement.Document) []string {
 	return ids
 }
 
-// readPages reads every page each Swift file declares, in file order.
-func readPages(root string, files []string) ([]page, error) {
+// readPages reads the pages each Swift file declares, in file order. It also
+// says whether any file imports Storybook, as an app with no pages does.
+func readPages(root string, files []string) ([]page, bool, error) {
 	var pages []page
+	uses := false
 	for _, file := range files {
 		src, err := comments.CodeFile(root, file)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		pages = append(pages, filePages(file, string(src))...)
+		filed, imports := filePages(file, string(src))
+		pages = append(pages, filed...)
+		uses = uses || imports
 	}
-	return pages, nil
+	return pages, uses, nil
 }
 
-// filePages returns the pages one file declares, skipping comments and
-// strings, which the source and its code view blank.
-func filePages(file, src string) []page {
+// filePages returns the pages one file declares, and whether it imports
+// Storybook. It skips comments and strings, which its code view blanks.
+func filePages(file, src string) ([]page, bool) {
 	code, literals := swift.Literals(src)
 	starts := map[int]swift.Literal{}
 	for _, lit := range literals {
@@ -158,7 +176,7 @@ func filePages(file, src string) []page {
 		}
 		pages = append(pages, p)
 	}
-	return pages
+	return pages, storybookImport.MatchString(code) || bookPage.MatchString(code)
 }
 
 // previewName reads the literal a `#Preview` ending at i passes first, from

@@ -1758,12 +1758,35 @@ func Test0006_8(t *testing.T) {
 				t.Errorf("want no finding without requirement docs:\n%s", out)
 			}
 		}},
+		{"repo without Storybook passes", func(t *testing.T) {
+			t.Parallel()
+			view := storybookView("import StorybookHistoryKit\n// import Storybook\nlet note = \"\"\"\nimport StorybookKit\n\"\"\"\n\n#Preview {\n    BadgeView()\n}\n")
+			out, code := storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": view})
+			showsInfo(t, out, code, "swift-storybook-requirements", "no Storybook in this repo: no Swift file imports a Storybook module or declares a BookPage, so acceptances need no pages")
+			if strings.Contains(out, "has no Storybook page") || strings.Contains(out, "page has no name") {
+				t.Errorf("want no finding in a repo without Storybook:\n%s", out)
+			}
+		}},
+		{"Storybook import forms are judged", func(t *testing.T) {
+			t.Parallel()
+			for _, imports := range []string{
+				"@testable import StorybookKit\n",
+				"import SwiftUIStorybook\n",
+				"#if DEBUG\n    @_spi(Storybook, Internal) import StorybookSandbox\n#endif\n",
+				"import SwiftUI; import Storybook\n",
+				"let pages = [BookPage(title: \"0001.1 day\") { Text(verbatim: \"\") }]\n",
+			} {
+				out, code := storybookCheck(t, map[string]string{storybookShown: "", storybookCatalog: imports})
+				sees(t, out, code, 1, "docs/requirements/0001-badge.md:19 - acceptance 0001.2 has no Storybook page")
+			}
+		}},
 		{"acceptance with no page fails", func(t *testing.T) {
 			t.Parallel()
-			out, code := storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": storybookView("")})
+			catalog := "import Storybook\n\nenum AppStorybook {}\n"
+			out, code := storybookCheck(t, map[string]string{storybookShown: "", storybookCatalog: catalog, "App/BadgeView.swift": storybookView("")})
 			sees(t, out, code, 1, "docs/requirements/0001-badge.md:15 - acceptance 0001.1 has no Storybook page; add one named \"0001.1 <label>\"",
 				"docs/requirements/0001-badge.md:19 - acceptance 0001.2 has no Storybook page")
-			out, code = storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n")})
+			out, code = storybookCheck(t, map[string]string{storybookShown: "", storybookCatalog: catalog, "App/BadgeView.swift": storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n")})
 			sees(t, out, code, 1, "docs/requirements/0001-badge.md:19 - acceptance 0001.2 has no Storybook page")
 			if strings.Contains(out, "acceptance 0001.1") {
 				t.Errorf("want no finding for the acceptance a page names:\n%s", out)
@@ -3433,9 +3456,13 @@ photos opened
             - Then it has no badge
 `
 
-// storybookShown is the fixture app's page file that shows both
-// acceptances, so a test's own pages are all that it judges.
+// storybookShown is the fixture app's page file that imports Storybook and
+// shows both acceptances. A test's own pages are all that it judges.
 const storybookShown = "App/Shown.swift"
+
+// storybookCatalog is a file that imports Storybook and declares no page, as
+// an app with no pages yet has.
+const storybookCatalog = "App/AppStorybook.swift"
 
 // storybookCheck runs swift-storybook-requirements on happyRepo with the
 // fixture requirement doc, storybookShown, and files written over them. An
@@ -3444,7 +3471,7 @@ func storybookCheck(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
 	app := map[string]string{
 		"docs/requirements/0001-badge.md": storybookDoc,
-		storybookShown:                    "let shown = [\n    BookPage(title: \"0001.1 shown\") { BadgeView() },\n    BookPage(title: \"0001.2 shown\") { BadgeView() },\n]\n",
+		storybookShown:                    "import Storybook\n\nlet shown = [\n    BookPage(title: \"0001.1 shown\") { BadgeView() },\n    BookPage(title: \"0001.2 shown\") { BadgeView() },\n]\n",
 	}
 	maps.Copy(app, files)
 	return fitness(t, example(t, "happyRepo", app), nil, "swift-storybook-requirements")
