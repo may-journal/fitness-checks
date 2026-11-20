@@ -5,6 +5,20 @@
 // git history ([common-swift #53]). A page named any other way, or an
 // acceptance with no page, would drop out unnoticed.
 //
+// # Storybook apps
+//
+// The check judges only a repo where a Swift file imports a Storybook
+// module or declares a `BookPage`. The modules are common-swift's `Storybook` and
+// `StorybookSandbox`, swift-storybook's `StorybookKit`, and
+// `SwiftUIStorybook`. An import in a comment or a string does not count.
+//
+// An app with no pages yet still imports Storybook for its catalog, so it is
+// judged. A plain `#Preview` needs only SwiftUI, so it marks no Storybook
+// app. A manifest may name Storybook only as a dependency of a dependency.
+// Any other repo passes with the note:
+//
+//	no Storybook in this repo: no Swift file imports a Storybook module or declares a BookPage, so acceptances need no pages
+//
 // # Pages
 //
 //   - A `#Preview` macro is a page, and its first argument is its name.
@@ -30,8 +44,8 @@
 // # Acceptances
 //
 // Every acceptance a doc in `docs/requirements` declares needs a page whose
-// plain literal name starts with its ID. This holds even in an app with no
-// pages yet. The failure names the doc line that declares it:
+// plain literal name starts with its ID. This holds even in a Storybook app
+// with no pages yet. The failure names the doc line that declares it:
 //
 //	docs/requirements/0006-lock.md:17 - acceptance 0006.3 has no Storybook page; add one named "0006.3 <label>"
 //
