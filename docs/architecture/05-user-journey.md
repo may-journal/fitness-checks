@@ -50,9 +50,10 @@ flowchart TB
         diagrams[(6 Diagrams match the code<br/>Req 0005)]:::system
         tested[(7 Code is tested by its own tools<br/>Req 0006)]:::system
         source[(8 The repo holds only working source<br/>Req 0007)]:::system
+        docs[(9 Check docs are Markdown<br/>Req 0008)]:::system
     end
 
-    red[9 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007]:::blocked
+    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007]:::blocked
 
     dev -->|A| install
     install --> apply
@@ -83,7 +84,8 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 6   | Mermaid and architecture view checks.              | System    | Every diagram renders and matches the code it draws.                   |
 | 7   | Paired change, tooling and coverage checks.        | System    | Each language's own tools judge the code with the repo's config.       |
 | 8   | Build output, duplicate, pin and workflow checks.  | System    | Reviewers see real source only.                                        |
-| 9   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
+| 9   | Check docs and their move to Markdown.             | System    | People edit each rule as Markdown that GitHub renders.                 |
+| 10  | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
 | A   | Run `fitness`, a hook or one check in any repo.    | Connector | The engine installs the latest release first.                          |
 | B   | Every check that fits the change runs.             | Connector | A check that does not fit passes with zero files.                      |
 | C   | Fix the code, not the check, and rerun.            | Connector | The check measures the real code, so the code changes.                 |
