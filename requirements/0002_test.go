@@ -44,6 +44,9 @@ func Test0002_1(t *testing.T) {
 			patternReaches(t, "markdown-links", "pkg/run.go", false)
 			patternReaches(t, "workflow-reporting", ".github/workflows/ci.yml", true)
 			patternReaches(t, "workflow-reporting", "docs/ci.yml", false)
+			patternReaches(t, "workflow-scripts", ".github/workflows/ci.yml", true)
+			patternReaches(t, "workflow-scripts", "tools/setup/action.yml", true)
+			patternReaches(t, "workflow-scripts", "docs/ci.yml", false)
 			eslint := patternsOf(t, "eslint")
 			if !eslint.Met([]string{"web/package.json"}) || eslint.Met([]string{"README.md"}) {
 				t.Errorf("eslint must need a package.json and nothing else")
@@ -411,6 +414,7 @@ no-plans-dir open-questions plan-structure
 plan-trailer pr-closes-issue pr-structure prose-budget read-repo-first
 release-changelog repeated-string-literals requirements requirements-changed
 semantic-commit swift-storybook-requirements text-readability workflow-ref-exists workflow-reporting
+workflow-scripts
 go-complexity go-test go-vet gofmt
 localized-text swiftlint
 dependency-currency eslint no-eslint-disable node-version prettier

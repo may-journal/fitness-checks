@@ -43,6 +43,6 @@ repo files and settings checked
     - When the source checks look up each pinned path
       - Then a path missing at its ref fails naming file, line and ref, and other calls pass
 - 0007.8
-  - Given Developer has workflow jobs with and without a final step that writes the job summary
+  - Given Developer has workflow jobs with or without a summary step, and inline shell in steps
     - When the source checks read each workflow job
-      - Then a job with steps and no `always()` summary step fails, and invalid YAML fails naming the line
+      - Then a job with no `always()` summary step, an inline script, or invalid YAML fails naming the line
