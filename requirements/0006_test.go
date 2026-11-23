@@ -324,6 +324,20 @@ func Test0006_3(t *testing.T) {
 			out, code = prRun(t, pairedRepo(), map[string]string{pairedDoc: reworded(requirementDoc("0001.1"))}, "docs(requirements): reword 0001")
 			sees(t, out, code, 1, pairedDoc+" changed without its requirement test "+pairedTest+"; change both together")
 		}},
+		{"doc edit outside the acceptances pairs with no test", func(t *testing.T) {
+			t.Parallel()
+			test := map[string]string{pairedTest: edited(testFile("reqs", "Test0001_1"))}
+			doc := requirementDoc("0001.1")
+			proved := strings.Replace(doc, "by hand.", "by hand. `reqs/0001_test.go` proves 0001.1 with Go's testing package.", 1)
+			for _, padded := range []string{filler(doc), proved, doc + "\n## Tests\n\n`reqs/0001_test.go` proves 0001.1.\n"} {
+				out, code := stagedRun(t, pairedRepo(), with(test, map[string]string{pairedDoc: padded}))
+				sees(t, out, code, 1, pairedTest+" changed without its requirement doc "+pairedDoc+"; change both together")
+				out, code = prRun(t, pairedRepo(), with(test, map[string]string{pairedDoc: padded}), "test(reqs): check sums twice")
+				sees(t, out, code, 1, pairedTest+" changed without its requirement doc "+pairedDoc+"; change both together")
+			}
+			out, code := stagedRun(t, pairedRepo(), with(test, map[string]string{pairedDoc: reworded(filler(doc))}))
+			sees(t, out, code, 0)
+		}},
 		{"test named for two requirements fails", func(t *testing.T) {
 			t.Parallel()
 			doc := "docs/requirements/0002-adds-again.md"
@@ -389,7 +403,7 @@ func Test0006_3(t *testing.T) {
 			out, code = prRun(t, given, formatted, "style(docs): format requirement docs with Biome")
 			sees(t, out, code, 0)
 			out, code = stagedRun(t, given, with(formatted, map[string]string{pairedTest: edited(testFile("reqs", "Test0001_1"))}))
-			sees(t, out, code, 0)
+			sees(t, out, code, 1, pairedTest+" changed without its requirement doc "+pairedDoc+"; change both together")
 			sourced := with(pairedRepo(), map[string]string{pairedDoc: withSource(requirementDoc("0001.1"), "`adder.go:5`")})
 			dropped := map[string]string{pairedDoc: requirementDoc("0001.1")}
 			out, code = stagedRun(t, sourced, dropped)
