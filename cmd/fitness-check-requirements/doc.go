@@ -84,7 +84,7 @@
 // its Source line.
 //
 //   - Pairing: a test file pairs with each doc whose number its name or its tests carry, one or several.
-//   - Tests: a changed test file fails unless one of its docs changed too. The error names both files and the missing doc.
+//   - Tests: a changed test file fails unless an acceptance in one of its docs changed too. The error names both files.
 //   - Fixes: a changed test file passes without its doc when it failed this check at base, or only its comments changed.
 //   - Base check: this check judges a checkout of the base commit's docs and test files, where a Swift test importing XCTest fails.
 //   - New files: a test file the base lacks still needs its doc.

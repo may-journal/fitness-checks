@@ -43,9 +43,15 @@ func withComment(body string) string {
 	return body + "\n// One more line.\n"
 }
 
-// reworded is a requirement doc with one more word in its Why, changing what
-// it says, not only its formatting.
+// reworded is a requirement doc with one more word in its first Then,
+// changing what it promises, not only its formatting.
 func reworded(doc string) string {
+	return strings.Replace(doc, "- Then I get", "- Then I always get", 1)
+}
+
+// filler is a requirement doc with one more word in its Why, which changes
+// no acceptance.
+func filler(doc string) string {
 	return strings.Replace(doc, "by hand.", "by hand at all.", 1)
 }
 

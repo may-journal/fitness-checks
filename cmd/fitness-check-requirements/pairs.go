@@ -88,16 +88,16 @@ func docNumber(f string) string {
 	return ""
 }
 
-// judge flags each changed test whose docs stayed unchanged, unless it failed at base, and each changed doc whose tests stayed unchanged.
-func (p pairs) judge(changed []string, reformatted map[string]bool, fixed func(string) bool) []string {
+// judge flags each changed test whose docs kept their acceptances, unless it failed at base, and each changed doc whose tests stayed unchanged.
+func (p pairs) judge(changed []string, same unchanged, fixed func(string) bool) []string {
 	isChanged := map[string]bool{}
 	for _, f := range changed {
-		isChanged[f] = true
+		isChanged[f] = !same.acceptances[f]
 	}
 	var errs []string
 	for _, f := range changed {
 		errs = append(errs, p.unpairedTest(f, isChanged, fixed)...)
-		if n := docNumber(f); n != "" && !reformatted[f] {
+		if n := docNumber(f); n != "" && !same.reworded[f] {
 			errs = append(errs, unpaired(f, []string{n}, p.tests, "requirement test", isChanged)...)
 		}
 	}

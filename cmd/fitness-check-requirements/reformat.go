@@ -18,12 +18,16 @@ var listMarker = regexp.MustCompile(`(?m)^(\s*)(?:[-*+]|\d+[.)])(\s)`)
 // Nothing reads it, so deleting it changes no wording.
 var sourceLine = regexp.MustCompile(`(?m)^Source:.*$`)
 
-// reformats returns the changed docs whose wording did not change since
-// base, so a formatter's rewrite, such as `biome format`, needs no test
-// change. It is empty when there is no base, and one git call reads every
-// doc's two versions.
-func reformats(root, base string, changed []string) (map[string]bool, error) {
-	found := map[string]bool{}
+// unchanged lists the changed docs whose wording is the same as at base,
+// and those whose Requirements section is.
+type unchanged struct {
+	reworded, acceptances map[string]bool
+}
+
+// reformats returns the changed docs whose wording, or whose acceptances, did not change since base.
+// It is empty when there is no base, and one git call reads every doc's two versions.
+func reformats(root, base string, changed []string) (unchanged, error) {
+	found := unchanged{map[string]bool{}, map[string]bool{}}
 	docs := slices.DeleteFunc(slices.Clone(changed), func(f string) bool { return docNumber(f) == "" })
 	if base == "" || len(docs) == 0 {
 		return found, nil
@@ -35,20 +39,33 @@ func reformats(root, base string, changed []string) (map[string]bool, error) {
 	}
 	text, err := gitx.ShowAll(root, objects)
 	for _, f := range docs {
-		found[f] = sameWording(text, base+":"+from[f], gitx.JudgedObject(f))
+		found.compare(f, text, base+":"+from[f])
 	}
 	return found, err
 }
 
-// sameWording reports whether text holds both versions of a doc, with the
-// same wording in each.
-func sameWording(text map[string]string, before, after string) bool {
-	was, ok := text[before]
-	if !ok {
-		return false
+// compare records whether doc f says the same in text as its version before.
+func (u unchanged) compare(f string, text map[string]string, before string) {
+	was, held := text[before]
+	is, judged := text[gitx.JudgedObject(f)]
+	if !held || !judged {
+		return
 	}
-	is, ok := text[after]
-	return ok && wording(was, true) == wording(is, false)
+	u.reworded[f] = wording(was, true) == wording(is, false)
+	u.acceptances[f] = wording(acceptanceText(was), false) == wording(acceptanceText(is), false)
+}
+
+// requirementsHeading opens the section that holds a doc's acceptances.
+var requirementsHeading = regexp.MustCompile(`(?m)^## Requirements\s*$`)
+
+// acceptanceText is a doc from its Requirements heading on, or "" without one.
+func acceptanceText(doc string) string {
+	body := comments.WithoutHTMLComments(mdx.StripFrontMatter(doc))
+	at := requirementsHeading.FindStringIndex(body)
+	if at == nil {
+		return ""
+	}
+	return body[at[0]:]
 }
 
 // docsAtBase maps each of docs to its path at base, read from one listing

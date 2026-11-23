@@ -23,7 +23,7 @@ repos with code or requirement docs
     - When the requirement ownership checks run on the repo
       - Then each one fails naming the requirement and the test or check to add or remove
 - 0006.3
-  - Given Developer has an unpaired change or a reused ID
+  - Given Developer has unpaired changes, doc filler or reused IDs
     - When the paired change and ID history checks judge my commit or pull request
       - Then each fails naming the files or ID, and a pair or whole restructure passes
 - 0006.4
