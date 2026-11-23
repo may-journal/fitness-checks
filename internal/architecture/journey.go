@@ -193,7 +193,10 @@ var fillerWords = []string{"and", "the", "for", "with", "its", "own", "are", "re
 func titleWords(text string) []string {
 	var out []string
 	for _, w := range labelWord.FindAllString(strings.ToLower(text), -1) {
-		if w = strings.TrimSuffix(w, "s"); !slices.Contains(fillerWords, w) && !slices.Contains(out, w) {
+		if slices.Contains(fillerWords, w) {
+			continue
+		}
+		if w = strings.TrimSuffix(w, "s"); !slices.Contains(out, w) {
 			out = append(out, w)
 		}
 	}
@@ -206,11 +209,11 @@ func docWords(doc string) []string {
 	return titleWords(strings.TrimSuffix(path.Base(doc), ".md"))
 }
 
-// misread is a step whose label reads as one doc while naming others.
+// misread is a step whose label reads as docs it leaves out.
 type misread struct {
 	step   Element
 	ids    []string
-	readAs string
+	readAs []string
 }
 
 // swapped fails two steps that read as each other's docs, since their labels
@@ -218,7 +221,7 @@ type misread struct {
 func (j *journey) swapped() {
 	found := j.misreads()
 	for _, f := range found {
-		text := fmt.Sprintf("journey step %s reads as requirement %s yet names %s", f.step.ID, f.readAs, strings.Join(f.ids, ", "))
+		text := fmt.Sprintf("journey step %s reads as requirement %s yet names %s", f.step.ID, strings.Join(f.readAs, ", "), strings.Join(f.ids, ", "))
 		if crossed(f, found) {
 			j.fail(f.step.At, "%s; name the doc whose behavior the step is, or reword the step", text)
 			continue
@@ -227,50 +230,55 @@ func (j *journey) swapped() {
 	}
 }
 
-// misreads lists the journey steps whose label reads as a doc it leaves out.
+// misreads lists the behavior steps whose label reads as docs it leaves out.
 func (j *journey) misreads() []misread {
 	var found []misread
 	for _, e := range j.m.Elements {
+		if e.View != journeyView || !promises(e.Kind) {
+			continue
+		}
 		ids := uniqueIDs(labelID.FindAllString(entityCode.ReplaceAllString(e.Name, ""), -1))
-		if other := j.readsAs(titleWords(e.Name), ids); e.View == journeyView && other != "" {
-			found = append(found, misread{e, ids, other})
+		if others := j.readsAs(titleWords(e.Name), ids); len(others) > 0 {
+			found = append(found, misread{e, ids, others})
 		}
 	}
 	return found
 }
 
-// crossed reports another step that names the doc f reads as, and reads as a
+// crossed reports another step that names a doc f reads as, and reads as a
 // doc f names.
 func crossed(f misread, all []misread) bool {
 	return slices.ContainsFunc(all, func(o misread) bool {
-		return slices.Contains(o.ids, f.readAs) && slices.Contains(f.ids, o.readAs)
+		return shares(o.ids, f.readAs) && shares(f.ids, o.readAs)
 	})
 }
 
-// readsAs returns the first doc the label leaves out while holding every
-// title word of it. It returns "" for a label that fits a doc it names.
-func (j *journey) readsAs(words, ids []string) string {
+// readsAs lists each doc the label leaves out while holding every title
+// word of it. It lists none for a label that fits a doc it names.
+func (j *journey) readsAs(words, ids []string) []string {
 	if j.fits(words, ids) {
-		return ""
+		return nil
 	}
+	var others []string
 	for _, doc := range j.m.Requirements {
 		if !slices.Contains(ids, doc.ID) && holdsAll(words, docWords(doc.Path)) {
-			return doc.ID
+			others = append(others, doc.ID)
 		}
 	}
-	return ""
+	return others
 }
 
 // fits reports a label that names no doc, or shares a title word with a doc
 // it names.
 func (j *journey) fits(words, ids []string) bool {
 	return len(ids) == 0 || slices.ContainsFunc(j.m.Requirements, func(doc requirement.Document) bool {
-		return slices.Contains(ids, doc.ID) && sharesWord(words, docWords(doc.Path))
+		return slices.Contains(ids, doc.ID) && shares(words, docWords(doc.Path))
 	})
 }
 
-func sharesWord(words, title []string) bool {
-	return slices.ContainsFunc(title, func(w string) bool { return slices.Contains(words, w) })
+// shares reports a word that both lists hold.
+func shares(a, b []string) bool {
+	return slices.ContainsFunc(a, func(w string) bool { return slices.Contains(b, w) })
 }
 
 // holdsAll reports a title with words, every one of them among words.

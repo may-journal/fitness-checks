@@ -747,6 +747,11 @@ func Test0005_6(t *testing.T) {
 			if strings.Contains(out, "reads as requirement") {
 				t.Errorf("a step naming its own doc must add no note:\n%s", out)
 			}
+			grouped := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "subgraph open[2 Open the app<br/>Req 0002]\nend"), ajTagDone, "subgraph done[3 Save the record<br/>Req 0001]\nend")
+			out, code = ajRun(t, grouped)
+			if strings.Contains(out, "reads as requirement") {
+				t.Errorf("a layout subgraph is no step to judge:\n%s", out)
+			}
 		}},
 		{"one step reading as another doc adds a note", func(t *testing.T) {
 			t.Parallel()
