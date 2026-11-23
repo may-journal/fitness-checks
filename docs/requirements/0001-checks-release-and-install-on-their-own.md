@@ -37,7 +37,7 @@ Checks
 - 0001.6
   - Given Developer has published, draft and prerelease releases of several checks
     - When the release workflow builds the release index
-      - Then it lists each published check with its versions, artifacts, checksums and describe fields, fetching only new versions
+      - Then it lists each published check with the newest version of each major, its artifacts, checksums and describe fields, fetching only new versions
 - 0001.7
   - Given Developer has a size baseline for the check programs
     - When the size check and the measure script run on the repo
