@@ -4,7 +4,6 @@
 
 - Feat: `workflow-scripts` fails a `run:` step in a workflow or `action.yml` that holds more than one trivial command.
 - Fix: the check reads quoted and multi-line steps, and skips comments, escaped semicolons and block bodies.
-- Test: requirement 0007.9 runs it on workflows and actions.
-- Test: requirement 0002 lists workflow-scripts and the workflow and action files it reaches.
+- Test: requirement 0007.8 runs it on workflows and actions, and 0002 lists it and the files it reaches.
 - Docs: its README is the fixed stub that points at the doc comment.
 - Fix: this repo's two chained workflow steps call `scripts/step-output.sh`, so its own workflows pass the check.

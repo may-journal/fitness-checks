@@ -17,7 +17,7 @@ Checks
 - 0002.1
   - Given Developer has every check program the repo builds
     - When each program declares the files it judges and a release is built
-      - Then its patterns compile, it requires only known things, and it reaches the files it judges and no others
+      - Then its patterns compile, it requires only known things, and it reaches the files it judges, in any folder, and no others
 - 0002.2
   - Given Developer has a repo with nothing a check can judge and no checks chosen
     - When the installed checks run in that repo
