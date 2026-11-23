@@ -1,7 +1,15 @@
 # gofmt
 
-Lists Go files that gofmt would change.
+Lists Go files that gofmt would change. It is on by default.
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-gofmt) or `fitness-check-gofmt --describe`
+## Behavior
+
+- Checks the repo's own `.go` files, leaving out `testdata` and `vendor` fixtures and paths the config ignores.
+- Runs `gofmt -l` over them and reports each listed file as `path: not gofmt-formatted (run: gofmt -w path)`.
+- A repo with no `.go` files passes clean (`filesChecked: 0`), so the check is safe in every repo.
+- A file gofmt cannot parse fails as `path:line:column: message`.
+- A missing Go toolchain reports info with a one-line install hint, never a failure.
+- A gofmt that could not start, was killed, or exits non-zero with neither finding reports info quoting its output.
+- `filesChecked` counts the Go files checked.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
