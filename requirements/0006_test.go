@@ -329,7 +329,7 @@ func Test0006_3(t *testing.T) {
 			test := map[string]string{pairedTest: edited(testFile("reqs", "Test0001_1"))}
 			doc := requirementDoc("0001.1")
 			proved := strings.Replace(doc, "by hand.", "by hand. `reqs/0001_test.go` proves 0001.1 with Go's testing package.", 1)
-			for _, padded := range []string{filler(doc), proved} {
+			for _, padded := range []string{filler(doc), proved, doc + "\n## Tests\n\n`reqs/0001_test.go` proves 0001.1.\n"} {
 				out, code := stagedRun(t, pairedRepo(), with(test, map[string]string{pairedDoc: padded}))
 				sees(t, out, code, 1, pairedTest+" changed without its requirement doc "+pairedDoc+"; change both together")
 				out, code = prRun(t, pairedRepo(), with(test, map[string]string{pairedDoc: padded}), "test(reqs): check sums twice")

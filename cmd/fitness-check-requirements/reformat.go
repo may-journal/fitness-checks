@@ -55,17 +55,17 @@ func (u unchanged) compare(f string, text map[string]string, before string) {
 	u.acceptances[f] = wording(acceptanceText(was), false) == wording(acceptanceText(is), false)
 }
 
-// requirementsHeading opens the section that holds a doc's acceptances.
-var requirementsHeading = regexp.MustCompile(`(?m)^## Requirements\s*$`)
+// requirementsSection is the section that holds a doc's acceptances, up to
+// the next heading of its level.
+var requirementsSection = regexp.MustCompile(`(?ms)^## Requirements\s*$(.*?)(?:^## |\z)`)
 
-// acceptanceText is a doc from its Requirements heading on, or "" without one.
+// acceptanceText is the text of a doc's Requirements section, or "" without one.
 func acceptanceText(doc string) string {
-	body := comments.WithoutHTMLComments(mdx.StripFrontMatter(doc))
-	at := requirementsHeading.FindStringIndex(body)
-	if at == nil {
+	m := requirementsSection.FindStringSubmatch(comments.WithoutHTMLComments(mdx.StripFrontMatter(doc)))
+	if m == nil {
 		return ""
 	}
-	return body[at[0]:]
+	return m[1]
 }
 
 // docsAtBase maps each of docs to its path at base, read from one listing
