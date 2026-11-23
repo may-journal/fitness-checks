@@ -127,6 +127,9 @@ var movedChecks = []string{
 	"no-plans-dir", "node-version", "open-questions", "plan-structure", "plan-trailer",
 	"pr-closes-issue", "pr-structure", "prettier", "prose-budget", "read-repo-first",
 	"release-changelog", "repeated-string-literals", "requirements", "requirements-changed",
+	"semantic-commit", "spotless", "swift-storybook-requirements", "swiftlint",
+	"text-readability", "vitest-coverage-exclude", "vitest-coverage-full",
+	"workflow-ref-exists", "workflow-reporting", "workflow-scripts",
 }
 
 func Test0008_3(t *testing.T) {
