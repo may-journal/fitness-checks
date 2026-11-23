@@ -48,7 +48,7 @@ jobs:
           # A pull request checks out its merge into the base. That merge's
           # first parent is the base as it stands, so the diff is the PR's.
           BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
-        run: checks="$(scripts/changed-checks.sh "$BASE")" && echo "checks=$checks" >> "$GITHUB_OUTPUT"
+        run: scripts/step-output.sh checks scripts/changed-checks.sh "$BASE"
       - name: Report job outcome
         if: ${{ always() }}
         env:

@@ -28,7 +28,7 @@ jobs:
           go-version-file: go.mod
       - name: Plan the release tags
         id: plan
-        run: tags="$(scripts/release-plan.sh)" && echo "tags=$tags" >> "$GITHUB_OUTPUT"
+        run: scripts/step-output.sh tags scripts/release-plan.sh
       - name: Report job outcome
         if: ${{ always() }}
         env:
