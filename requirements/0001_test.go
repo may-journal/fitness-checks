@@ -302,7 +302,7 @@ func Test0001_5(t *testing.T) {
 func Test0001_6(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"index holds only published checks", func(t *testing.T) {
+		{"index holds only the newest published version of each major", func(t *testing.T) {
 			t.Parallel()
 			file := filepath.Join(t.TempDir(), "releases.json")
 			mustDo(t, os.WriteFile(file, []byte(publishedReleases), 0o644))
@@ -337,19 +337,19 @@ func Test0001_6(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("1.10.0 copies %v from its describe line, want only %v", got, want)
 			}
-			if _, ok := versions["1.0.0"]["files"]; ok {
-				t.Errorf("1.0.0 has no describe line, so it must hold no files: %v", versions["1.0.0"])
+			if _, ok := versions["2.0.0"]["files"]; ok {
+				t.Errorf("2.0.0 has no describe line, so it must hold no files: %v", versions["2.0.0"])
 			}
 		}},
 		{"index downloads only new versions", func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
 			published := filepath.Join(dir, "published.json")
-			mustDo(t, os.WriteFile(published, []byte(`{"checks":{"gofmt":{"versions":{"1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","files":"kept"}}}}}`), 0o644))
-			// The 1.0.0 describe file is missing, so a download of it would fail the script.
+			mustDo(t, os.WriteFile(published, []byte(`{"checks":{"gofmt":{"versions":{"1.1.0":{"tag":"fitness-check-gofmt-v1.1.0","files":"kept"}}}}}`), 0o644))
+			// The 1.0.0 and 1.1.0 describe files are missing, so a download of either would fail the script.
 			releases := reuseIndex(t, dir, false)
 			got := indexFields(t, runScript(t, "..", "release-index.sh", releases, "", published))
-			if want := map[string]any{"1.0.0": "kept", "1.1.0": `\.(1.1.0)$`}; !reflect.DeepEqual(got, want) {
+			if want := map[string]any{"1.1.0": "kept", "2.0.0": `\.(2.0.0)$`}; !reflect.DeepEqual(got, want) {
 				t.Errorf("fields with a published index = %v, want %v", got, want)
 			}
 			releases = reuseIndex(t, dir, true)
@@ -358,10 +358,10 @@ func Test0001_6(t *testing.T) {
 			empty := filepath.Join(dir, "empty.json")
 			bare := filepath.Join(dir, "bare.json")
 			mustDo(t, os.WriteFile(empty, nil, 0o644))
-			mustDo(t, os.WriteFile(bare, []byte(`{"checks":{"gofmt":{"versions":{"1.0.0":{"tag":"fitness-check-gofmt-v1.0.0"}}}}}`), 0o644))
+			mustDo(t, os.WriteFile(bare, []byte(`{"checks":{"gofmt":{"versions":{"1.1.0":{"tag":"fitness-check-gofmt-v1.1.0"}}}}}`), 0o644))
 			for name, index := range map[string]string{"unreadable": unreadable, "missing (empty)": empty, "field-less entry": bare} {
 				got = indexFields(t, runScript(t, "..", "release-index.sh", releases, "", index))
-				if want := map[string]any{"1.0.0": `\.(1.0.0)$`, "1.1.0": `\.(1.1.0)$`}; !reflect.DeepEqual(got, want) {
+				if want := map[string]any{"1.1.0": `\.(1.1.0)$`, "2.0.0": `\.(2.0.0)$`}; !reflect.DeepEqual(got, want) {
 					t.Errorf("fields with a %s index = %v, want %v", name, got, want)
 				}
 			}
@@ -942,25 +942,29 @@ func fakeGh(t *testing.T, remote string) []string {
 	return []string{"PATH=" + bin + string(os.PathListSeparator) + os.Getenv("PATH"), "GITHUB_REPOSITORY=acme/checks", "FAKE_REMOTE=" + remote}
 }
 
-// publishedReleases is what GitHub lists: two published versions of one check, a
-// draft, a prerelease and a release that is no check.
+// publishedReleases is what GitHub lists for one check: two published
+// versions of major 1 and one of major 2. A draft, a prerelease and a release
+// that is no check come too.
 const publishedReleases = `[
  {"tag_name":"fitness-check-gofmt-v1.0.0","draft":false,"prerelease":false,"assets":[
   {"name":"fitness-check-gofmt-v1.0.0-linux-arm64.tar","browser_download_url":"https://example.test/a.tar","digest":"sha256:aaa"},
   {"name":"fitness-check-gofmt-v1.0.0-linux-arm64.tar.sha256","browser_download_url":"https://example.test/a.sha","digest":"sha256:bbb"}]},
  {"tag_name":"fitness-check-gofmt-v1.10.0","draft":false,"prerelease":false,"assets":[
   {"name":"fitness-check-gofmt-v1.10.0-linux-arm64.tar","browser_download_url":"https://example.test/b.tar","digest":"sha256:ccc"}]},
+ {"tag_name":"fitness-check-gofmt-v2.0.0","draft":false,"prerelease":false,"assets":[
+  {"name":"fitness-check-gofmt-v2.0.0-linux-arm64.tar","browser_download_url":"https://example.test/c.tar","digest":"sha256:ddd"}]},
  {"tag_name":"fitness-check-gofmt-v1.11.0","draft":true,"prerelease":false,"assets":[]},
  {"tag_name":"fitness-check-vet-v2.0.0-rc1","draft":false,"prerelease":true,"assets":[]},
  {"tag_name":"fitness-check-index","draft":false,"prerelease":false,"assets":[]}
 ]`
 
-// publishedIndex is the index the releases above make: the draft, the prerelease,
-// the other release and each .sha256 file are left out.
+// publishedIndex is the index the releases above make, keeping the newest
+// version of each major by number. It leaves out the draft, the prerelease,
+// the other release and each .sha256 file.
 const publishedIndex = `{"format":1,"repository":"may-journal/fitness-checks","checks":{"gofmt":{
- "latest":"1.10.0","majors":{"1":"1.10.0"},"versions":{
-  "1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/a.tar","sha256":"aaa"}}},
-  "1.10.0":{"tag":"fitness-check-gofmt-v1.10.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"ccc"}}}}}}}`
+ "latest":"2.0.0","majors":{"1":"1.10.0","2":"2.0.0"},"versions":{
+  "1.10.0":{"tag":"fitness-check-gofmt-v1.10.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"ccc"}}},
+  "2.0.0":{"tag":"fitness-check-gofmt-v2.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/c.tar","sha256":"ddd"}}}}}}}`
 
 // remoteCalls returns the gh calls the stand-in logged for the bare remote.
 func remoteCalls(t *testing.T, bare string) string {
@@ -978,8 +982,9 @@ func gitOut(t *testing.T, dir string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// reuseIndex lists two gofmt releases with describe assets as files in dir.
-// A missing file fails the script.
+// reuseIndex lists gofmt 1.0.0, 1.1.0 and 2.0.0 with describe files in dir,
+// the 1.0.0 one always missing. The 1.1.0 file exists when old is set, and
+// fetching a missing file fails the script.
 func reuseIndex(t *testing.T, dir string, old bool) string {
 	t.Helper()
 	asset := func(version string, exists bool) string {
@@ -991,7 +996,7 @@ func reuseIndex(t *testing.T, dir string, old bool) string {
 		return `{"tag_name":"` + tag + `","draft":false,"prerelease":false,"assets":[{"name":"` + tag + `.describe.json","browser_download_url":"file://` + path + `"}]}`
 	}
 	file := filepath.Join(dir, "releases.json")
-	mustDo(t, os.WriteFile(file, []byte("["+asset("1.0.0", old)+","+asset("1.1.0", true)+"]"), 0o644))
+	mustDo(t, os.WriteFile(file, []byte("["+asset("1.0.0", false)+","+asset("1.1.0", old)+","+asset("2.0.0", true)+"]"), 0o644))
 	return file
 }
 
@@ -1059,18 +1064,18 @@ func sizeFails(t *testing.T, env []string, baseline, text, want string) {
 }
 
 // sizedReleases lists a release shipped before archives were compressed, and
-// one that ships a tar and its gzip.
+// one of the next major that ships a tar and its gzip.
 const sizedReleases = `[
  {"tag_name":"fitness-check-gofmt-v1.0.0","draft":false,"prerelease":false,"assets":[
   {"name":"fitness-check-gofmt-v1.0.0-linux-arm64.tar","browser_download_url":"https://example.test/a.tar","digest":"sha256:aaa"}]},
- {"tag_name":"fitness-check-gofmt-v1.1.0","draft":false,"prerelease":false,"assets":[
-  {"name":"fitness-check-gofmt-v1.1.0-linux-arm64.tar","browser_download_url":"https://example.test/b.tar","digest":"sha256:bbb"},
-  {"name":"fitness-check-gofmt-v1.1.0-linux-arm64.tar.gz","browser_download_url":"https://example.test/b.tar.gz","digest":"sha256:ccc"}]}
+ {"tag_name":"fitness-check-gofmt-v2.0.0","draft":false,"prerelease":false,"assets":[
+  {"name":"fitness-check-gofmt-v2.0.0-linux-arm64.tar","browser_download_url":"https://example.test/b.tar","digest":"sha256:bbb"},
+  {"name":"fitness-check-gofmt-v2.0.0-linux-arm64.tar.gz","browser_download_url":"https://example.test/b.tar.gz","digest":"sha256:ccc"}]}
 ]`
 
 // sizedIndex is the index those releases make. Format 1 keeps url and sha256
 // on the tar, with gz only beside the release that has a gzip.
 const sizedIndex = `{"format":1,"repository":"may-journal/fitness-checks","checks":{"gofmt":{
- "latest":"1.1.0","majors":{"1":"1.1.0"},"versions":{
+ "latest":"2.0.0","majors":{"1":"1.0.0","2":"2.0.0"},"versions":{
   "1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/a.tar","sha256":"aaa"}}},
-  "1.1.0":{"tag":"fitness-check-gofmt-v1.1.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"bbb","gz":{"url":"https://example.test/b.tar.gz","sha256":"ccc"}}}}}}}}`
+  "2.0.0":{"tag":"fitness-check-gofmt-v2.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"bbb","gz":{"url":"https://example.test/b.tar.gz","sha256":"ccc"}}}}}}}}`

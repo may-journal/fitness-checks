@@ -16,6 +16,14 @@ if [ -z "$releases" ]; then
   gh api --paginate --slurp "repos/$repository/releases?per_page=100" | jq 'add' > "$releases"
 fi
 
+# The one rule for which versions the index lists: the newest of each major, the only one a major pin selects.
+# The index then grows with checks, not releases, and an older exact pin installs from its own tag.
+kept='def number: split(".") | map(tonumber);
+  def releases: [.[] | select((.draft | not) and (.prerelease | not)) | . as $release | .tag_name as $tag
+    | ($tag | capture("^fitness-check-(?<name>[a-z0-9-]+)-v(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)$")?)
+    | select(. != null) | . + {tag: $tag, release: $release}];
+  def kept: releases | group_by([.name, (.version | number | .[0])]) | map(max_by(.version | number));'
+
 # The one rule for which describe fields count.
 pick='def pick: {files, exclude, needs, requires} | with_entries(select(.value != null and .value != "" and .value != []));'
 
@@ -33,9 +41,9 @@ if [ -z "$describes" ]; then
   fi
   # A missing, empty or unreadable index means every version downloads; a version without fields does too.
   { jq -c "$pick"' [.checks[]?.versions[]? | {key: .tag, value: pick} | select(.value | length > 0)] | from_entries' "$published" > "$work/known.json" 2> /dev/null && [ -s "$work/known.json" ]; } || echo '{}' > "$work/known.json"
-  jq -r --slurpfile known "$work/known.json" '.[] | select((.draft | not) and (.prerelease | not)) | .tag_name as $tag
+  jq -r --slurpfile known "$work/known.json" "$kept"' kept[] | .tag as $tag
     | select($known[0] | has($tag) | not)
-    | .assets[]? | select(.name == $tag + ".describe.json") | "\($tag) \(.browser_download_url)"' "$releases" > "$work/assets"
+    | .release.assets[]? | select(.name == $tag + ".describe.json") | "\($tag) \(.browser_download_url)"' "$releases" > "$work/assets"
   # A loop fed from a file, not a pipe, so a failed download stops the script.
   while read -r tag url; do
     curl -fsSL --retry 3 -o "$work/describe.json" "$url"
@@ -44,18 +52,14 @@ if [ -z "$describes" ]; then
   jq -s --slurpfile known "$work/known.json" '$known[0] + (add // {})' "$work/parts" > "$describes"
 fi
 
-jq --arg repository "$repository" --slurpfile described "$describes" "$pick"'
+jq --arg repository "$repository" --slurpfile described "$describes" "$kept$pick"'
   def fields($tag): ($described[0][$tag] // {}) | pick;
-  def number: split(".") | map(tonumber);
   def assets($tag; $suffix): [.assets[] | select(.name | endswith($suffix))
     | {key: (.name | ltrimstr($tag + "-") | rtrimstr($suffix)),
        value: {url: .browser_download_url, sha256: (.digest | ltrimstr("sha256:"))}}] | from_entries;
   def artifacts($tag): assets($tag; ".tar") as $tar | assets($tag; ".tar.gz") as $gz
     | $tar | with_entries(.value += (if $gz[.key] then {gz: $gz[.key]} else {} end));
-  [.[] | select((.draft | not) and (.prerelease | not)) | . as $release | .tag_name as $tag
-    | ($tag | capture("^fitness-check-(?<name>[a-z0-9-]+)-v(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)$")?)
-    | select(. != null)
-    | . + {tag: $tag, artifacts: ($release | artifacts($tag))}]
+  [kept[] | . + {artifacts: (.tag as $tag | .release | artifacts($tag))}]
   | group_by(.name)
   | map(sort_by(.version | number) | {
       key: .[0].name,
