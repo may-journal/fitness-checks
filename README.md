@@ -45,7 +45,7 @@ Each check's major tag, `fitness-check-<name>-vN`, follows its newest release of
 
 An installer reads `majors` for a major, takes `versions[version].artifacts[<os>-<arch>]`, and checks the download against its `sha256`. `versions` holds only the version each major names, so an older exact pin installs from its own tag. `format` rises only for a change that breaks a reader. An artifact may also hold `gz`, its tar's gzip with its own `url` and `sha256`, which an installer may fetch instead.
 
-A version may also hold `files`, `exclude`, `needs` and `requires`, copied from its `<tag>.describe.json` release asset. They say which files reach the check and what else it requires, as fitness-runner's `checkkit.Describe` defines them. An engine can then fetch only the checks a run reaches. A version released before them holds none, which an engine reads as a check every file reaches.
+A version may also hold `files`, `exclude`, `needs` and `requires`, copied from its `<tag>.describe.json` release asset. They say which files reach the check and what else it requires, as fitness-runner's `checkkit.Describe` defines them. An engine can then fetch only the checks a run reaches. A version released before them, or one the index omits, holds none, which an engine reads as a check every file reaches.
 
 ## Tests
 
