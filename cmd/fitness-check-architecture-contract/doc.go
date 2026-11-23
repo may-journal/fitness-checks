@@ -25,6 +25,17 @@
 // Any view requires all five, and each view needs a diagram outside its
 // legends.
 //
+// # What a view holds
+//
+// A view is its numbered Mermaid diagrams, each with its legend and callout
+// table, and nothing else.
+//
+//   - No prose sections, glossaries, flow lists or "where to change" tables.
+//   - The five views are the whole set, with no index or start page.
+//   - Journey callouts name requirement IDs, and every requirement doc appears in the journey.
+//
+// The `architecture-journey` check fails a requirement doc the journey leaves out.
+//
 // # Scope
 //
 // A test, changelog or doc change cannot move the views. A scoped run
