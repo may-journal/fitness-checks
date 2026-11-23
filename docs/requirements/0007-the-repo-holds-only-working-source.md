@@ -45,4 +45,4 @@ repo files and settings checked
 - 0007.8
   - Given Developer has workflow jobs with or without a summary step, and inline shell in steps
     - When the source checks read each workflow job
-      - Then a job with no `always()` summary step, an inline script, or invalid YAML fails naming the line
+      - Then a job with no `always()` summary step, an inline script, or invalid YAML fails naming its line
