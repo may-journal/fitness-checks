@@ -62,15 +62,31 @@ func describe(out io.Writer, source string, keys func() ([]checkkit.ConfigKey, e
 	return 0
 }
 
-// Summary is the first sentence of the doc comment in source, which opens
-// with "Command fitness-check-<name>", as plain text.
+// Summary is the first sentence of a check's documentation as plain text.
+// The source is a README.md, which opens with a title, or a doc.go, whose
+// doc comment opens with "Command fitness-check-<name>".
 func Summary(source string) string {
+	if strings.HasPrefix(strings.TrimSpace(source), "#") {
+		return markdownSummary(source)
+	}
 	file, err := parser.ParseFile(token.NewFileSet(), "doc.go", source, parser.PackageClauseOnly|parser.ParseComments)
 	if err != nil || file.Doc == nil {
 		return ""
 	}
 	text := afterCommand(file.Doc.Text())
 	return unlinked(new(doc.Package).Synopsis(text), text)
+}
+
+// markdownSummary is the first sentence of the paragraph after the title of
+// the Markdown source. A source with no such paragraph has no summary.
+func markdownSummary(source string) string {
+	source = strings.ReplaceAll(source, "\r\n", "\n")
+	_, body, _ := strings.Cut(strings.TrimSpace(source), "\n")
+	paragraph, _, _ := strings.Cut(strings.TrimSpace(body), "\n\n")
+	if strings.HasPrefix(paragraph, "#") {
+		return ""
+	}
+	return new(doc.Package).Synopsis(paragraph)
 }
 
 // afterCommand drops the "Command fitness-check-<name>" opening from text and

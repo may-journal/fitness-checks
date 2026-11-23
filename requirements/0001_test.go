@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/may-journal/fitness-checks/internal/program"
 )
@@ -430,28 +431,99 @@ func Test0001_7(t *testing.T) {
 func Test0001_8(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"stub holds name summary and links only", func(t *testing.T) {
+		{"stub README holds name summary and links only", func(t *testing.T) {
 			t.Parallel()
-			for _, folder := range checkFolders(t, "..") {
-				name := strings.TrimPrefix(filepath.Base(folder), "fitness-check-")
-				source, okDoc := readFolder(t, folder, "doc.go")
-				readme, okReadme := readFolder(t, folder, "README.md")
-				if want := readmeStub(name, program.Summary(source)); okDoc && okReadme && readme != want {
+			eachReadme(t, func(folder, name, source, readme string) {
+				if want := readmeStub(name, program.Summary(source)); !readmeIsDocs(source) && readme != want {
 					t.Errorf("%s/README.md is not the stub:\n%s\nwant:\n%s", folder, readme, want)
 				}
-			}
+			})
 		}},
-		{"stub relative links resolve", func(t *testing.T) {
+		{"documented README names the check and opens with the described summary", func(t *testing.T) {
 			t.Parallel()
-			for _, folder := range checkFolders(t, "..") {
-				for _, target := range stubTargets {
+			var ours string
+			eachReadme(t, func(folder, name, source, readme string) {
+				if !readmeIsDocs(source) {
+					return
+				}
+				if ours == "" {
+					ours = goBuild(t, "./cmd/...")
+				}
+				checkDocumentedReadme(t, ours, folder, name, source, readme)
+			})
+		}},
+		{"relative links resolve", func(t *testing.T) {
+			t.Parallel()
+			eachReadme(t, func(folder, _, source, readme string) {
+				targets := stubTargets
+				if readmeIsDocs(source) {
+					targets = readmeLinks(readme)
+				}
+				for _, target := range targets {
 					if _, err := os.Stat(filepath.Join(folder, target)); err != nil {
 						t.Errorf("%s/README.md links %s, which does not resolve: %v", folder, target, err)
 					}
 				}
-			}
+			})
 		}},
 	})
+}
+
+// checkDocumentedReadme fails t for each way a check folder's README, which
+// is the check's documentation, differs from what its binary and doc.go say.
+func checkDocumentedReadme(t *testing.T, ours, folder, name, source, readme string) {
+	t.Helper()
+	summary := program.Summary(readme)
+	if !plainSentence(summary) {
+		t.Errorf("%s/README.md has no plain sentence in the paragraph under its title; --describe prints %q", folder, summary)
+	}
+	if described := describeMap(t, filepath.Join(ours, "fitness-check-"+name))["summary"]; described != summary {
+		t.Errorf("%s --describe summary is %q, want the README's %q", name, described, summary)
+	}
+	if title := "# " + name + "\n"; !strings.HasPrefix(readme, title) {
+		t.Errorf("%s/README.md does not open with the title %q", folder, title)
+	}
+	if got := program.Summary(source); got != summary {
+		t.Errorf("%s/doc.go comment says %q, want the README's %q", folder, got, summary)
+	}
+}
+
+// plainSentence reports whether summary starts with a letter and holds no
+// Markdown link, as a sentence of prose does.
+func plainSentence(summary string) bool {
+	return summary != "" && unicode.IsLetter([]rune(summary)[0]) && !strings.Contains(summary, "](")
+}
+
+// eachReadme calls visit with each check folder that has a doc.go and a
+// README.md, its name, and their text.
+func eachReadme(t *testing.T, visit func(folder, name, docGo, readme string)) {
+	t.Helper()
+	for _, folder := range checkFolders(t, "..") {
+		source, okDoc := readFolder(t, folder, "doc.go")
+		readme, okReadme := readFolder(t, folder, "README.md")
+		if okDoc && okReadme {
+			visit(folder, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"), source, readme)
+		}
+	}
+}
+
+// readmeIsDocs reports whether a check's doc.go source embeds its README.md as
+// the check's documentation, in place of doc.go itself.
+func readmeIsDocs(docGo string) bool {
+	return strings.Contains(docGo, "//go:embed README.md")
+}
+
+// relativeLink matches a Markdown link whose target is a file path, without
+// its #fragment.
+var relativeLink = regexp.MustCompile(`\]\(([^)#:\s]+)(?:#[^)]*)?(?:\s+"[^"]*")?\)`)
+
+// readmeLinks lists the relative file targets the Markdown text links.
+func readmeLinks(readme string) []string {
+	var targets []string
+	for _, m := range relativeLink.FindAllStringSubmatch(readme, -1) {
+		targets = append(targets, m[1])
+	}
+	return targets
 }
 
 // engineOnly reports whether dep is, or lies under, an engine package no

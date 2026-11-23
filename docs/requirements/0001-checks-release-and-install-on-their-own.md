@@ -43,6 +43,6 @@ Checks
     - When the size check and the measure script run on the repo
       - Then a program over its limit fails by name, and the sizes are recorded
 - 0001.8
-  - Given Developer has the README of each check folder
-    - When the stub test reads and resolves it
-      - Then it holds the check's name, summary and working links, and nothing else
+  - Given Developer has each check's README
+    - When the README test reads it
+      - Then it holds the check's name, its described summary and working links
