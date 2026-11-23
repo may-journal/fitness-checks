@@ -1,7 +1,19 @@
 # markdown-links
 
-Requires every relative link in every markdown file to resolve to an existing file or directory.
+Requires every relative link in every markdown file to resolve to an existing file or directory. Broken relative links survive refactors silently — a docs move or a file deletion leaves pointers that no other check sees. This check makes them commit-blocking.
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-markdown-links) or `fitness-check-markdown-links --describe`
+## Behavior
+
+- Inline links, images, and reference-style definitions are checked in every Markdown file.
+- Absolute URLs (any scheme), protocol-relative URLs, and fragment-only links (`#anchor`) are never touched — the check is fully offline and deterministic.
+- A `#fragment` suffix is stripped before resolution; anchor names themselves are not validated.
+- Targets resolve relative to the linking file's directory and may be files or directories. A percent-encoded path (`my%20file.md`) is decoded first.
+- Links inside fenced code blocks and inline code spans are ignored.
+
+## Errors
+
+```
+docs/competition.md:11: broken relative link: ./README.md
+```
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

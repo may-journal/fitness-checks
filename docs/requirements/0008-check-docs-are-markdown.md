@@ -23,6 +23,6 @@ checks
     - When the doc move script runs on its folder
       - Then it fails naming the folder and leaves both files as they were
 - 0008.3
-  - Given Developer has the 23 checks moved to Markdown so far
+  - Given Developer has the 35 checks moved to Markdown so far
     - When the README test reads each folder
       - Then each doc.go holds a short comment and embeds the README
