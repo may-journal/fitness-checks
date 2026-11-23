@@ -96,7 +96,7 @@ func isAction(f string) bool {
 }
 
 // blockKeyRe is a key whose value is a block scalar, so its body is no step.
-var blockKeyRe = regexp.MustCompile(`^(\s*)(?:- +)?[\w.-]+:[ \t]*[|>][+-]?\d?[+-]?(\s+#.*)?$`)
+var blockKeyRe = regexp.MustCompile(`^(\s*)(- +)?[\w.-]+:[ \t]*[|>][+-]?\d?[+-]?(\s+#.*)?$`)
 
 // mappingRe is a line that opens a mapping entry, such as `shell: bash`.
 var mappingRe = regexp.MustCompile(`^[\w.-]+:( |$)`)
@@ -155,7 +155,7 @@ func blockBody(lines []string, i int) int {
 	if m == nil {
 		return 0
 	}
-	return len(bodyLines(lines[i+1:], len(m[1])))
+	return len(bodyLines(lines[i+1:], len(m[1])+len(m[2])))
 }
 
 // nonEmpty is a one-item list holding s, or none when s is empty.

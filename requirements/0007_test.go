@@ -705,6 +705,12 @@ func Test0007_8(t *testing.T) {
 				t.Errorf("want text inside a block left alone:\n%s", out)
 			}
 		}},
+		{"workflow-scripts judges a step after a block scalar name", func(t *testing.T) {
+			t.Parallel()
+			steps := "      - name: >-\n          Tag the release\n        run: git tag | sort\n"
+			out, code := scriptsCheck(t, map[string]string{".github/workflows/ci.yml": stepsWorkflow(steps)})
+			sees(t, out, code, 1, ".github/workflows/ci.yml:9: this run step holds a pipe")
+		}},
 	})
 }
 
