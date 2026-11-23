@@ -124,7 +124,9 @@ var movedChecks = []string{
 	"mermaid-callout-why", "mermaid-callouts", "mermaid-diagram-prose",
 	"mermaid-diagram-table-gap", "mermaid-legend", "mermaid-level-bleed", "mermaid-syntax",
 	"no-contrastive-reframing", "no-eslint-disable", "no-fitness-front-matter",
-	"no-plans-dir", "node-version",
+	"no-plans-dir", "node-version", "open-questions", "plan-structure", "plan-trailer",
+	"pr-closes-issue", "pr-structure", "prettier", "prose-budget", "read-repo-first",
+	"release-changelog", "repeated-string-literals", "requirements", "requirements-changed",
 }
 
 func Test0008_3(t *testing.T) {

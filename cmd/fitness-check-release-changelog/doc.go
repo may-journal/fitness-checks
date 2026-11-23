@@ -1,25 +1,10 @@
 // Command fitness-check-release-changelog binds Release Please's manifest to
-// the version file a reviewer can inspect. The check applies when
-// `.release-please-manifest.json` exists and contains a root release
-// version.
-//
-// # Behavior
-//
-//   - Use an explicit availability gate and pass with zero files when the repository has no Release Please manifest.
-//   - Pass during bootstrap when the manifest is an empty JSON object.
-//   - Require the root manifest value and `version.txt` to contain the same numeric `major.minor.patch` version.
-//   - Reject malformed JSON, unsupported manifests without the root `.` package, a missing `version.txt`, and mismatched versions.
-//
-// Release notes come from [entry files], not `CHANGELOG.md`, so this check
-// asks nothing of `CHANGELOG.md`. Set `"skip-changelog": true` in
-// `release-please-config.json` so Release Please stops writing it.
-//
-// [entry files]: https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-changelog#hdr-Entry_files
+// the version file a reviewer can inspect. Its rule is in README.md.
 package main
 
 import _ "embed"
 
-// docSource is this file, whose comment --describe summarizes.
+// docSource is README.md, whose first paragraph --describe summarizes.
 //
-//go:embed doc.go
+//go:embed README.md
 var docSource string

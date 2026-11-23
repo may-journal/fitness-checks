@@ -1,16 +1,10 @@
 // Command fitness-check-read-repo-first reminds agents and users to read the
-// repo's decisions and enabled checks first.
-//
-// # Behavior
-//
-//   - Always passes with zero files checked; no TTY or interactive prompt.
-//   - Outputs a boxed message to stderr; stdout carries the JSON result.
-//   - The box shows the question, a table of enabled check names when the runner provides them, and a note about not using `--no-verify`.
+// repo's decisions and enabled checks first. Its rule is in README.md.
 package main
 
 import _ "embed"
 
-// docSource is this file, whose comment --describe summarizes.
+// docSource is README.md, whose first paragraph --describe summarizes.
 //
-//go:embed doc.go
+//go:embed README.md
 var docSource string
