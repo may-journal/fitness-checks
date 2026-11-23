@@ -1,22 +1,10 @@
 // Command fitness-check-node-version requires the machine's active Node
-// version to satisfy the repo's `.nvmrc`. It only compares; run `nvm use`
-// yourself if needed. It asks `node --version` for the current version. A
-// missing or broken node binary reports info with an install hint, since no
-// version was read to judge.
-//
-// # Behavior
-//
-//   - Pass: `.nvmrc` exists and its major version is at most the current Node's major, as `.nvmrc` holding `24` and Node v24.x or higher.
-//   - Fail: `.nvmrc` missing → `missing .nvmrc`.
-//   - Fail: Node too old → `Node vX.Y.Z does not satisfy .nvmrc (requires N.x). Run: nvm use`.
-//
-// It accepts plain or `v`-prefixed versions in `.nvmrc`, such as `24` or
-// `v24`.
+// version to satisfy the repo's `.nvmrc`. Its rule is in README.md.
 package main
 
 import _ "embed"
 
-// docSource is this file, whose comment --describe summarizes.
+// docSource is README.md, whose first paragraph --describe summarizes.
 //
-//go:embed doc.go
+//go:embed README.md
 var docSource string

@@ -1,7 +1,17 @@
 # mermaid-diagram-table-gap
 
-Flags loose markdown prose wedged between a numbered mermaid diagram (or its legend block) and the callout table that follows it.
+Flags loose markdown prose wedged between a numbered mermaid diagram (or its legend block) and the callout table that follows it. It is part of the mermaid diagram and callout table fitness-function set ([#28](https://github.com/may-journal/fitness-runner/issues/28)). The callout table is the single home for detail ([#66](https://github.com/may-journal/fitness-runner/issues/66)).
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-mermaid-diagram-table-gap) or `fitness-check-mermaid-diagram-table-gap --describe`
+## Behavior
+
+The C4 doc layout is diagram → legend → one caption line → callout table, with every description in the table. This flags any non-blank markdown line in the gap between the table and the last mermaid block before it. That block is the legend when present, else the diagram. Such a paragraph just duplicates the table.
+
+The single caption line is allowed: a line that opens with `Numbers` and states they `match the callout table`. Any wording in between and any trailing clause after is fine. Prose before the diagram and prose after the table are both left alone — only the diagram-to-table gap is policed.
+
+A sibling check, `mermaid-diagram-prose`, owns the different rule of prose inside the diagram's own labels. This check never looks inside a block; it looks at the markdown lines around them.
+
+## Scope
+
+It runs on every Markdown file with a mermaid diagram or callout table; files with neither are skipped and don't count toward `filesChecked`.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
