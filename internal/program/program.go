@@ -13,6 +13,7 @@ import (
 	"go/token"
 	"io"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -86,8 +87,11 @@ func markdownSummary(source string) string {
 	if strings.HasPrefix(paragraph, "#") {
 		return ""
 	}
-	return new(doc.Package).Synopsis(paragraph)
+	return new(doc.Package).Synopsis(markdownLink.ReplaceAllString(paragraph, "$1"))
 }
+
+// markdownLink matches an inline Markdown link, whose text is group 1.
+var markdownLink = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
 
 // afterCommand drops the "Command fitness-check-<name>" opening from text and
 // capitalizes what follows, so the sentence reads on its own.
