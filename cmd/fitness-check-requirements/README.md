@@ -42,7 +42,7 @@ users who have lost connection
 ## Rules
 
 - IDs: the file name's `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
-- Acceptance IDs: the title ID plus `.N`, unique in its doc.
+- Acceptance IDs: the title ID plus `.N`, unique in its doc, at most `requirements.maxAcceptances` (8 by default); the first one past fails.
 - Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
 - Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
 - Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.
@@ -50,7 +50,7 @@ users who have lost connection
 - Ownership: exactly one test named for each acceptance owns it. A test named for an undefined acceptance fails.
 - Every test: each top-level test in the repository must be named for an acceptance. Setup functions and helpers are not tests.
 
-Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test.
+Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
 
 ## Behavior
 

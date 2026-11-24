@@ -676,6 +676,7 @@ var checkKeys = map[string]map[string]any{
 	"go-test-coverage":  {"goTestCoverage.entries": nil},
 	"go-complexity":     {"goComplexity.max": 5.0},
 	"localized-text":    {"localizedText.reference": nil, "localizedText.allow": nil},
+	"requirements":      {"requirements.maxAcceptances": 8.0},
 }
 
 // byNameOnly is the check the engine's catalog leaves out, since it runs only

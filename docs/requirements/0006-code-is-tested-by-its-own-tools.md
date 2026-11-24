@@ -15,9 +15,9 @@ repos with code or requirement docs
 ## Requirements
 
 - 0006.1
-  - Given Developer has requirement docs that break the template
-    - When the requirement doc template checks run on those docs
-      - Then each one fails naming the doc and the broken rule
+  - Given Developer has requirement docs that break the template or the acceptance cap
+    - When the requirement doc checks run on them
+      - Then each fails naming the doc and broken rule
 - 0006.2
   - Given Developer has requirements or ADRs whose proof is missing, doubled or misnamed
     - When the requirement ownership checks run on the repo

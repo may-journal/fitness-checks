@@ -41,6 +41,21 @@ func Test0006_1(t *testing.T) {
 			out, code := judged(t, reqs(acceptances("0001.1", "0001.1")))
 			sees(t, out, code, 1, "0001.1 appears twice")
 		}},
+		{"doc holds more acceptances than the cap", func(t *testing.T) {
+			t.Parallel()
+			for _, row := range []struct {
+				max, count int
+				want       []string
+			}{
+				{0, 8, nil},
+				{0, 9, []string{pairedDoc + ":49: 0001 holds 9 acceptances, at most 8; fold cases into table rows of one acceptance, or move a separate goal to its own doc"}},
+				{10, 9, nil},
+				{10, 11, []string{pairedDoc + ":57: 0001 holds 11 acceptances, at most 10;"}},
+			} {
+				out, code := fitness(t, example(t, "happyRepo", cappedRepo(row.max, row.count)), nil, "requirements")
+				sees(t, out, code, min(len(row.want), 1), row.want...)
+			}
+		}},
 		{"second given when then or wrong order", func(t *testing.T) {
 			t.Parallel()
 			out, code := judged(t, reqs(acceptances("0001.1")+"        - When I add them again\n"))
@@ -1970,6 +1985,25 @@ func withSource(doc, cite string) string {
 // docOf is goRepo with requirement 0001 replaced by body at path.
 func docOf(path, body string) map[string]string {
 	return with(goRepo(), map[string]string{"docs/requirements/0001-adds-numbers.md": "", path: body})
+}
+
+// cappedRepo is pairedRepo whose 0001 holds count tested acceptances, under
+// a positive limit as requirements.maxAcceptances or else the default.
+func cappedRepo(limit, count int) map[string]string {
+	var ids, tests []string
+	for n := 1; n <= count; n++ {
+		ids = append(ids, fmt.Sprintf("0001.%d", n))
+		tests = append(tests, fmt.Sprintf("Test0001_%d", n))
+	}
+	rc := `{"policy": "external", "checks": ["requirements"]}`
+	if limit > 0 {
+		rc = fmt.Sprintf(`{"policy": "external", "checks": ["requirements"], "requirements": {"maxAcceptances": %d}}`, limit)
+	}
+	return with(pairedRepo(), map[string]string{
+		".fitnessrc.json":   rc + "\n",
+		"reqs/0001_test.go": testFile("reqs", tests...),
+		pairedDoc:           requirementDoc(ids...),
+	})
 }
 
 // reqs is goRepo with requirement 0001's Requirements replaced.
