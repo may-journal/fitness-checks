@@ -27,7 +27,7 @@ A doc must repeat its legend too, so three kinds of Markdown line never count ([
 - A style statement inside any mermaid block, such as `classDef`, `cssClass` or `UpdateElementStyle`, but not `class`, which declares a class.
 - A GFM table separator row: the row under a table's header, outside fenced code.
 
-A doc must repeat its template, so templates are left out. Any file [doc-template](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-doc-template#hdr-What_is_a_template) treats as a template is skipped, in any folder. Docs built from one template are still compared with each other and with every other file.
+A doc must repeat its template, so templates are left out. Any file [doc-template](https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-doc-template/README.md#what-is-a-template) treats as a template is skipped, in any folder. Docs built from one template are still compared with each other and with every other file.
 
 ## Escape hatch
 
