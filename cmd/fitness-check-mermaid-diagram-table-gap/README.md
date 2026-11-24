@@ -12,4 +12,4 @@ A sibling check, `mermaid-diagram-prose`, owns the different rule of prose insid
 
 ## Scope
 
-It runs on every Markdown file with a mermaid diagram or callout table; files with neither are skipped and don't count toward `filesChecked`.
+A file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-diagram-table-gap` for the files it reads.

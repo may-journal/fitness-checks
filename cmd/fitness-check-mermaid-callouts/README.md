@@ -47,4 +47,4 @@ A skipped diagram still fails, so fix it by hand.
 
 ## Scope
 
-Runs on every Markdown file that contains a diagram or callout table. Files with neither are skipped and don't count toward `filesChecked`.
+A file with neither a diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-callouts` for the files it reads.

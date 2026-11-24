@@ -43,11 +43,11 @@ Detection is a plain line scan (grep-like), so the directive text is flagged eve
 const hint = 'prefix a line with eslint-disable-next-line to skip a rule';
 ```
 
-Reword the rare case rather than suppressing it. Scanned extensions are `.ts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.mts`, `.cts`, and test and spec files are included. The policy is zero-config and strict, with no allowlist.
+Reword the rare case rather than suppressing it. Test and spec files are included. Run `fitness explain no-eslint-disable` for the files it reads. The policy is zero-config and strict, with no allowlist.
 
 ## Behavior
 
-- Lists every tracked file with each extension, combining and de-duplicating results; no directory is skipped.
+- Combines and de-duplicates the files it lists.
 - Matches `eslint-disable(-next-line|-line)?` — file-level `eslint-disable`, block `eslint-disable ... eslint-enable`, `eslint-disable-line`, and `eslint-disable-next-line`.
 - Pass: no scanned file contains a directive.
 - Fail: `path/to/file.ts:42: <directive>` per hit.
