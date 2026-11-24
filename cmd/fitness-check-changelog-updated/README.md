@@ -15,7 +15,7 @@ A branch's own commits are those no other `origin` branch holds, so a stacked br
 - Pass (replay in progress): mid-merge, mid-cherry-pick, or mid-revert (`MERGE_HEAD`, `CHERRY_PICK_HEAD`, or `REVERT_HEAD` present) skips.
 - Pass: no staged context skips.
 - Pass: entry file additions share at least 3 words with the rest of the staged diff.
-- Fail: no staged entry file → "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes".
+- Fail: no staged entry file → "Stage a `changelog/<yyyy-mm-dd-HHMM>-<change>.md` entry file that mentions your staged changes".
 - Fail: the branch already has its entry file and the commit adds another → error naming the branch's entry file and each new one.
 - Fail: a staged new entry file whose name lacks its heading's date → error naming the file it should be.
 - Fail: a staged edit or deletion of an entry file the newest release tag holds → error asking for a new entry file.

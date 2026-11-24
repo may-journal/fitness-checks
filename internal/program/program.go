@@ -79,19 +79,25 @@ func Summary(source string) string {
 }
 
 // markdownSummary is the first sentence of the paragraph after the title of
-// the Markdown source. A source with no such paragraph has no summary.
+// the Markdown source. A first block that is not prose, such as
+// a list, fence, quote, table or HTML, gives no summary.
 func markdownSummary(source string) string {
 	source = strings.ReplaceAll(source, "\r\n", "\n")
 	_, body, _ := strings.Cut(strings.TrimSpace(source), "\n")
 	paragraph, _, _ := strings.Cut(strings.TrimSpace(body), "\n\n")
-	if strings.HasPrefix(paragraph, "#") {
+	if !markdownProse.MatchString(paragraph) {
 		return ""
 	}
 	return new(doc.Package).Synopsis(markdownLink.ReplaceAllString(paragraph, "$1"))
 }
 
-// markdownLink matches an inline Markdown link, whose text is group 1.
-var markdownLink = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
+// markdownProse matches a block that starts as plain prose: not a heading,
+// list item, code fence, quote, table, HTML or indented code.
+var markdownProse = regexp.MustCompile(`^[^\s#>|<` + "`~" + `*+\-\d]|^\d+[^.)\d]|^[*+\-][^\s]`)
+
+// markdownLink matches an inline Markdown link, whose text is group 1. Its URL
+// may hold one level of balanced parentheses.
+var markdownLink = regexp.MustCompile(`\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)`)
 
 // afterCommand drops the "Command fitness-check-<name>" opening from text and
 // capitalizes what follows, so the sentence reads on its own.

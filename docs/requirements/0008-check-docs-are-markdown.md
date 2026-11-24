@@ -25,4 +25,12 @@ checks
 - 0008.3
   - Given Developer has the 69 checks moved to Markdown so far
     - When the README test reads each folder
-      - Then each doc.go holds a short comment and embeds the README
+      - Then each doc.go is one Command comment ending with its pointer to the README, followed by the embed and nothing else
+- 0008.4
+  - Given Developer has a README with a parenthesized link URL, or a non-prose first block
+    - When the check describes itself
+      - Then the summary has no stray parenthesis, and is empty without prose
+- 0008.5
+  - Given Developer has a doc.go comment that opens with a multi-byte letter
+    - When the doc move script runs on its folder
+      - Then the README opens with that letter as a whole capital
