@@ -16,8 +16,11 @@ func main() {
 
 func run(root string, _ []string) (checkkit.Result, error) {
 	model, err := architecture.Load(root)
-	if errs := model.JourneyErrors(); len(errs) > 0 {
-		return checkkit.Fail(model.JourneyFiles(), errs...), err
+	errs, notes := model.JourneyErrors()
+	result := checkkit.Pass(model.JourneyFiles())
+	if len(errs) > 0 {
+		result = checkkit.Fail(model.JourneyFiles(), errs...)
 	}
-	return checkkit.Pass(model.JourneyFiles()), err
+	result.Info = notes
+	return result, err
 }

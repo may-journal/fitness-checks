@@ -735,6 +735,36 @@ func Test0005_6(t *testing.T) {
 			out, code = ajRun(t, ajSecondDoc(dropped))
 			sees(t, out, code, 1, ajMissingDoc("0001"))
 		}},
+		{"steps naming each other's docs fail", func(t *testing.T) {
+			t.Parallel()
+			crossed := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "open(2 Open the app<br/>Req 0002)"), ajTagDone, "done[3 Save the record<br/>Req 0001]")
+			out, code := ajRun(t, crossed)
+			sees(t, out, code, 1, "architecture/05-user-journey.md:18: journey step open reads as requirement 0001 yet names 0002; name the doc whose behavior the step is, or reword the step",
+				"architecture/05-user-journey.md:19: journey step done reads as requirement 0002 yet names 0001")
+			straight := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagDone, "done[3 Save the record<br/>Req 0002]"), "-->|saves| done", "-->|saves 0001| done")
+			out, code = ajRun(t, straight)
+			sees(t, out, code, 0)
+			if strings.Contains(out, "reads as requirement") {
+				t.Errorf("a step naming its own doc must add no note:\n%s", out)
+			}
+			grouped := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "subgraph open[2 Open the app<br/>Req 0002]\nend"), ajTagDone, "subgraph done[3 Save the record<br/>Req 0001]\nend")
+			out, code = ajRun(t, grouped)
+			if strings.Contains(out, "reads as requirement") {
+				t.Errorf("a layout subgraph is no step to judge:\n%s", out)
+			}
+		}},
+		{"one step reading as another doc adds a note", func(t *testing.T) {
+			t.Parallel()
+			loose := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "open(2 Open the app<br/>Req 0002)"), "-->|saves| done", "-->|saves 0001| done")
+			out, code := ajRun(t, loose)
+			showsInfo(t, out, code, ajCheck, "architecture/05-user-journey.md:18: journey step open reads as requirement 0001 yet names 0002; check that the step names the doc whose behavior it is")
+			both := ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "open(2 Open the app<br/>Req 0001, 0002)")
+			out, code = ajRun(t, both)
+			sees(t, out, code, 0)
+			if strings.Contains(out, "reads as requirement") {
+				t.Errorf("a step naming the doc it reads as must add no note:\n%s", out)
+			}
+		}},
 		{"journey drift stays after other side changes", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", ajSecondDoc(ajFixture()))

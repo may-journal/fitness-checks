@@ -2,8 +2,12 @@ package architecture
 
 import (
 	"fmt"
+	"path"
 	"regexp"
+	"slices"
 	"strings"
+
+	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
 // maxLabelIDs is the most requirement IDs one journey label may name, so a
@@ -42,15 +46,17 @@ func (m *Model) JourneyFiles() int {
 
 // JourneyErrors compares requirement IDs named in journey labels with
 // requirement docs, both ways, and requires each behavior node to name one.
-func (m *Model) JourneyErrors() []string {
+// Its notes are the steps that read as a doc they do not name.
+func (m *Model) JourneyErrors() (errs, notes []string) {
 	if m.journeyAt == (Location{}) {
-		return nil
+		return nil, nil
 	}
 	j := &journey{m: m, named: map[string]bool{}, nodes: map[string]bool{}}
 	j.labels()
 	j.docs()
 	j.behavior()
-	return j.errs
+	j.swapped()
+	return j.errs, j.notes
 }
 
 // labels reads every journey label: elements first, then edges.
@@ -74,6 +80,7 @@ type journey struct {
 	named map[string]bool
 	nodes map[string]bool
 	errs  []string
+	notes []string
 }
 
 func (j *journey) fail(at Location, format string, args ...any) {
@@ -173,4 +180,108 @@ func (j *journey) parent(id string) string {
 
 func promises(kind string) bool {
 	return kind != "subgraph" && !strings.HasPrefix(strings.ToLower(kind), "person")
+}
+
+// labelWord is one word of a journey label or a requirement doc's file name.
+var labelWord = regexp.MustCompile(`[a-z]{3,}`)
+
+// fillerWords carry no meaning in a title, so they never tie a step to a doc.
+var fillerWords = []string{"and", "the", "for", "with", "its", "own", "are", "req"}
+
+// titleWords are the meaningful words of text, lowercased, each without a
+// plural `s`, so `Events` and `event` are one word.
+func titleWords(text string) []string {
+	var out []string
+	for _, w := range labelWord.FindAllString(strings.ToLower(text), -1) {
+		if slices.Contains(fillerWords, w) {
+			continue
+		}
+		if w = strings.TrimSuffix(w, "s"); !slices.Contains(out, w) {
+			out = append(out, w)
+		}
+	}
+	return out
+}
+
+// docWords are the meaningful words of a requirement doc's file name, which
+// the requirements check holds to the doc's title.
+func docWords(doc string) []string {
+	return titleWords(strings.TrimSuffix(path.Base(doc), ".md"))
+}
+
+// misread is a step whose label reads as docs it leaves out.
+type misread struct {
+	step   Element
+	ids    []string
+	readAs []string
+}
+
+// swapped fails two steps that read as each other's docs, since their labels
+// are crossed. One such step alone may only be worded loosely, so it adds a note.
+func (j *journey) swapped() {
+	found := j.misreads()
+	for _, f := range found {
+		text := fmt.Sprintf("journey step %s reads as requirement %s yet names %s", f.step.ID, strings.Join(f.readAs, ", "), strings.Join(f.ids, ", "))
+		if crossed(f, found) {
+			j.fail(f.step.At, "%s; name the doc whose behavior the step is, or reword the step", text)
+			continue
+		}
+		j.notes = append(j.notes, f.step.At.String()+": "+text+"; check that the step names the doc whose behavior it is")
+	}
+}
+
+// misreads lists the behavior steps whose label reads as docs it leaves out.
+func (j *journey) misreads() []misread {
+	var found []misread
+	for _, e := range j.m.Elements {
+		if e.View != journeyView || !promises(e.Kind) {
+			continue
+		}
+		ids := uniqueIDs(labelID.FindAllString(entityCode.ReplaceAllString(e.Name, ""), -1))
+		if others := j.readsAs(titleWords(e.Name), ids); len(others) > 0 {
+			found = append(found, misread{e, ids, others})
+		}
+	}
+	return found
+}
+
+// crossed reports another step that names a doc f reads as, and reads as a
+// doc f names.
+func crossed(f misread, all []misread) bool {
+	return slices.ContainsFunc(all, func(o misread) bool {
+		return shares(o.ids, f.readAs) && shares(f.ids, o.readAs)
+	})
+}
+
+// readsAs lists each doc the label leaves out while holding every title
+// word of it. It lists none for a label that fits a doc it names.
+func (j *journey) readsAs(words, ids []string) []string {
+	if j.fits(words, ids) {
+		return nil
+	}
+	var others []string
+	for _, doc := range j.m.Requirements {
+		if !slices.Contains(ids, doc.ID) && holdsAll(words, docWords(doc.Path)) {
+			others = append(others, doc.ID)
+		}
+	}
+	return others
+}
+
+// fits reports a label that names no doc, or shares a title word with a doc
+// it names.
+func (j *journey) fits(words, ids []string) bool {
+	return len(ids) == 0 || slices.ContainsFunc(j.m.Requirements, func(doc requirement.Document) bool {
+		return slices.Contains(ids, doc.ID) && shares(words, docWords(doc.Path))
+	})
+}
+
+// shares reports a word that both lists hold.
+func shares(a, b []string) bool {
+	return slices.ContainsFunc(a, func(w string) bool { return slices.Contains(b, w) })
+}
+
+// holdsAll reports a title with words, every one of them among words.
+func holdsAll(words, title []string) bool {
+	return len(title) > 0 && !slices.ContainsFunc(title, func(w string) bool { return !slices.Contains(words, w) })
 }

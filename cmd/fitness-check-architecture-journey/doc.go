@@ -39,6 +39,20 @@
 // system step, names an ID in its own label or an enclosing subgraph label.
 // An edge label covers its IDs but no node.
 //
+// # Steps that read as another doc
+//
+// Each doc's file name holds its title, such as `0002-save.md`. A step reads
+// as a doc when its label holds every title word of that doc. The step must
+// also share no title word with any doc it names. Short words, `and`, `the`
+// and a plural `s` are left out of the comparison.
+//
+//   - Two steps that read as each other's docs have crossed labels, and both fail.
+//   - One such step alone may only be worded loosely, so it adds a note and the check still passes.
+//   - A step that shares one title word with a doc it names is never judged.
+//
+// The check compares words only. It cannot tell whether a step is the
+// behavior its doc describes when the two share no words.
+//
 // # Failures
 //
 // Every error names the view line it concerns and the requirement ID.
@@ -47,6 +61,7 @@
 //   - A label naming an acceptance ID or a doc that does not exist.
 //   - A label naming more than eight IDs.
 //   - A behavior node with no ID, at its diagram line.
+//   - Two steps whose labels read as each other's docs, at each step's line.
 //
 // A repo without architecture views passes with zero files. A missing
 // journey view belongs to `architecture-contract`.
