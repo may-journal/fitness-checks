@@ -4,7 +4,7 @@ Lists Go files that gofmt would change. It is on by default.
 
 ## Behavior
 
-- Checks the repo's own `.go` files, leaving out `testdata` and `vendor` fixtures and paths the config ignores.
+- Skips `testdata` and `vendor` fixtures, which are not its own code, and ignored paths. Run `fitness explain gofmt` for the files it reads.
 - Runs `gofmt -l` over them and reports each listed file as `path: not gofmt-formatted (run: gofmt -w path)`.
 - A repo with no `.go` files passes clean (`filesChecked: 0`), so the check is safe in every repo.
 - A file gofmt cannot parse fails as `path:line:column: message`.

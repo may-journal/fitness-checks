@@ -4,7 +4,7 @@ Requires every relative link in every markdown file to resolve to an existing fi
 
 ## Behavior
 
-- Inline links, images, and reference-style definitions are checked in every Markdown file.
+- Inline links, images, and reference-style definitions are checked. Run `fitness explain markdown-links` for the files it reads.
 - Absolute URLs (any scheme), protocol-relative URLs, and fragment-only links (`#anchor`) are never touched — the check is fully offline and deterministic.
 - A `#fragment` suffix is stripped before resolution; anchor names themselves are not validated.
 - Targets resolve relative to the linking file's directory and may be files or directories. A percent-encoded path (`my%20file.md`) is decoded first.

@@ -14,7 +14,7 @@ A paragraph is a run of consecutive prose lines. A section runs from one heading
 
 - Pass: every masked paragraph, section, and list in the file is within all six limits.
 - Fail: one error per limit crossed, naming the file, the offending element, and its count versus the limit.
-- Every tracked Markdown file is judged, `CHANGELOG.md` included; there is no exempt list.
+- `CHANGELOG.md` is judged too; there is no exempt list. Run `fitness explain prose-budget` for the files it reads.
 - A `.fitnessrc.json` that tries to exempt files fails the run.
 
 It shares its prose extraction and sentence splitting with `text-readability` through `pkg/mdx`.

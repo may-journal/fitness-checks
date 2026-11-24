@@ -56,7 +56,7 @@ node_modules/
 
 ## Behavior
 
-- Reads `<root>/.gitignore`. When the file is absent, passes with `filesChecked` 0.
+- When `.gitignore` is absent, passes with `filesChecked` 0. Run `fitness explain gitignore-why` for the files it reads.
 - Classifies each line as blank, a `#` comment, or a pattern (any other non-blank line, including `!` negations and `dir/` rules).
 - Pass: every pattern line is directly preceded by a non-empty explanatory `#` comment.
 - Fail: reports `.gitignore:<lineNumber>: pattern "<text>" has no explanatory # comment on the line above` for each offending pattern.

@@ -10,4 +10,4 @@ Connectors carry letter callouts, not numbers, as [mermaid-callouts](../fitness-
 
 ## Where it runs
 
-It runs on every Markdown file with a mermaid diagram or callout table, and on every `.mmd` or `.mermaid` file. Files with neither are skipped and don't count toward `filesChecked`.
+A file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-legend` for the files it reads.

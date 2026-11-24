@@ -4,7 +4,7 @@ Fails a `run:` step in a workflow or action that holds more than a trivial comma
 
 ## Behavior
 
-- It reads the `.yml` and `.yaml` files directly under `.github/workflows`, and every `action.yml` and `action.yaml`.
+- Run `fitness explain workflow-scripts` for the files it reads.
 - Pass: a one-line step with no control flow, heredoc, pipe, `;`, `&&` or `||`, such as `run: scripts/release.sh`.
 - Fail: a block scalar with more than one line of shell, not counting blank lines and comments.
 - Fail: one line that opens with `if`, `for`, `while`, `until`, `case`, `select` or `function`.

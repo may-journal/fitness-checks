@@ -4,7 +4,7 @@ Fails a workflow calling a may-journal workflow or action at a tag or sha lackin
 
 ## Behavior
 
-- It reads each `uses:` line in the workflow files directly under `.github/workflows`.
+- It reads each `uses:` line. Run `fitness explain workflow-ref-exists` for the files it reads.
 - A `may-journal/<repo>/<path>@<ref>` line names a reusable workflow file or an action folder. A bare `may-journal/<repo>@<ref>` names the repo's root action.
 - A ref is a tag or a full 40-character sha, and the path must exist at it.
 - An action folder holds an `action.yml` or `action.yaml` file at the ref.
