@@ -1,7 +1,11 @@
 # mermaid-diagram-prose
 
-Fails edge labels that carry prose beyond a callout, number or letter, in any mermaid diagram.
+Fails edge labels that carry prose beyond a callout, number or letter, in any mermaid diagram. Diagram labels must not duplicate callout table prose. It is part of the mermaid diagram and callout table fitness-function set ([#28](https://github.com/may-journal/fitness-runner/issues/28)).
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-mermaid-diagram-prose) or `fitness-check-mermaid-diagram-prose --describe`
+## Behavior
+
+In every diagram, with a callout table or not, it flags edge labels with prose after a callout number or letter. For example, `"6 Uses"` should be `"6"` and `"A calls"` should be `"A"`. Arrows carry callouts only; descriptions belong in the table, not the diagram.
+
+It runs on every Markdown file with a mermaid diagram or callout table; files with neither are skipped and don't count toward `filesChecked`.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

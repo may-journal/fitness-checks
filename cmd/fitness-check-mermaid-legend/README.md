@@ -1,7 +1,15 @@
 # mermaid-legend
 
-Requires numbered flowchart callout nodes to carry a style class, and diagrams with callouts to declare a `classDef` legend.
+Requires numbered flowchart callout nodes to carry a style class, and diagrams with callouts to declare a `classDef` legend. It is part of the mermaid diagram and callout table fitness-function set ([#28](https://github.com/may-journal/fitness-runner/issues/28)).
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-mermaid-legend) or `fitness-check-mermaid-legend --describe`
+## Behavior
+
+A class is inline `:::class` or a `class` or `style` statement. The check flags numbered callout nodes with no styling, since consistent styling keeps callouts legible in a legend. C4 and other diagram types, with their different styling model, are skipped.
+
+Connectors carry letter callouts, not numbers, as [mermaid-callouts](../fitness-check-mermaid-callouts/README.md) requires. Links take `linkStyle`, not a class, so this check skips connector letters.
+
+## Where it runs
+
+It runs on every Markdown file with a mermaid diagram or callout table, and on every `.mmd` or `.mermaid` file. Files with neither are skipped and don't count toward `filesChecked`.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

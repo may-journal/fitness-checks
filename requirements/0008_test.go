@@ -121,6 +121,10 @@ var movedChecks = []string{
 	"go-test-coverage", "go-vet", "gofmt", "issue-checklist", "issue-link-once", "java-test",
 	"java-version", "local-branch", "localized-text", "markdown-filename-camel-case",
 	"markdown-filename-kebab-case", "markdown-links", "markdown-no-bold-italic",
+	"mermaid-callout-why", "mermaid-callouts", "mermaid-diagram-prose",
+	"mermaid-diagram-table-gap", "mermaid-legend", "mermaid-level-bleed", "mermaid-syntax",
+	"no-contrastive-reframing", "no-eslint-disable", "no-fitness-front-matter",
+	"no-plans-dir", "node-version",
 }
 
 func Test0008_3(t *testing.T) {
