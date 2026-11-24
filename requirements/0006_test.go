@@ -1721,13 +1721,38 @@ func Test0006_7(t *testing.T) {
 func Test0006_8(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"pages named by defined acceptances pass", func(t *testing.T) {
+		{"one page per acceptance passes", func(t *testing.T) {
 			t.Parallel()
-			view := storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n\n#Preview(\"0001.1 night\", traits: .sizeThatFitsLayout) { BadgeView() }\n\n#Preview(\"0001.2\") {\n    BadgeView()\n}\n")
-			pages := "let pages = [\n    BookPage(title: \"0001.2 empty\") { BadgeView() },\n]\n"
-			out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": view, "App/Pages.swift": pages})
+			view := storybookView("#Preview(\"0001.1 day\", traits: .sizeThatFitsLayout) { BadgeView() }\n")
+			pages := "let pages = [\n    BookPage(title: \"0001.2\") { BadgeView() },\n]\n"
+			out, code := storybookCheck(t, map[string]string{storybookShown: "", "App/BadgeView.swift": view, "App/Pages.swift": pages})
 			sees(t, out, code, 0, "All 1 checks passed")
-			passedWith(t, out, "swift-storybook-requirements", "3")
+			passedWith(t, out, "swift-storybook-requirements", "2")
+		}},
+		{"two pages sharing an acceptance fail", func(t *testing.T) {
+			t.Parallel()
+			view := storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n\n#Preview(\"0001.1 night\") { BadgeView() }\n")
+			out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": view})
+			sees(t, out, code, 1, "App/BadgeView.swift:9 - page \"0001.1 night\" repeats acceptance 0001.1 from line 7; draw each variant as a labeled row on one page",
+				"App/Shown.swift:4 - page \"0001.1 shown\" repeats acceptance 0001.1 from App/BadgeView.swift:7")
+		}},
+		{"preview and BookPage sharing an acceptance fail", func(t *testing.T) {
+			t.Parallel()
+			out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": storybookView("#Preview(\"0001.2 empty\") { BadgeView() }\n")})
+			sees(t, out, code, 1, "App/Shown.swift:5 - page \"0001.2 shown\" repeats acceptance 0001.2 from App/BadgeView.swift:7; draw each variant as a labeled row on one page")
+		}},
+		{"configured pages per acceptance", func(t *testing.T) {
+			t.Parallel()
+			two := storybookView("#Preview(\"0001.1 day\") { BadgeView() }\n\n#Preview(\"0001.1 night\") { BadgeView() }\n")
+			three := two + "\n#Preview(\"0001.1 dusk\") { BadgeView() }\n"
+			raised := `{"swiftStorybookRequirements": {"maxPagesPerAcceptance": 2}}` + "\n"
+			out, code := storybookCheck(t, map[string]string{".fitnessrc.json": raised, storybookShown: storybookPages, "App/BadgeView.swift": two})
+			sees(t, out, code, 0, "All 1 checks passed")
+			out, code = storybookCheck(t, map[string]string{".fitnessrc.json": raised, storybookShown: storybookPages, "App/BadgeView.swift": three})
+			sees(t, out, code, 1, "App/BadgeView.swift:11 - page \"0001.1 dusk\" repeats acceptance 0001.1 from line 7")
+			zero := `{"swiftStorybookRequirements": {"maxPagesPerAcceptance": 0}}` + "\n"
+			out, code = storybookCheck(t, map[string]string{".fitnessrc.json": zero, storybookShown: storybookPages, "App/BadgeView.swift": two})
+			sees(t, out, code, 1, "App/BadgeView.swift:9 - page \"0001.1 night\" repeats acceptance 0001.1 from line 7")
 		}},
 		{"unnamed preview or page fails", func(t *testing.T) {
 			t.Parallel()
@@ -3497,6 +3522,10 @@ photos opened
 // storybookShown is the fixture app's page file that imports Storybook and
 // shows both acceptances. A test's own pages are all that it judges.
 const storybookShown = "App/Shown.swift"
+
+// storybookPages is a storybookShown body that shows only 0001.2, so a test
+// draws the pages of 0001.1 itself.
+const storybookPages = "import Storybook\n\nlet shown = [BookPage(title: \"0001.2 shown\") { BadgeView() }]\n"
 
 // storybookCatalog is a file that imports Storybook and declares no page, as
 // an app with no pages yet has.

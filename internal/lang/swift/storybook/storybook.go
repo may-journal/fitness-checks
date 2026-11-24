@@ -6,6 +6,7 @@
 package storybook
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -69,9 +70,9 @@ const (
 
 func (p page) at() string { return fmt.Sprintf("%s:%d", p.file, p.line) }
 
-// Run judges every Swift file in the repo at root, even in a scoped run,
-// since names repeat across files. A repo without docs or Storybook passes.
-func Run(root string, _ []string) (checkkit.Result, error) {
+// Run judges every Swift file at root, even in a scoped run, allowing
+// maxPages pages per acceptance. A repo without docs or Storybook passes.
+func Run(root string, maxPages int) (checkkit.Result, error) {
 	docs := requirement.DocPaths(root)
 	files := walkfs.FilesByExt(root, swift.Ext)
 	if len(docs) == 0 || len(files) == 0 {
@@ -84,14 +85,14 @@ func Run(root string, _ []string) (checkkit.Result, error) {
 	if !uses {
 		return checkkit.Info(len(files), NoStorybook), nil
 	}
-	return verdict(len(files), judgeAgainst(root, docs, pages)), nil
+	return verdict(len(files), judgeAgainst(root, docs, pages, maxPages)), nil
 }
 
 // judgeAgainst judges pages against the acceptances the docs define, then
 // each acceptance no page names. A doc it cannot read is a finding too.
-func judgeAgainst(root string, docs []string, pages []page) []string {
+func judgeAgainst(root string, docs []string, pages []page, maxPages int) []string {
 	loaded, _, skipped := requirement.Load(root, docs)
-	findings := append(skipped, judge(pages, acceptances(loaded))...)
+	findings := append(skipped, judge(pages, acceptances(loaded), maxPages)...)
 	return append(findings, missingPages(loaded, pages)...)
 }
 
@@ -223,23 +224,51 @@ func named(lit swift.Literal) (string, nameKind) {
 	return lit.Text, literal
 }
 
-// judge returns a finding for each page whose name is wrong or repeats an
-// earlier page's name.
-func judge(pages []page, ids []string) []string {
+// judge returns a finding for each page with a wrong or repeated name, or
+// whose acceptance maxPages earlier pages already name.
+func judge(pages []page, ids []string, maxPages int) []string {
 	var out []string
-	seen := map[string]page{}
+	shown := map[string][]page{}
 	for _, p := range pages {
-		finding := nameFinding(p, ids)
-		if first, ok := seen[p.name]; finding == "" && ok {
-			finding = fmt.Sprintf("page %q repeats the name of the page at %s; give each page its own label after the ID", p.name, first.at())
-		}
-		if finding != "" {
+		id := acceptanceID(p.name)
+		if finding := cmp.Or(nameFinding(p, ids), repeatFinding(p, id, shown[id], maxPages)); finding != "" {
 			out = append(out, p.at()+" - "+finding)
 			continue
 		}
-		seen[p.name] = p
+		shown[id] = append(shown[id], p)
 	}
 	return out
+}
+
+// repeatFinding is the finding for a page of acceptance id that repeats an
+// earlier name or follows maxPages earlier pages, or "".
+func repeatFinding(p page, id string, earlier []page, maxPages int) string {
+	for _, e := range earlier {
+		if e.name == p.name {
+			return fmt.Sprintf("page %q repeats the name of the page at %s; give each page its own label after the ID", p.name, e.at())
+		}
+	}
+	if len(earlier) >= maxPages {
+		return fmt.Sprintf("page %q repeats acceptance %s from %s; draw each variant as a labeled row on one page", p.name, id, earlier[0].from(p.file))
+	}
+	return ""
+}
+
+// acceptanceID is the acceptance ID a page name starts with, or "".
+func acceptanceID(name string) string {
+	if m := pageName.FindStringSubmatch(name); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// from names where p is seen from a page in file: its line alone in the
+// same file, else its file and line.
+func (p page) from(file string) string {
+	if p.file == file {
+		return fmt.Sprintf("line %d", p.line)
+	}
+	return p.at()
 }
 
 // nameFinding is a page's finding about its own name, or "".
