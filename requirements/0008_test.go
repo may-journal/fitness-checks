@@ -215,8 +215,9 @@ func collectKeys(list any, into map[string]bool) {
 	items, _ := list.([]any)
 	for _, item := range items {
 		entry, _ := item.(map[string]any)
-		key, _ := entry["key"].(string)
-		into[key] = true
+		if key, _ := entry["key"].(string); key != "" {
+			into[key] = true
+		}
 		collectKeys(entry["keys"], into)
 	}
 }

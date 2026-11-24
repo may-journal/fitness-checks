@@ -37,4 +37,4 @@ checks
 - 0008.6
   - Given Developer has each check's README
     - When the README test reads it against the check's `--describe`
-      - Then the README names no config key that the check does not declare, and says to run `fitness explain` when it declares keys
+      - Then the README names no config key the check does not declare, and says to run `fitness explain` when it declares keys
