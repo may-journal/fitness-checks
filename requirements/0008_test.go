@@ -52,12 +52,12 @@ func Test0008_1(t *testing.T) {
 		{"the described summary stays", func(t *testing.T) {
 			t.Parallel()
 			folder := demoFolder(t, demoDoc)
-			want := program.Summary(demoDoc[strings.Index(demoDoc, "// Command"):])
+			const want = "Fails a Zork file."
 			if _, err := moveDocs(t, folder); err != nil {
 				t.Fatal(err)
 			}
-			if got := program.Summary(readText(t, folder, "README.md")); got != want || want != "Fails a Zork file." {
-				t.Errorf("README.md summary is %q, want %q", got, "Fails a Zork file.")
+			if got := program.Summary(readText(t, folder, "README.md")); got != want {
+				t.Errorf("README.md summary is %q, want %q", got, want)
 			}
 		}},
 	})
@@ -123,7 +123,8 @@ func readText(t *testing.T, folder, file string) string {
 // the move to Markdown grows.
 var movedChecks = []string{
 	"adr-as-issue", "adr-checks", "architecture-actors", "architecture-code",
-	"architecture-components", "architecture-containers", "build-output-untracked",
+	"architecture-components", "architecture-containers", "architecture-contract",
+	"architecture-journey", "build-output-untracked",
 	"changelog", "changelog-bullets", "changelog-updated", "checkstyle", "comment-structure",
 	"commit-attribution", "cspell", "dependency-currency", "doc-template", "duplicate-code",
 	"epic-structure", "eslint", "gitignore-why", "go-complexity", "go-test",
