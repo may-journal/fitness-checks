@@ -114,10 +114,13 @@ func readText(t *testing.T, folder, file string) string {
 // the move to Markdown grows.
 var movedChecks = []string{
 	"adr-as-issue", "adr-checks", "architecture-actors", "architecture-code",
-	"architecture-components", "architecture-containers", "build-output-untracked", "changelog",
-	"changelog-bullets", "changelog-updated", "checkstyle", "comment-structure", "commit-attribution",
-	"cspell", "dependency-currency", "doc-template", "duplicate-code", "epic-structure", "eslint",
-	"gitignore-why", "go-complexity", "go-test", "gofmt",
+	"architecture-components", "architecture-containers", "build-output-untracked",
+	"changelog", "changelog-bullets", "changelog-updated", "checkstyle", "comment-structure",
+	"commit-attribution", "cspell", "dependency-currency", "doc-template", "duplicate-code",
+	"epic-structure", "eslint", "gitignore-why", "go-complexity", "go-test",
+	"go-test-coverage", "go-vet", "gofmt", "issue-checklist", "issue-link-once", "java-test",
+	"java-version", "local-branch", "localized-text", "markdown-filename-camel-case",
+	"markdown-filename-kebab-case", "markdown-links", "markdown-no-bold-italic",
 }
 
 func Test0008_3(t *testing.T) {

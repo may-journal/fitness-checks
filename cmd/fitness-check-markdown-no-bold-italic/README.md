@@ -2,6 +2,11 @@
 
 Fails bold and italic emphasis in markdown files: `**bold**`, `__bold__`, `*italic*`, or `_italic_`.
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-markdown-no-bold-italic) or `fitness-check-markdown-no-bold-italic --describe`
+## Behavior
+
+- Pass: no Markdown files, or no Markdown file contains bold (double asterisk or double underscore) or italic (single asterisk or single underscore) emphasis.
+- Fail: any Markdown file contains disallowed emphasis; one error per occurrence with file path and snippet.
+
+Scans every tracked Markdown file, `CHANGELOG.md` included. Use bold or italic only when explicitly required. Ignores emphasis inside fenced code, inline code, and Markdown link blocks, so underscores in URLs or link text are not flagged. The bold scope Release Please gives release bullets is allowed too.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
