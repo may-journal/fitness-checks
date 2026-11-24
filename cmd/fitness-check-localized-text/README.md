@@ -38,9 +38,9 @@ Each failure names the file, line, and literal, the call or catalog entry, and t
 
 ## Reference and allow list
 
-`localizedText.reference` names the type views and tests read entries through, as failures name it. Without it they say `String(localized:)`.
+A repo can name the type that views and tests read entries through, as failures name it. Without one they say `String(localized:)`.
 
-`localizedText.allow` passes a literal its `pattern` regular expression matches whole. Each pattern needs a `reason`, and one without, or one that does not compile, fails the check:
+A literal that an allow pattern matches whole passes. Each pattern needs a reason, and one without, or one that does not compile, fails the check. Run `fitness explain localized-text` for the keys:
 
 ```
 {

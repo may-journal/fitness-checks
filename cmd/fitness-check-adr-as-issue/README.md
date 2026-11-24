@@ -23,7 +23,7 @@ An issue's state is its status, so a superseded or rejected ADR's issue is close
 
 ## Allowing ADRs that wait
 
-When the migration cannot run yet, `adrAsIssue.allow` lists the paths still waiting, each glob with the reason it waits.
+When the migration cannot run yet, a path may wait, each glob with the reason it waits. Run `fitness explain adr-as-issue` for the key.
 
 - Fail: an allow entry without a reason, or whose glob is malformed.
 - Fail: an allow entry that matches no ADR file, so the list shrinks as files move and ends empty.
