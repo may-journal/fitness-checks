@@ -42,7 +42,7 @@ users who have lost connection
 ## Rules
 
 - IDs: the file name's `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
-- Acceptance IDs: the title ID plus `.N`, unique in its doc, at most `requirements.maxAcceptances` (8 by default); the first one past fails.
+- Acceptance IDs: the title ID plus `.N`, unique in its doc, at most `requirements.maxAcceptances` per doc; the first one past fails.
 - Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
 - Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
 - Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.

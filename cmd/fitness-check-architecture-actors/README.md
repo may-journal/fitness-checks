@@ -41,7 +41,7 @@ A test, changelog or doc change cannot move the views. A scoped run with no chan
 
 - No architecture views: pass with `filesChecked: 0`.
 - Otherwise `filesChecked` counts the requirement docs read.
-- Doc shape and missing views belong to the requirements and `architecture-contract` checks.
+- Doc shape and missing views belong to the `requirements` and `architecture-contract` checks.
 
 ## Requirements
 

@@ -8,13 +8,17 @@ import (
 )
 
 // maxAcceptances resolves the cap: the .fitnessrc.json
-// requirements.maxAcceptances value when positive, else the default.
-func maxAcceptances(root string) int {
+// requirements.maxAcceptances value when positive, else the default. A config
+// file that does not parse is an error, not a silent default.
+func maxAcceptances(root string) (int, error) {
 	var c fileConfig
-	if config.Read(root, &c) == nil && c.Requirements.MaxAcceptances > 0 {
-		return c.Requirements.MaxAcceptances
+	if err := config.Read(root, &c); err != nil {
+		return 0, err
 	}
-	return defaults.Requirements.MaxAcceptances
+	if c.Requirements.MaxAcceptances > 0 {
+		return c.Requirements.MaxAcceptances, nil
+	}
+	return defaults.Requirements.MaxAcceptances, nil
 }
 
 // capErrors fails each doc holding more than limit acceptances, at the first

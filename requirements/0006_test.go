@@ -51,9 +51,13 @@ func Test0006_1(t *testing.T) {
 				{0, 9, []string{pairedDoc + ":49: 0001 holds 9 acceptances, at most 8; fold cases into table rows of one acceptance, or move a separate goal to its own doc"}},
 				{10, 9, nil},
 				{10, 11, []string{pairedDoc + ":57: 0001 holds 11 acceptances, at most 10;"}},
+				{3, 4, []string{pairedDoc + ":29: 0001 holds 4 acceptances, at most 3;"}},
 			} {
-				out, code := fitness(t, example(t, "happyRepo", cappedRepo(row.max, row.count)), nil, "requirements")
-				sees(t, out, code, min(len(row.want), 1), row.want...)
+				t.Run(fmt.Sprintf("cap %d holds %d", row.max, row.count), func(t *testing.T) {
+					t.Parallel()
+					out, code := fitness(t, example(t, "happyRepo", cappedRepo(row.max, row.count)), nil, "requirements")
+					sees(t, out, code, min(len(row.want), 1), row.want...)
+				})
 			}
 		}},
 		{"second given when then or wrong order", func(t *testing.T) {

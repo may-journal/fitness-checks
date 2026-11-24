@@ -69,7 +69,11 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 		notes = append(notes, historyNote)
 	}
 	errs = append(errs, idErrors(docs, hist)...)
-	errs = append(errs, capErrors(docs, maxAcceptances(root))...)
+	limit, err := maxAcceptances(root)
+	if err != nil {
+		return errs, notes, err
+	}
+	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, tests, written, proven)...)
 	errs = append(errs, orphanChecks(docs, proven)...)
