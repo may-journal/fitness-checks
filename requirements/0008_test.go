@@ -83,11 +83,15 @@ func Test0008_2(t *testing.T) {
 	})
 }
 
+// pointerTail is what doc.go holds after its one-line comment.
+const pointerTail = "\nimport _ \"embed\"\n\n" +
+	"// docSource is README.md, whose first paragraph --describe summarizes.\n//\n//go:embed README.md\nvar docSource string\n"
+
 // isPointer reports whether docGo is the one-line comment that names the README
-// of check name, followed by the embed of that README.
+// of check name, then only the embed of that README.
 func isPointer(docGo, name string) bool {
 	want := "// Command fitness-check-" + name + " is documented in README.md.\npackage main\n"
-	return strings.HasPrefix(docGo, want) && readmeIsDocs(docGo)
+	return docGo == want+pointerTail
 }
 
 // demoFolder writes a check folder named fitness-check-demo holding docGo, and
