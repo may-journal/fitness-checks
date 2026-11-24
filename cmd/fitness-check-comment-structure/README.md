@@ -16,7 +16,7 @@ A comment is not a file in the tree. This check reads it from stdin, a `--body-f
 
 Each error names its line. The callout table's numbers are matched by `mermaid-callouts`, and diagrams are parsed by `mermaid-syntax`.
 
-The budget is 100 words and 1 table, which the `comment` keys below replace when positive:
+A repo can replace the budget in `.fitnessrc.json`. Run `fitness explain comment-structure` for the keys and defaults:
 
 ```
 {

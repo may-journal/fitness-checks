@@ -21,7 +21,7 @@ Function literals report as `function literal`; methods report as `method <name>
 
 ## Ceiling
 
-The ceiling defaults to 5. Override it per repo in `.fitnessrc.json`:
+A repo can override the ceiling in `.fitnessrc.json`. Run `fitness explain go-complexity` for the key and default:
 
 ```
 {

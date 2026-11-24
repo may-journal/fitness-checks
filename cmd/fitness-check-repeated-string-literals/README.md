@@ -36,7 +36,7 @@ It fails with:
 
 ## Allow list
 
-Use `allow` for the rare repeat no constant can fix. That means a value that must live once per runtime island — TS sources, published bin scripts, or automation scripts. Or one spelling shared by genuinely different things:
+Allow a value for the rare repeat no constant can fix. That means a value that must live once per runtime island — TS sources, published bin scripts, or automation scripts. Or one spelling shared by genuinely different things:
 
 ```
 {
@@ -44,7 +44,7 @@ Use `allow` for the rare repeat no constant can fix. That means a value that mus
 }
 ```
 
-`allow` entries match exact values and are never flagged. Keep the list a shrinking baseline; the fix is to centralize the constant. A `.fitnessrc.json` that fails to load leaves the allow list empty.
+Keep the list a shrinking baseline; the fix is to centralize the constant. A `.fitnessrc.json` that fails to load leaves the allow list empty. Run `fitness explain repeated-string-literals` for the key.
 
 ## Limitations
 

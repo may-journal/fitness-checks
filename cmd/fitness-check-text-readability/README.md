@@ -34,7 +34,7 @@ The check also scores each code comment block that `fitness comments` lists, rea
 
 ## Bands
 
-Optional bands in `.fitnessrc.json`, where any positive value overrides its default:
+A repo can set the bands in `.fitnessrc.json`. Run `fitness explain text-readability` for the keys and defaults:
 
 ```
 {

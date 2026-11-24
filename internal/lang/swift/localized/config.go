@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/conf"
 )
 
@@ -34,6 +35,11 @@ var configSource []byte
 
 // section is the localizedText keys, registered so the schema lists them.
 var section = conf.Register[fileConfig](fileConfig{}, configSource)
+
+// Keys lists the localizedText keys for --describe.
+func Keys() ([]checkkit.ConfigKey, error) {
+	return conf.KeysOf(fileConfig{}, configSource)
+}
 
 // config is the loaded check config: how a failure names the reference,
 // and the compiled allow patterns.

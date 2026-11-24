@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -167,6 +168,85 @@ func Test0008_3(t *testing.T) {
 	})
 }
 
+func Test0008_6(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"a README names no config key its check does not declare", func(t *testing.T) {
+			t.Parallel()
+			declared := declaredKeys(t)
+			tops := topKeys(declared)
+			for name, keys := range declared {
+				readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
+				for _, key := range undeclaredKeys(readme, keys, tops) {
+					t.Errorf("%s README names the key %s, which its --describe does not declare", name, key)
+				}
+			}
+		}},
+		{"a README whose check declares keys points to fitness explain", func(t *testing.T) {
+			t.Parallel()
+			for name, keys := range declaredKeys(t) {
+				readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
+				if len(keys) > 0 && !strings.Contains(readme, "`fitness explain "+name+"`") {
+					t.Errorf("%s README does not say to run `fitness explain %s`", name, name)
+				}
+			}
+		}},
+	})
+}
+
+// declaredKeys maps each check's name to the .fitnessrc.json keys its
+// --describe declares, nested keys included.
+func declaredKeys(t *testing.T) map[string]map[string]bool {
+	t.Helper()
+	bin := goBuild(t, "./cmd/...")
+	all := map[string]map[string]bool{}
+	for _, folder := range checkFolders(t, "..") {
+		name := strings.TrimPrefix(filepath.Base(folder), "fitness-check-")
+		keys := map[string]bool{}
+		collectKeys(describeMap(t, filepath.Join(bin, filepath.Base(folder)))["config"], keys)
+		all[name] = keys
+	}
+	return all
+}
+
+// collectKeys adds each key in the decoded --describe config list, and the
+// keys under it, to into.
+func collectKeys(list any, into map[string]bool) {
+	items, _ := list.([]any)
+	for _, item := range items {
+		entry, _ := item.(map[string]any)
+		key, _ := entry["key"].(string)
+		into[key] = true
+		collectKeys(entry["keys"], into)
+	}
+}
+
+// topKeys is each top-level key, such as proseBudget, that any check declares.
+func topKeys(declared map[string]map[string]bool) map[string]bool {
+	tops := map[string]bool{}
+	for _, keys := range declared {
+		for key := range keys {
+			tops[strings.Split(key, ".")[0]] = true
+		}
+	}
+	return tops
+}
+
+// codeSpan matches a Markdown inline code span.
+var codeSpan = regexp.MustCompile("`([^`\n]+)`")
+
+// undeclaredKeys lists the code spans in readme that name a top-level key or
+// a key under one that own does not declare.
+func undeclaredKeys(readme string, own, tops map[string]bool) []string {
+	var bad []string
+	for _, m := range codeSpan.FindAllStringSubmatch(readme, -1) {
+		span := m[1]
+		if tops[strings.Split(span, ".")[0]] && !own[span] {
+			bad = append(bad, span)
+		}
+	}
+	return bad
+}
 func Test0008_4(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{

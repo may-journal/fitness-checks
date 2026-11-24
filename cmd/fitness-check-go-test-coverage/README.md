@@ -8,7 +8,7 @@ Measures entry coverage and test overlap. It requires full entry coverage and re
 fitness go-test-coverage --all
 ```
 
-Every command package is an entry and must reach 100% statement coverage. Declare library entry packages by their full import paths:
+Every command package is an entry and must reach 100% statement coverage. Library entry packages are declared in `.fitnessrc.json`. Run `fitness explain go-test-coverage` for the key:
 
 ```
 {

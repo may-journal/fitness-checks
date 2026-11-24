@@ -6,23 +6,16 @@ Each Markdown file is masked the same way `text-readability` masks it. Front mat
 
 ## Limits
 
-- Words per sentence: 23.
-- Sentences per paragraph: 4.
-- Paragraphs per section: 3.
-- Words per list item: 23.
-- Items per list: 8.
-- Prose words per section: 300.
+A repo can override each limit in `.fitnessrc.json`. Run `fitness explain prose-budget` for the six limits, their keys and defaults.
 
-Each limit is overridable in `.fitnessrc.json` under `proseBudget`, as the configuration below lists. A positive value replaces the default, and zero or absent keeps it.
-
-A paragraph is a run of consecutive prose lines. A section runs from one heading to the next, and its paragraphs and lists count toward `maxWords`. Prose before the first heading is its own section. A list is a run of consecutive items; nested items count individually.
+A paragraph is a run of consecutive prose lines. A section runs from one heading to the next, and its paragraphs and lists count toward its word limit. Prose before the first heading is its own section. A list is a run of consecutive items; nested items count individually.
 
 ## Behavior
 
 - Pass: every masked paragraph, section, and list in the file is within all six limits.
 - Fail: one error per limit crossed, naming the file, the offending element, and its count versus the limit.
 - Every tracked Markdown file is judged, `CHANGELOG.md` included; there is no exempt list.
-- A `.fitnessrc.json` that sets `proseBudget.exempt` fails the run.
+- A `.fitnessrc.json` that tries to exempt files fails the run.
 
 It shares its prose extraction and sentence splitting with `text-readability` through `pkg/mdx`.
 
@@ -56,7 +49,7 @@ A history or filler word before a past participle, as in `previously stored`, pa
 
 ## Comment length
 
-`overlong` fails a function body holding two or more comments with more than three comment words per code token. `prose.comments.maxWordsPerToken` (default 3) and `prose.comments.minBodyComments` (default 2) change those two numbers.
+`overlong` fails a function body holding two or more comments with more than three comment words per code token. Two keys change those two numbers; `fitness explain prose-budget` lists them.
 
 - A token is a run of letters, digits and underscores, or one other visible character.
 - String literals and tool directives count as code, so the rule leans toward passing.

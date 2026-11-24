@@ -698,6 +698,7 @@ var checkKeys = map[string]map[string]any{
 	"adr-as-issue":      {"adrAsIssue.allow": nil},
 	"go-test-coverage":  {"goTestCoverage.entries": nil},
 	"go-complexity":     {"goComplexity.max": 5.0},
+	"localized-text":    {"localizedText.reference": nil, "localizedText.allow": nil},
 }
 
 // byNameOnly is the check the engine's catalog leaves out, since it runs only

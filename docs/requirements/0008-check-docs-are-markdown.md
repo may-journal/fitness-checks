@@ -34,3 +34,7 @@ checks
   - Given Developer has a doc.go comment that opens with a multi-byte letter
     - When the doc move script runs on its folder
       - Then the README opens with that letter as a whole capital
+- 0008.6
+  - Given Developer has each check's README
+    - When the README test reads it against the check's `--describe`
+      - Then the README names no config key that the check does not declare, and says to run `fitness explain` when it declares keys

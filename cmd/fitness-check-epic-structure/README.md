@@ -10,7 +10,7 @@ Epics live as GitHub Issues, so this check reads its target from stdin (or a `--
 - Fail: a checkbox, an emoji, a status word such as done or blocked, or an item that is not a plain reference.
 - Fail: a reference listed twice, or an item listed before an item its `after` note names.
 - Fail: a table anywhere in the body.
-- A list over the `maxListItems` cap fails prose-budget, which issue-check runs on every body; `###` headings split it into shorter lists.
+- A list over the item cap fails prose-budget, which issue-check runs on every body; `###` headings split it into shorter lists.
 
 Fenced code is skipped, so a `##` or list item inside a code sample never counts. A bare `#N` is an issue in the judged repo, so `#12` and `org/repo#12` match.
 
