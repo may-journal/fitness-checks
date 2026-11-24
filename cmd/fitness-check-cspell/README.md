@@ -20,5 +20,3 @@ In an issue or PR body, Renovate's hidden debug comment is skipped, since its en
 Errors are reported as one line per issue: `path:line:col - Unknown word (word)` or `path:line:col - Forbidden word (entry)`.
 
 A file over 64 KB is checked in line-aligned chunks in parallel, once its `cspell:` directives are applied to the whole file.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

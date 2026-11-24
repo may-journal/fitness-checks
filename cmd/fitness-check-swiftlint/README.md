@@ -15,5 +15,3 @@ Runs SwiftLint over the repo through the Swift language module, which owns the t
 ## SwiftLint config
 
 It uses whatever `.swiftlint.yml` is present in the repo root — the same "consumer config wins" convention as the other checks. No shared-config fallback ships for this one yet.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

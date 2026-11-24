@@ -1,5 +1,4 @@
-// Command fitness-check-release-changelog binds Release Please's manifest to
-// the version file a reviewer can inspect. Its rule is in README.md.
+// Command fitness-check-release-changelog is documented in README.md.
 package main
 
 import _ "embed"

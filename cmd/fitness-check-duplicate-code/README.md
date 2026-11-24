@@ -40,5 +40,3 @@ For duplication that's a real, justified constraint, such as boilerplate a frame
 ```
 
 The older `jscpd:ignore-start` and `jscpd:ignore-end` markers still work as deprecated aliases, so repos that carry them keep passing.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

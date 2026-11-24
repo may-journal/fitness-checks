@@ -1,6 +1,4 @@
-// Command fitness-check-architecture-actors requires each requirement's Given
-// to start with an actor the system context declares. Its rule is in
-// README.md.
+// Command fitness-check-architecture-actors is documented in README.md.
 package main
 
 import _ "embed"

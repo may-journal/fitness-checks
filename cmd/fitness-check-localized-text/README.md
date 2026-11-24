@@ -56,5 +56,3 @@ Org repos cannot turn the check off, as [ADR 0009](https://github.com/may-journa
 ## Requirements
 
 [Requirement 0006](https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0006-code-is-tested-by-its-own-tools.md) proves this check with installed-command cases.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

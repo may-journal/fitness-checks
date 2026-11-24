@@ -1,5 +1,4 @@
-// Command fitness-check-prose-budget caps how much prose a markdown file
-// holds. Its rule is in README.md.
+// Command fitness-check-prose-budget is documented in README.md.
 package main
 
 import _ "embed"

@@ -17,15 +17,15 @@ checks
 - 0008.1
   - Given Developer has a check whose rule is a doc.go comment with a heading, list, link, code and spell checker line
     - When the doc move script runs on its folder
-      - Then its README holds them as Markdown, its doc.go embeds the README, and the described summary stays
+      - Then its README holds them as Markdown, its doc.go is one line that names and embeds the README, and the described summary stays
 - 0008.2
   - Given Developer has a doc.go that holds more than its comment
     - When the doc move script runs on its folder
       - Then it fails naming the folder and leaves both files as they were
 - 0008.3
-  - Given Developer has the 69 checks moved to Markdown so far
+  - Given Developer has the checks moved to Markdown so far
     - When the README test reads each folder
-      - Then each doc.go is one Command comment ending with its pointer to the README, followed by the embed and nothing else
+      - Then each doc.go is one line naming its README and embedding it, and the repo README alone links the architecture page
 - 0008.4
   - Given Developer has a README with a parenthesized link URL, or a non-prose first block
     - When the check describes itself

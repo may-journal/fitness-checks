@@ -10,5 +10,3 @@ It reads the body from a `--body-file` path, `-` meaning stdin, or from the runn
 - Fail: one error per unchecked item, quoting its text.
 
 Items inside fenced code are examples, so they never count.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

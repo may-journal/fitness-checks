@@ -26,5 +26,3 @@ Fitness-runner package must have Vitest coverage thresholds set to 100 for branc
 ```
 
 A failing coverage run reports the last line of Vitest output when Vitest judged the code. It judged the code when a threshold is missed or a test failed. A run that exits non-zero with neither, could not start, or was killed reports info quoting its last lines. A missing coverage provider is one example.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

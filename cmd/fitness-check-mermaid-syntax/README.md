@@ -15,6 +15,4 @@ The check parses each fenced `mermaid` block in pure Go, with no npm or browser.
 
 It runs on every Markdown file with a mermaid diagram, fences inside a blockquote included, and on every `.mmd` or `.mermaid` file. Given `--body-file`, it judges one Plan, PR, or comment body. Files with no diagram are skipped and don't count toward `filesChecked`.
 
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
-
 <!-- cspell:ignore mindmap -->

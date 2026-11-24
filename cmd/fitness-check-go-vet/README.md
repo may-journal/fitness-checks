@@ -11,5 +11,3 @@ Runs `go vet ./...` in every Go module of the repo, catching suspicious code the
 - A missing Go toolchain reports info with a one-line install hint, never a failure.
 - A `go vet` that could not start, was killed, hit sandbox text, or failed naming no `.go` file reports info quoting its output.
 - `filesChecked` counts the modules vetted.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

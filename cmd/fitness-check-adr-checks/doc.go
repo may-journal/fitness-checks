@@ -1,6 +1,4 @@
-// Command fitness-check-adr-checks pairs each architecture decision, an `ADR`
-// issue, with the check in `fitness/adr-NNNN/` that proves it. Its rule is in
-// README.md.
+// Command fitness-check-adr-checks is documented in README.md.
 package main
 
 import _ "embed"

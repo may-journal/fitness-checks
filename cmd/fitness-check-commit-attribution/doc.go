@@ -1,6 +1,4 @@
-// Command fitness-check-commit-attribution requires a commit message to
-// disclose AI use in "AI-Tools:" and "AI-Models:" git trailers. Its rule is
-// in README.md.
+// Command fitness-check-commit-attribution is documented in README.md.
 package main
 
 import _ "embed"

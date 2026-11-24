@@ -1,6 +1,4 @@
-// Command fitness-check-mermaid-callout-why requires each numbered callout
-// table to carry a "Why" column, and flags numbered rows whose "Why" cell is
-// empty. Its rule is in README.md.
+// Command fitness-check-mermaid-callout-why is documented in README.md.
 package main
 
 import _ "embed"

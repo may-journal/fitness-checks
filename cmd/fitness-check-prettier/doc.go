@@ -1,5 +1,4 @@
-// Command fitness-check-prettier runs Prettier `--check` over the repo's
-// files, to ensure they are formatted. Its rule is in README.md.
+// Command fitness-check-prettier is documented in README.md.
 package main
 
 import _ "embed"

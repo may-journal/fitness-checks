@@ -1,5 +1,4 @@
-// Command fitness-check-spotless checks Java formatting with the Spotless
-// plugin the repo's own build declares. Its rule is in README.md.
+// Command fitness-check-spotless is documented in README.md.
 package main
 
 import _ "embed"

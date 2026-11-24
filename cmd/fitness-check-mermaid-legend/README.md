@@ -11,5 +11,3 @@ Connectors carry letter callouts, not numbers, as [mermaid-callouts](../fitness-
 ## Where it runs
 
 It runs on every Markdown file with a mermaid diagram or callout table, and on every `.mmd` or `.mermaid` file. Files with neither are skipped and don't count toward `filesChecked`.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-gitignore-why requires every .gitignore pattern to
-// follow a `#` comment explaining why it exists. Its rule is in README.md.
+// Command fitness-check-gitignore-why is documented in README.md.
 package main
 
 import _ "embed"

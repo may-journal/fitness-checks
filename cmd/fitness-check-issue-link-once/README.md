@@ -19,5 +19,3 @@ The `commit-msg` hook judges the proposed message, which it passes as the contex
 The org `fitness-suite` workflow judges every branch commit, oldest first, in every repo ([#157](https://github.com/may-journal/fitness-runner/issues/157)). The one link written before the PR opened passes, judged by author date, which a rebase keeps. A failure stays red until you rewrite that commit without the link and force-push with `--force-with-lease`.
 
 Anywhere else, such as a local suite run or a push to `main`, it passes inert.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

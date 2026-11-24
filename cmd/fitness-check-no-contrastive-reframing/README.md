@@ -23,5 +23,3 @@ Flags the "not X, it's Y" reframing in markdown prose. Such a sentence rejects a
 The check also reads each code comment block that `fitness comments` lists, as [prose-budget](../fitness-check-prose-budget/README.md) reads it. A commit or pull request run reads only the blocks that touch a changed line, and a full scan reads every block. Each error names the block as `path:line`.
 
 The detection is deliberately narrow; widen it only with tests that pin the false-positive line.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -25,5 +25,3 @@ Tick each item as it is delivered, or stop closing the issue. After merge, `fitn
 ## Closing keywords
 
 The closing-keyword list is GitHub's fixed set; keep it in sync in `gitx.ClosingKeywords` if GitHub's set ever changes.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

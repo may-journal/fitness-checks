@@ -1,6 +1,4 @@
-// Command fitness-check-markdown-filename-kebab-case requires every markdown
-// file name to be kebab-case, standard root docs exempt. Its rule is in
-// README.md.
+// Command fitness-check-markdown-filename-kebab-case is documented in README.md.
 package main
 
 import _ "embed"

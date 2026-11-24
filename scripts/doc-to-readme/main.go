@@ -1,6 +1,7 @@
 // Command doc-to-readme moves the doc comment of each check folder named on
 // its command line from doc.go into README.md, as Markdown. doc.go keeps one
-// sentence and embeds the README, so --describe prints the same summary.
+// line that names the README and embeds it, so --describe prints the README's
+// first paragraph.
 //
 //	go run ./scripts/doc-to-readme cmd/fitness-check-<name>...
 //
@@ -10,7 +11,6 @@ package main
 
 import (
 	"fmt"
-	"go/doc"
 	"go/doc/comment"
 	"go/parser"
 	"go/token"
@@ -29,10 +29,6 @@ const docTail = "package main\n\nimport _ \"embed\"\n\n" +
 // newTail is what doc.go holds after its comment once the README is the docs.
 const newTail = "package main\n\nimport _ \"embed\"\n\n" +
 	"// docSource is README.md, whose first paragraph --describe summarizes.\n//\n//go:embed README.md\nvar docSource string\n"
-
-// architectureLink closes every README, as the stub's link to the
-// architecture page did.
-const architectureLink = "The check's place in the system is in the [architecture](../../docs/architecture/03-components.md)."
 
 // cspellLine matches a comment line that adds words to the spell checker.
 var cspellLine = regexp.MustCompile(`(?m)^cspell:ignore (.*)\n?`)
@@ -65,7 +61,7 @@ func move(dir string) error {
 	if err != nil {
 		return err
 	}
-	return write(dir, readme, oneSentence(text)+newTail)
+	return write(dir, readme, pointer(name)+newTail)
 }
 
 // write saves the README.md and doc.go contents in dir.
@@ -96,7 +92,7 @@ func commentOf(head string) (text, words string, err error) {
 }
 
 // render is the README.md for the check name. It holds the title, the comment
-// as Markdown, a link to the architecture and the spell checker words.
+// as Markdown and the spell checker words.
 func render(name, text, words string) (string, error) {
 	rest, ok := strings.CutPrefix(text, "Command fitness-check-"+name+" ")
 	if !ok {
@@ -108,7 +104,6 @@ func render(name, text, words string) (string, error) {
 	for _, b := range d.Content {
 		parts = append(parts, block(b))
 	}
-	parts = append(parts, architectureLink)
 	out := strings.Join(parts, "\n\n") + "\n"
 	if words != "" {
 		out += "\n<!-- cspell:ignore " + words + " -->\n"
@@ -172,22 +167,7 @@ func span(t comment.Text) string {
 	return ""
 }
 
-// oneSentence is the doc.go comment that keeps the first sentence of text and
-// points at the README, wrapped to 78 columns.
-func oneSentence(text string) string {
-	p := new(doc.Package)
-	sentence := p.Synopsis(text)
-	for _, def := range new(comment.Parser).Parse(text).Links {
-		sentence = strings.ReplaceAll(sentence, "["+def.Text+"]", def.Text)
-	}
-	var lines []string
-	line := "//"
-	for _, word := range strings.Fields(sentence + " Its rule is in README.md.") {
-		if len(line)+1+len(word) > 78 {
-			lines = append(lines, line)
-			line = "//"
-		}
-		line += " " + word
-	}
-	return strings.Join(append(lines, line), "\n") + "\n"
+// pointer is the doc.go comment that names the README as the check's docs.
+func pointer(name string) string {
+	return "// Command fitness-check-" + name + " is documented in README.md.\n"
 }

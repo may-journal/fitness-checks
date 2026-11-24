@@ -1,6 +1,4 @@
-// Command fitness-check-issue-checklist fails an issue body whose task list
-// still has unchecked items, so closing it would close unfinished work. Its
-// rule is in README.md.
+// Command fitness-check-issue-checklist is documented in README.md.
 package main
 
 import _ "embed"

@@ -1,5 +1,4 @@
-// Command fitness-check-doc-template makes each markdown document match the
-// shape of a template that governs it. Its rule is in README.md.
+// Command fitness-check-doc-template is documented in README.md.
 package main
 
 import _ "embed"

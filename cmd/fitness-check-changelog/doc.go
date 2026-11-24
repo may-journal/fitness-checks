@@ -1,5 +1,4 @@
-// Command fitness-check-changelog judges the `changelog/` entry files, the
-// only changelog source. Its rule is in README.md.
+// Command fitness-check-changelog is documented in README.md.
 package main
 
 import _ "embed"

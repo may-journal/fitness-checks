@@ -16,5 +16,3 @@ Checks Java formatting with the [Spotless](https://github.com/diffplug/spotless)
 ## Formatter
 
 The build's own Spotless block picks the formatter, so the check never imposes a style. The hint suggests Google Java Format.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

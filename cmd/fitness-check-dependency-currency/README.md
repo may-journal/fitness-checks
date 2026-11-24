@@ -20,5 +20,3 @@ One proxy blocks GitHub and the registry alike. When the runner's probe finds Gi
 - `filesChecked` counts the tracked `package.json` manifests.
 - Reports against `latest`, not `wanted`: a dependency inside its declared semver range but behind the newest release is still flagged.
 - The point is to stay current, not merely in-range.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

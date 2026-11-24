@@ -1,6 +1,4 @@
-// Command fitness-check-mermaid-diagram-table-gap flags loose markdown prose
-// wedged between a numbered mermaid diagram (or its legend block) and the
-// callout table that follows it. Its rule is in README.md.
+// Command fitness-check-mermaid-diagram-table-gap is documented in README.md.
 package main
 
 import _ "embed"

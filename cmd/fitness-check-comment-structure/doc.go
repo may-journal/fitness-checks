@@ -1,6 +1,4 @@
-// Command fitness-check-comment-structure judges one GitHub issue or PR
-// comment, so a reply stays short, readable, and free of agent noise. Its
-// rule is in README.md.
+// Command fitness-check-comment-structure is documented in README.md.
 package main
 
 import _ "embed"

@@ -23,5 +23,3 @@ Errors are reported as `path:line:col - message (ruleId)`.
 A repo that chose Biome lints with it instead, as [ADR 0006](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0006/README.md) records. Such a repo has a `biome.json` or `biome.jsonc` at its root and `@biomejs/biome` in its `package.json` dependencies. The check runs `biome lint --reporter=github` on the same paths, and needs no eslint.
 
 Biome resolves like eslint, and a missing binary fails with an install hint. Biome before 1.8 fails naming its version, since its CLI rejects the GitHub reporter. Each Biome error or warning fails as `path:line:col - message (rule)`.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

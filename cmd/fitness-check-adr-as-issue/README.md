@@ -28,5 +28,3 @@ When the migration cannot run yet, `adrAsIssue.allow` lists the paths still wait
 - Fail: an allow entry without a reason, or whose glob is malformed.
 - Fail: an allow entry that matches no ADR file, so the list shrinks as files move and ends empty.
 - `filesChecked` is the number of paths judged.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

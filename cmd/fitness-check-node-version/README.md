@@ -9,5 +9,3 @@ Requires the machine's active Node version to satisfy the repo's `.nvmrc`. It on
 - Fail: Node too old → `Node vX.Y.Z does not satisfy .nvmrc (requires N.x). Run: nvm use`.
 
 It accepts plain or `v`-prefixed versions in `.nvmrc`, such as `24` or `v24`.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

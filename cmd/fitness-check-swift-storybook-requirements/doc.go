@@ -1,6 +1,4 @@
-// Command fitness-check-swift-storybook-requirements fails each Swift
-// Storybook page not named by a requirement acceptance, and each acceptance
-// with no page (#79). Its rule is in README.md.
+// Command fitness-check-swift-storybook-requirements is documented in README.md.
 package main
 
 import _ "embed"

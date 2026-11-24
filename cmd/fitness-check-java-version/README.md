@@ -30,6 +30,4 @@ A toolchain that sets `vendor` or J9 needs an installed JDK from it, else the ch
 - With no running JDK, the check fails with an install hint.
 - No Maven or Gradle build in the repo: passes clean with `filesChecked: 0`.
 
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
-
 <!-- cspell:ignore sdkmanrc jdks sdkman jabba libexec foojay -->

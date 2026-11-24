@@ -1,6 +1,4 @@
-// Command fitness-check-workflow-scripts fails a `run:` step in a workflow or
-// action that holds more than a trivial command (#946). Its rule is in
-// README.md.
+// Command fitness-check-workflow-scripts is documented in README.md.
 package main
 
 import _ "embed"

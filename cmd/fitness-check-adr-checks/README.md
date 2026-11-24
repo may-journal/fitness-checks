@@ -18,5 +18,3 @@ A `fitness/adr-NNNN/README.md` opens with the ADR's title and a one-line summary
 - Scope: a full scan judges no changes; a commit judges its staged files, and a pull request its diff.
 
 A paired check that judges no files fails as a broken scan, so none passes by reading nothing.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-node-version requires the machine's active Node
-// version to satisfy the repo's `.nvmrc`. Its rule is in README.md.
+// Command fitness-check-node-version is documented in README.md.
 package main
 
 import _ "embed"

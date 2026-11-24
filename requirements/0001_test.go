@@ -449,7 +449,7 @@ func Test0001_8(t *testing.T) {
 				if ours == "" {
 					ours = goBuild(t, "./cmd/...")
 				}
-				checkDocumentedReadme(t, ours, folder, name, source, readme)
+				checkDocumentedReadme(t, ours, folder, name, readme)
 			})
 		}},
 		{"relative links resolve", func(t *testing.T) {
@@ -470,8 +470,8 @@ func Test0001_8(t *testing.T) {
 }
 
 // checkDocumentedReadme fails t for each way a check folder's README, which
-// is the check's documentation, differs from what its binary and doc.go say.
-func checkDocumentedReadme(t *testing.T, ours, folder, name, source, readme string) {
+// is the check's documentation, differs from what its binary says.
+func checkDocumentedReadme(t *testing.T, ours, folder, name, readme string) {
 	t.Helper()
 	summary := program.Summary(readme)
 	if !plainSentence(summary) {
@@ -482,9 +482,6 @@ func checkDocumentedReadme(t *testing.T, ours, folder, name, source, readme stri
 	}
 	if title := "# " + name + "\n"; !strings.HasPrefix(readme, title) {
 		t.Errorf("%s/README.md does not open with the title %q", folder, title)
-	}
-	if got := program.Summary(source); got != summary {
-		t.Errorf("%s/doc.go comment says %q, want the README's %q", folder, got, summary)
 	}
 }
 

@@ -8,5 +8,3 @@ Fails bold and italic emphasis in markdown files: `**bold**`, `__bold__`, `*ital
 - Fail: any Markdown file contains disallowed emphasis; one error per occurrence with file path and snippet.
 
 Scans every tracked Markdown file, `CHANGELOG.md` included. Use bold or italic only when explicitly required. Ignores emphasis inside fenced code, inline code, and Markdown link blocks, so underscores in URLs or link text are not flagged. The bold scope Release Please gives release bullets is allowed too.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

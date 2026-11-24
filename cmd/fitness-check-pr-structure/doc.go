@@ -1,5 +1,4 @@
-// Command fitness-check-pr-structure validates that a pull request
-// description follows the PR template. Its rule is in README.md.
+// Command fitness-check-pr-structure is documented in README.md.
 package main
 
 import _ "embed"

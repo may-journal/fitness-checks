@@ -1,6 +1,4 @@
-// Command fitness-check-markdown-links requires every relative link in every
-// markdown file to resolve to an existing file or directory. Its rule is in
-// README.md.
+// Command fitness-check-markdown-links is documented in README.md.
 package main
 
 import _ "embed"

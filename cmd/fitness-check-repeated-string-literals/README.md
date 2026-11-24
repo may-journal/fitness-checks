@@ -50,5 +50,3 @@ Use `allow` for the rare repeat no constant can fix. That means a value that mus
 
 - Template literals are out of scope — only plain `'…'` and `"…"` literals count.
 - Thresholds and the idiomatic-token set are fixed in the binary; there is no inline marker and no enum-candidate detection yet (tracked in #44).
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-duplicate-code fails a repo whose duplicated lines
-// pass 1% of its scanned lines. Its rule is in README.md.
+// Command fitness-check-duplicate-code is documented in README.md.
 package main
 
 import _ "embed"

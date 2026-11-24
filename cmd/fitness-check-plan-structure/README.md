@@ -14,5 +14,3 @@ Plans no longer live as repo files, so this check reads its target from stdin (o
 - Fail (pointed): a section whose heading [open-questions](../fitness-check-open-questions/README.md) fails, such as `## Open questions`, asks to turn unknowns into checklist steps instead.
 
 Fenced code is skipped, so a `##` or checkbox inside a code sample never counts.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

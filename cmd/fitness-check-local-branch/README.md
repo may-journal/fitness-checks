@@ -25,5 +25,3 @@ GitHub reads share a 30-second deadline, and the runner allows 35 seconds for ca
 The judgments live in the engine's internal `metadata` package, which no check imports. This program declares the check, with its describe metadata, and fitness answers for it with those judgments, even when this program is installed. Run alone, the program could not judge, so it reports that and exits 3.
 
 Only Actions applies GitHub effects. The meta-check calls judgments directly, so it cannot recursively run the suite.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

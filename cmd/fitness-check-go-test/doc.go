@@ -1,5 +1,4 @@
-// Command fitness-check-go-test runs `go test ./...` in every Go module of
-// the repo and reports the failing tests. Its rule is in README.md.
+// Command fitness-check-go-test is documented in README.md.
 package main
 
 import _ "embed"

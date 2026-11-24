@@ -1,5 +1,4 @@
-// Command fitness-check-workflow-reporting fails a workflow job that can fail
-// without a report on its run page (#181). Its rule is in README.md.
+// Command fitness-check-workflow-reporting is documented in README.md.
 package main
 
 import _ "embed"

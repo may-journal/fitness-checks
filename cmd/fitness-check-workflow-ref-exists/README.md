@@ -24,5 +24,3 @@ The check asks GitHub through `gh api`, so it uses `gh`'s login or `GH_TOKEN`. T
 When GitHub cannot answer, it never passes or fails a ref it could not see. No `gh`, no network, a bad token, a rate limit, or 20 seconds of reads stops it. It keeps the findings so far and notes the calls left unverified. When the runner's probe found GitHub's API host unreachable, it asks nothing and reports info naming the host and proxy.
 
 GitHub refusing one request, such as a 403, skips that call with a note. A repo that answers 404 is one the token cannot read, so its calls are skipped with a note too. A workflow token reads only its own repo and public ones, so private repos are skipped in CI.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

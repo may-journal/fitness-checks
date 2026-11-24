@@ -1,6 +1,4 @@
-// Command fitness-check-repeated-string-literals fails a string literal that
-// appears three or more times across the repo's JS and TS sources. Its rule
-// is in README.md.
+// Command fitness-check-repeated-string-literals is documented in README.md.
 package main
 
 import _ "embed"

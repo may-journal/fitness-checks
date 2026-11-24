@@ -13,5 +13,3 @@ It reads the tracked-file list fitness shares with every check, so a staged addi
 - Pass: maintained docs, shipped assets, and tests that quote plan text inline. A vaguely named image, such as `screen.png`, passes too.
 - Each error names the path, its rule, and the comment to move it to, sorted by path. The check never deletes a file.
 - `filesChecked` is the number of paths judged.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

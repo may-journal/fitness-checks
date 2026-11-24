@@ -1,6 +1,4 @@
-// Command fitness-check-markdown-no-bold-italic fails bold and italic
-// emphasis in markdown files: `**bold**`, `__bold__`, `*italic*`, or
-// `_italic_`. Its rule is in README.md.
+// Command fitness-check-markdown-no-bold-italic is documented in README.md.
 package main
 
 import _ "embed"

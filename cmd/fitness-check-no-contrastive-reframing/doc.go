@@ -1,5 +1,4 @@
-// Command fitness-check-no-contrastive-reframing flags the "not X, it's Y"
-// reframing in markdown prose. Its rule is in README.md.
+// Command fitness-check-no-contrastive-reframing is documented in README.md.
 package main
 
 import _ "embed"

@@ -1,5 +1,4 @@
-// Command fitness-check-requirements enforces docs/requirements in every repo
-// a language module covers. Its rule is in README.md.
+// Command fitness-check-requirements is documented in README.md.
 package main
 
 import _ "embed"

@@ -10,5 +10,3 @@ Binds Release Please's manifest to the version file a reviewer can inspect. The 
 - Reject malformed JSON, unsupported manifests without the root `.` package, a missing `version.txt`, and mismatched versions.
 
 Release notes come from [entry files](../fitness-check-changelog/README.md#entry-files), not `CHANGELOG.md`, so this check asks nothing of `CHANGELOG.md`. Set `"skip-changelog": true` in `release-please-config.json` so Release Please stops writing it.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

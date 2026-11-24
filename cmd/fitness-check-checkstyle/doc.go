@@ -1,6 +1,4 @@
-// Command fitness-check-checkstyle lints Java with the Checkstyle plugin the
-// repo's own build declares, and holds its config to a complexity ceiling.
-// Its rule is in README.md.
+// Command fitness-check-checkstyle is documented in README.md.
 package main
 
 import _ "embed"
