@@ -13,6 +13,6 @@ The check parses each fenced `mermaid` block in pure Go, with no npm or browser.
 - `erDiagram`, `mindmap`, and `block-beta`: the header only, since their syntax leaves brackets unpaired.
 - An unknown diagram type fails.
 
-Fences inside a blockquote count. Run `fitness explain mermaid-syntax` for the files it reads. Given `--body-file`, it judges one Plan, PR, or comment body. A file with no diagram is skipped and don't count toward `filesChecked`.
+Fences inside a blockquote count. Run `fitness explain mermaid-syntax` for the files it reads. Given `--body-file`, it judges one Plan, PR, or comment body. A file with no diagram is skipped and doesn't count toward `filesChecked`.
 
 <!-- cspell:ignore mindmap -->
