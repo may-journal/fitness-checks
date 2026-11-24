@@ -1,7 +1,14 @@
 # release-changelog
 
-Binds Release Please's manifest to the version file a reviewer can inspect.
+Binds Release Please's manifest to the version file a reviewer can inspect. The check applies when `.release-please-manifest.json` exists and contains a root release version.
 
-- [Architecture](../../docs/architecture/03-components.md)
-- [Source](doc.go)
-- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-release-changelog) or `fitness-check-release-changelog --describe`
+## Behavior
+
+- Use an explicit availability gate and pass with zero files when the repository has no Release Please manifest.
+- Pass during bootstrap when the manifest is an empty JSON object.
+- Require the root manifest value and `version.txt` to contain the same numeric `major.minor.patch` version.
+- Reject malformed JSON, unsupported manifests without the root `.` package, a missing `version.txt`, and mismatched versions.
+
+Release notes come from [entry files](../fitness-check-changelog/README.md#entry-files), not `CHANGELOG.md`, so this check asks nothing of `CHANGELOG.md`. Set `"skip-changelog": true` in `release-please-config.json` so Release Please stops writing it.
+
+The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
