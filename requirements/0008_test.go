@@ -109,3 +109,27 @@ func readText(t *testing.T, folder, file string) string {
 	mustDo(t, err)
 	return string(data)
 }
+
+// movedChecks are the checks whose rule is their README, which each batch of
+// the move to Markdown grows.
+var movedChecks = []string{
+	"adr-as-issue", "adr-checks", "architecture-actors", "architecture-code",
+	"architecture-components", "architecture-containers", "build-output-untracked",
+	"changelog", "changelog-bullets", "changelog-updated", "gofmt",
+}
+
+func Test0008_3(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"a moved check's doc.go is one comment that embeds its README", func(t *testing.T) {
+			t.Parallel()
+			for _, name := range movedChecks {
+				docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")
+				comment, _, _ := strings.Cut(docGo, "package main")
+				if !readmeIsDocs(docGo) || strings.Count(comment, "\n") > 3 {
+					t.Errorf("%s doc.go holds more than a short comment and the README embed:\n%s", name, docGo)
+				}
+			}
+		}},
+	})
+}
