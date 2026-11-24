@@ -1,6 +1,4 @@
-// Command fitness-check-mermaid-syntax fails a mermaid diagram that would not
-// render, so a broken diagram never reaches a reader. Its rule is in
-// README.md.
+// Command fitness-check-mermaid-syntax is documented in README.md.
 package main
 
 import _ "embed"

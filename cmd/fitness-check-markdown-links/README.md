@@ -15,5 +15,3 @@ Requires every relative link in every markdown file to resolve to an existing fi
 ```
 docs/competition.md:11: broken relative link: ./README.md
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

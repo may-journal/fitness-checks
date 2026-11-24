@@ -51,5 +51,3 @@ This check owns only the page names and the pages each acceptance needs. It shar
 ## Requirements
 
 [Requirement 0006](https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0006-code-is-tested-by-its-own-tools.md) proves this check with installed-command cases.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

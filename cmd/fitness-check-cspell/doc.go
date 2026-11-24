@@ -1,5 +1,4 @@
-// Command fitness-check-cspell fails unknown words in the checked files. Its
-// rule is in README.md.
+// Command fitness-check-cspell is documented in README.md.
 package main
 
 import _ "embed"

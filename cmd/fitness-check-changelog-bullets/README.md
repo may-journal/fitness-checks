@@ -18,5 +18,3 @@ changelog/2026-05-01-0000-readme.md section "2026.05.01.0000" has 1 bullets; kee
 changelog/2026-05-01-0000-readme.md:7: bullet is 1230 characters; keep each under 365
 changelog/2026-05-01-0000-readme.md:8: bullet must start with a semantic type (Feat:, Fix:, ...)
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -25,5 +25,3 @@ The budget is 100 words and 1 table, which the `comment` keys below replace when
   }
 }
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-read-repo-first reminds agents and users to read the
-// repo's decisions and enabled checks first. Its rule is in README.md.
+// Command fitness-check-read-repo-first is documented in README.md.
 package main
 
 import _ "embed"

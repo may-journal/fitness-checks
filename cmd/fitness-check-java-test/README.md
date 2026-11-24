@@ -32,6 +32,4 @@ Coverage reads each report's own totals, never a sum of its classes. An aggregat
 
 The [frameworks](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/java/tests/frameworks) folder holds one commented file per framework, spotted from build files and imports. Each says how its tests reach the JUnit XML. A framework that needs a running service, as Testcontainers needs Docker, fails before the run when the service is down.
 
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
-
 <!-- cspell:ignore jacoco -->

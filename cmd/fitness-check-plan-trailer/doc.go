@@ -1,5 +1,4 @@
-// Command fitness-check-plan-trailer validates an optional `Plan #NN` commit
-// trailer. Its rule is in README.md.
+// Command fitness-check-plan-trailer is documented in README.md.
 package main
 
 import _ "embed"

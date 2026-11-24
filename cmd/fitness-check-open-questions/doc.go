@@ -1,5 +1,4 @@
-// Command fitness-check-open-questions fails a list of open questions in a
-// doc, page, PR or issue body. Its rule is in README.md.
+// Command fitness-check-open-questions is documented in README.md.
 package main
 
 import _ "embed"

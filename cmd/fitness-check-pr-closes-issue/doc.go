@@ -1,6 +1,4 @@
-// Command fitness-check-pr-closes-issue validates that a pull request
-// description closes at least one issue on merge (#69). Its rule is in
-// README.md.
+// Command fitness-check-pr-closes-issue is documented in README.md.
 package main
 
 import _ "embed"

@@ -42,6 +42,4 @@ Optional bands in `.fitnessrc.json`, where any positive value overrides its defa
 }
 ```
 
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
-
 <!-- cspell:ignore Liau unbackticked -->

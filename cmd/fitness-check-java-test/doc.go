@@ -1,6 +1,4 @@
-// Command fitness-check-java-test runs Java tests once per build root and
-// judges their JUnit XML results and JaCoCo coverage. Its rule is in
-// README.md.
+// Command fitness-check-java-test is documented in README.md.
 package main
 
 import _ "embed"

@@ -48,5 +48,3 @@ A skipped diagram still fails, so fix it by hand.
 ## Scope
 
 Runs on every Markdown file that contains a diagram or callout table. Files with neither are skipped and don't count toward `filesChecked`.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

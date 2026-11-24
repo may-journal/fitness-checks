@@ -42,5 +42,3 @@ steps:
     if: ${{ always() }}
     run: printf '### Job %s: %s\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

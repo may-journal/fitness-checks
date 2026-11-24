@@ -11,5 +11,3 @@ Lists Go files that gofmt would change. It is on by default.
 - A missing Go toolchain reports info with a one-line install hint, never a failure.
 - A gofmt that could not start, was killed, or exits non-zero with neither finding reports info quoting its output.
 - `filesChecked` counts the Go files checked.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

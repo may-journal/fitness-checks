@@ -1,5 +1,4 @@
-// Command fitness-check-vitest-coverage-exclude fails any Vitest coverage
-// exclude entry, so coverage measures every file. Its rule is in README.md.
+// Command fitness-check-vitest-coverage-exclude is documented in README.md.
 package main
 
 import _ "embed"

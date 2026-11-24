@@ -57,5 +57,3 @@ Fitness ships the five architecture view templates inside the binary. A view und
 - Pass: every template guides each section, and every governed file matches. A repo with no templates passes.
 - Fail: a template section lacks a comment, or a governed file matches none of its templates.
 - With one template, each difference is its own error. With several, one error names them all.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

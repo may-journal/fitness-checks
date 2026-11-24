@@ -1,6 +1,4 @@
-// Command fitness-check-epic-structure validates that an epic follows the
-// Epic issue template, or the repo's own template labeled `Epic`. Its rule is
-// in README.md.
+// Command fitness-check-epic-structure is documented in README.md.
 package main
 
 import _ "embed"

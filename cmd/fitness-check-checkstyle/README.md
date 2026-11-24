@@ -18,5 +18,3 @@ Lints Java with the [Checkstyle](https://checkstyle.org) plugin the repo's own b
 Every tracked Checkstyle config must hold the `CyclomaticComplexity` module, which caps each method's branches. Configs in a test source set's folder, such as `src/test/resources`, are test inputs and left out. A repo with no config fails asking for `config/checkstyle/checkstyle.xml`, with the document type line Maven's plugin needs to read it. The hints suggest a `max` of 5; the repo's config sets its own.
 
 Maven runs with the repo's only config, or else with `config/checkstyle/checkstyle.xml`, unless the build names its own.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -59,5 +59,3 @@ A test, changelog or doc change cannot move the views. A scoped run with no chan
 ## Requirements
 
 [Requirement 0005](https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0005-diagrams-match-the-code.md) proves this check with installed-command cases.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

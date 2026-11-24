@@ -30,7 +30,7 @@ type described struct {
 	Protocol int `json:"protocol"`
 }
 
-// Main runs c, given its doc.go source.
+// Main runs c, given its README.md source, or its doc.go for a check not yet moved.
 func Main(source string, c checkkit.Check) {
 	Configured(source, nil, c)
 }

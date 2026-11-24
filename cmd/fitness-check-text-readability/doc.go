@@ -1,5 +1,4 @@
-// Command fitness-check-text-readability fails a markdown file whose prose
-// scores as hard to read. Its rule is in README.md.
+// Command fitness-check-text-readability is documented in README.md.
 package main
 
 import _ "embed"

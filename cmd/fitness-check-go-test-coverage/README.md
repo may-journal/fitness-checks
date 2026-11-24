@@ -95,5 +95,3 @@ Both org and external defaults keep their current checks. Select this check expl
 ```
 fitness --policy=external --checks=go-test-coverage --all
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

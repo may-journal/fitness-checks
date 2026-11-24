@@ -1,6 +1,4 @@
-// Command fitness-check-plan-structure validates that a plan, a GitHub Issue
-// body under the `Plan` label, follows the Plan issue template. Its rule is
-// in README.md.
+// Command fitness-check-plan-structure is documented in README.md.
 package main
 
 import _ "embed"

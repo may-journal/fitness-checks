@@ -30,5 +30,3 @@ env:
   TAG: ${{ steps.release.outputs.tag }}
 run: scripts/move-major-tag.sh
 ```
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

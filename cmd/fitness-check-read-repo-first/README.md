@@ -7,5 +7,3 @@ Reminds agents and users to read the repo's decisions and enabled checks first.
 - Always passes with zero files checked; no TTY or interactive prompt.
 - Outputs a boxed message to stderr; stdout carries the JSON result.
 - The box shows the question, a table of enabled check names when the runner provides them, and a note about not using `--no-verify`.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

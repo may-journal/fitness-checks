@@ -22,5 +22,3 @@ A branch's own commits are those no other `origin` branch holds, so a stacked br
 - Fail: entry file additions share fewer than three words with the rest of the diff → error with the count.
 
 A replay skips, since it re-stages historical entries. A too-small overlap adds a second line, "use words like: …", listing up to 10 words from the staged diff. Only the added parts of the entry file in the diff count, with words lowercased and at least 3 long.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

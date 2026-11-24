@@ -20,5 +20,3 @@ Rule B scans every tracked `.ts`, `.mts`, and `.cts` file, test and spec files i
 - Git commands run from the repo root; only their stdout is parsed, so a failing git command contributes no phantom tracked files.
 - `filesChecked` counts the scanned source files plus one for the dist git checks.
 - Each module's package docs name its output paths. A repo with no such output and no `dist` rules to judge passes clean.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

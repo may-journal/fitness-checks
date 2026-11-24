@@ -30,5 +30,3 @@ The ceiling defaults to 5. Override it per repo in `.fitnessrc.json`:
 ```
 
 A native Go engine (`go/ast` and `go/parser` from the standard library) scores the code; no external tool is required.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

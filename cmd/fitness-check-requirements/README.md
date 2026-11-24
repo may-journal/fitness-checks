@@ -98,5 +98,3 @@ Some requirements are rules over the repo's own files. A check in `fitness/req-N
 - Orphans: a `fitness/req-NNNN/` folder whose number no doc defines fails.
 - Pairs: the check's files pair with the doc as a test file does, so a change to one half alone fails.
 - Broken scan: a requirement check that passes having judged no files fails the run.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

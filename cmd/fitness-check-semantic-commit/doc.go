@@ -1,6 +1,4 @@
-// Command fitness-check-semantic-commit requires the commit subject to follow
-// Conventional Commits, `type(scope): description`, with the scope required.
-// Its rule is in README.md.
+// Command fitness-check-semantic-commit is documented in README.md.
 package main
 
 import _ "embed"

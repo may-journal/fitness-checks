@@ -63,5 +63,3 @@ A history or filler word before a past participle, as in `previously stored`, pa
 - Words in a fenced or indented example inside a comment do not count.
 - One error names the body by the line of its opening brace.
 - A commit or pull request run judges a body when one of its changed comments sits in it.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -61,5 +61,3 @@ node_modules/
 - Pass: every pattern line is directly preceded by a non-empty explanatory `#` comment.
 - Fail: reports `.gitignore:<lineNumber>: pattern "<text>" has no explanatory # comment on the line above` for each offending pattern.
 - `filesChecked` is 1 whenever `.gitignore` is present.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

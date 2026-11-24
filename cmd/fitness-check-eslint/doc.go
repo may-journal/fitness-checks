@@ -1,5 +1,4 @@
-// Command fitness-check-eslint runs ESLint over the repo with the shared flat
-// config, by executing the real ESLint binary. Its rule is in README.md.
+// Command fitness-check-eslint is documented in README.md.
 package main
 
 import _ "embed"

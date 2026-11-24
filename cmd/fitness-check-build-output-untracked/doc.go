@@ -1,5 +1,4 @@
-// Command fitness-check-build-output-untracked keeps build output out of git
-// and out of source imports. Its rule is in README.md.
+// Command fitness-check-build-output-untracked is documented in README.md.
 package main
 
 import _ "embed"

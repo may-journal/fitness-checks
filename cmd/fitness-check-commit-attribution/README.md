@@ -65,5 +65,3 @@ Detection is per-line via `^<Key>:[ \t]*(\S.*)$`, so an `AI-Tools:` mid-sentence
 - Pass: both trailers present with non-empty values, or a `Merge ` or `Revert ` subject.
 - Fail: one error per missing trailer; on no repo, git error, or empty message, the empty-message guidance error.
 - `filesChecked` is always 1.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

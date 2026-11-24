@@ -15,5 +15,3 @@ Like `semantic-commit`, it reads the proposed message from the context-inline `-
 - `filesChecked` is always 1 (the one commit message).
 
 The pre-push gate accepts a qualified Plan only from the pushing repo's own owner, and reads it from the repo it names.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

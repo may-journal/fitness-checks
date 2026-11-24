@@ -1,5 +1,4 @@
-// Command fitness-check-issue-link-once keeps each Issue's timeline readable
-// (#153). Its rule is in README.md.
+// Command fitness-check-issue-link-once is documented in README.md.
 package main
 
 import _ "embed"

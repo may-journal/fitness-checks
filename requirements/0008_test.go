@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -30,7 +29,6 @@ const demoReadme = "# demo\n\n" +
 	"- Pass: no file.\n" +
 	"- Fail: a `.zork` file; see [the docs](https://example.com/docs).\n\n" +
 	"Run it as:\n\n```\nfitness demo --all\n```\n\n" +
-	"The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).\n\n" +
 	"<!-- cspell:ignore zork -->\n"
 
 func Test0008_1(t *testing.T) {
@@ -46,7 +44,7 @@ func Test0008_1(t *testing.T) {
 				t.Errorf("README.md is\n%s\nwant\n%s", got, demoReadme)
 			}
 			doc := readText(t, folder, "doc.go")
-			if !strings.Contains(doc, "//go:embed README.md\nvar docSource string") || strings.Contains(doc, "Behavior") {
+			if !isPointer(doc, "demo") || strings.Contains(doc, "Behavior") {
 				t.Errorf("doc.go does not just embed the README:\n%s", doc)
 			}
 		}},
@@ -57,10 +55,8 @@ func Test0008_1(t *testing.T) {
 			if _, err := moveDocs(t, folder); err != nil {
 				t.Fatal(err)
 			}
-			for _, file := range []string{"README.md", "doc.go"} {
-				if got := program.Summary(readText(t, folder, file)); got != want || want != "Fails a Zork file." {
-					t.Errorf("%s summary is %q, want %q", file, got, "Fails a Zork file.")
-				}
+			if got := program.Summary(readText(t, folder, "README.md")); got != want || want != "Fails a Zork file." {
+				t.Errorf("README.md summary is %q, want %q", got, "Fails a Zork file.")
 			}
 		}},
 	})
@@ -85,6 +81,13 @@ func Test0008_2(t *testing.T) {
 			}
 		}},
 	})
+}
+
+// isPointer reports whether docGo is the one-line comment that names the README
+// of check name, followed by the embed of that README.
+func isPointer(docGo, name string) bool {
+	want := "// Command fitness-check-" + name + " is documented in README.md.\npackage main\n"
+	return strings.HasPrefix(docGo, want) && readmeIsDocs(docGo)
 }
 
 // demoFolder writes a check folder named fitness-check-demo holding docGo, and
@@ -136,13 +139,25 @@ var movedChecks = []string{
 func Test0008_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"a moved check's doc.go is one comment that embeds its README", func(t *testing.T) {
+		{"a moved check's doc.go is one line that names its README and embeds it", func(t *testing.T) {
 			t.Parallel()
 			for _, name := range movedChecks {
 				docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")
-				if problem := singleCommentProblem(name, docGo); problem != "" {
-					t.Errorf("%s doc.go %s:\n%s", name, problem, docGo)
+				if !isPointer(docGo, name) {
+					t.Errorf("%s doc.go is not the one-line pointer and the README embed:\n%s", name, docGo)
 				}
+			}
+		}},
+		{"no check README repeats the architecture sentence and the repo README links the page once", func(t *testing.T) {
+			t.Parallel()
+			const page = "docs/architecture/03-components.md"
+			for _, name := range movedChecks {
+				if strings.Contains(readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md"), "03-components.md") {
+					t.Errorf("%s README links the architecture page", name)
+				}
+			}
+			if got := strings.Count(readText(t, "..", "README.md"), "]("+page+")"); got != 1 {
+				t.Errorf("the repo README links %s %d times, want once", page, got)
 			}
 		}},
 	})
@@ -187,40 +202,3 @@ func Test0008_5(t *testing.T) {
 		}},
 	})
 }
-
-// singleCommentProblem says how docGo of the check name is not one comment
-// followed by the README embed; it is "" when it is. The comment opens with
-// "Command fitness-check-<name>".
-func singleCommentProblem(name, docGo string) string {
-	comment, tail, ok := strings.Cut(docGo, newTail)
-	if !ok || tail != "" {
-		return "holds more than the comment and the README embed"
-	}
-	lines := strings.Split(strings.TrimSuffix(comment, "\n"), "\n")
-	if !strings.HasPrefix(lines[0], "// Command fitness-check-"+name+" ") {
-		return "does not open with its Command comment"
-	}
-	return commentLinesProblem(lines)
-}
-
-// commentLinesProblem says how lines break the "// " form of 78 columns
-// and a closing pointer to the README; it is "" when they hold.
-func commentLinesProblem(lines []string) string {
-	if slices.ContainsFunc(lines, notCommentLine) {
-		return "comment is not one run of lines of at most 78 columns"
-	}
-	if !strings.HasSuffix(strings.ReplaceAll(strings.Join(lines, " "), " // ", " "), " Its rule is in README.md.") {
-		return "comment does not end by pointing at the README"
-	}
-	return ""
-}
-
-// notCommentLine reports whether line is not a "// " comment line of at most
-// 78 columns.
-func notCommentLine(line string) bool {
-	return !strings.HasPrefix(line, "// ") || len(line) > 78
-}
-
-// newTail is what a moved check's doc.go holds after its comment.
-const newTail = "package main\n\nimport _ \"embed\"\n\n" +
-	"// docSource is README.md, whose first paragraph --describe summarizes.\n//\n//go:embed README.md\nvar docSource string\n"

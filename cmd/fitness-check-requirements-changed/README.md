@@ -41,5 +41,3 @@ No commit trailer, flag or setting turns the check off for one change.
 - A `commit-msg` hook, as `fitness init` installs, also makes `pre-commit` leave the check out.
 - Amends: everything the amended commit changes since its parent.
 - Pull requests: CI judges the diff against the merge base with the base branch.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-go-test-coverage measures entry coverage and test
-// overlap. Its rule is in README.md.
+// Command fitness-check-go-test-coverage is documented in README.md.
 package main
 
 import _ "embed"

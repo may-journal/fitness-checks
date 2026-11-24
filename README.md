@@ -4,6 +4,8 @@ The fitness checks that the [fitness-runner](https://github.com/may-journal/fitn
 
 The engine, hooks, workflows and installer stay in fitness-runner. Its bundle keeps its own copy of each check until the engine finds these programs. [Split fitness-runner into an engine repo and a checks repo](https://github.com/may-journal/fitness-runner/issues/918) plans that step.
 
+Each check's place in the system is in the [architecture](docs/architecture/03-components.md).
+
 ## License
 
 [MIT](LICENSE)

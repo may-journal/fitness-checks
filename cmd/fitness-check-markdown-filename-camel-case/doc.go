@@ -1,6 +1,4 @@
-// Command fitness-check-markdown-filename-camel-case requires every markdown
-// file name to be camelCase, standard root docs exempt. Its rule is in
-// README.md.
+// Command fitness-check-markdown-filename-camel-case is documented in README.md.
 package main
 
 import _ "embed"

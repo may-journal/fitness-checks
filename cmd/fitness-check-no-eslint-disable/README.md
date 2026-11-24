@@ -52,5 +52,3 @@ Reword the rare case rather than suppressing it. Scanned extensions are `.ts`, `
 - Pass: no scanned file contains a directive.
 - Fail: `path/to/file.ts:42: <directive>` per hit.
 - `filesChecked` counts every scanned source file (after de-duplication).
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).

@@ -1,5 +1,4 @@
-// Command fitness-check-no-plans-dir keeps plans and temporary design work
-// out of the repo. Its rule is in README.md.
+// Command fitness-check-no-plans-dir is documented in README.md.
 package main
 
 import _ "embed"

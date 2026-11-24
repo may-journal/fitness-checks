@@ -15,5 +15,3 @@ Epics live as GitHub Issues, so this check reads its target from stdin (or a `--
 Fenced code is skipped, so a `##` or list item inside a code sample never counts. A bare `#N` is an issue in the judged repo, so `#12` and `org/repo#12` match.
 
 Checks never call GitHub, so `fitness issue-check` compares the list with the epic's sub-issues. Every listed issue must be a sub-issue and exist, and every sub-issue must be listed.
-
-The check's place in the system is in the [architecture](../../docs/architecture/03-components.md).
