@@ -53,7 +53,7 @@ flowchart TB
         docs[(9 Check docs are Markdown<br/>Req 0008)]:::system
     end
 
-    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007]:::blocked
+    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007, 0008]:::blocked
 
     dev -->|A| install
     install --> apply

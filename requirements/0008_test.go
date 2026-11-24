@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -127,6 +128,9 @@ var movedChecks = []string{
 	"no-plans-dir", "node-version", "open-questions", "plan-structure", "plan-trailer",
 	"pr-closes-issue", "pr-structure", "prettier", "prose-budget", "read-repo-first",
 	"release-changelog", "repeated-string-literals", "requirements", "requirements-changed",
+	"semantic-commit", "spotless", "swift-storybook-requirements", "swiftlint",
+	"text-readability", "vitest-coverage-exclude", "vitest-coverage-full",
+	"workflow-ref-exists", "workflow-reporting", "workflow-scripts",
 }
 
 func Test0008_3(t *testing.T) {
@@ -136,11 +140,87 @@ func Test0008_3(t *testing.T) {
 			t.Parallel()
 			for _, name := range movedChecks {
 				docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")
-				comment, _, _ := strings.Cut(docGo, "package main")
-				if !readmeIsDocs(docGo) || strings.Count(comment, "\n") > 3 {
-					t.Errorf("%s doc.go holds more than a short comment and the README embed:\n%s", name, docGo)
+				if problem := singleCommentProblem(name, docGo); problem != "" {
+					t.Errorf("%s doc.go %s:\n%s", name, problem, docGo)
 				}
 			}
 		}},
 	})
 }
+
+func Test0008_4(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"a link whose URL holds parentheses leaves no stray parenthesis", func(t *testing.T) {
+			t.Parallel()
+			got := program.Summary("# demo\n\nFails a [Zork](https://example.com/Zork_(game)) file. It runs on every repo.\n")
+			if want := "Fails a Zork file."; got != want {
+				t.Errorf("summary is %q, want %q", got, want)
+			}
+		}},
+		{"a first block that is not prose gives no summary", func(t *testing.T) {
+			t.Parallel()
+			for name, block := range map[string]string{
+				"list": "- Fails a file.", "numbered list": "1. Fails a file.", "fence": "```\nfitness demo\n```",
+				"quote": "> Fails a file.", "table": "| a | b |", "comment": "<!-- Fails a file. -->",
+			} {
+				if got := program.Summary("# demo\n\n" + block + "\n\nFails a file.\n"); got != "" {
+					t.Errorf("a README opening with a %s has summary %q, want none", name, got)
+				}
+			}
+		}},
+	})
+}
+
+func Test0008_5(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"a comment opening with a multi-byte letter keeps it whole", func(t *testing.T) {
+			t.Parallel()
+			folder := demoFolder(t, strings.Replace(demoDoc, "fails a [Zork] file", "élan a [Zork] file", 1))
+			if out, err := moveDocs(t, folder); err != nil {
+				t.Fatalf("doc-to-readme failed: %v\n%s", err, out)
+			}
+			if got := readText(t, folder, "README.md"); !strings.Contains(got, "\n\nÉlan a [Zork]") {
+				t.Errorf("README.md does not open with a capital É:\n%s", got)
+			}
+		}},
+	})
+}
+
+// singleCommentProblem says how docGo of the check name is not one comment
+// followed by the README embed; it is "" when it is. The comment opens with
+// "Command fitness-check-<name>".
+func singleCommentProblem(name, docGo string) string {
+	comment, tail, ok := strings.Cut(docGo, newTail)
+	if !ok || tail != "" {
+		return "holds more than the comment and the README embed"
+	}
+	lines := strings.Split(strings.TrimSuffix(comment, "\n"), "\n")
+	if !strings.HasPrefix(lines[0], "// Command fitness-check-"+name+" ") {
+		return "does not open with its Command comment"
+	}
+	return commentLinesProblem(lines)
+}
+
+// commentLinesProblem says how lines break the "// " form of 78 columns
+// and a closing pointer to the README; it is "" when they hold.
+func commentLinesProblem(lines []string) string {
+	if slices.ContainsFunc(lines, notCommentLine) {
+		return "comment is not one run of lines of at most 78 columns"
+	}
+	if !strings.HasSuffix(strings.ReplaceAll(strings.Join(lines, " "), " // ", " "), " Its rule is in README.md.") {
+		return "comment does not end by pointing at the README"
+	}
+	return ""
+}
+
+// notCommentLine reports whether line is not a "// " comment line of at most
+// 78 columns.
+func notCommentLine(line string) bool {
+	return !strings.HasPrefix(line, "// ") || len(line) > 78
+}
+
+// newTail is what a moved check's doc.go holds after its comment.
+const newTail = "package main\n\nimport _ \"embed\"\n\n" +
+	"// docSource is README.md, whose first paragraph --describe summarizes.\n//\n//go:embed README.md\nvar docSource string\n"

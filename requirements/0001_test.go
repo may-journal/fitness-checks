@@ -517,10 +517,22 @@ func readmeIsDocs(docGo string) bool {
 // its #fragment.
 var relativeLink = regexp.MustCompile(`\]\(([^)#:\s]+)(?:#[^)]*)?(?:\s+"[^"]*")?\)`)
 
-// readmeLinks lists the relative file targets the Markdown text links.
+// referenceLink matches a reference-style link definition, "[x]: path", whose
+// target is a file path, without its #fragment.
+var referenceLink = regexp.MustCompile(`(?m)^ {0,3}\[[^\]]+\]:\s*<?([^\s>#:]+)(?:#\S*)?>?(?:\s+.*)?$`)
+
+// codeFence matches a fenced code block, which holds example text and no links.
+var codeFence = regexp.MustCompile("(?ms)^ {0,3}```.*?^ {0,3}```[^\\n]*$|^ {0,3}~~~.*?^ {0,3}~~~[^\\n]*$")
+
+// readmeLinks lists the relative file targets the Markdown text links, inline
+// or by reference, outside fenced code.
 func readmeLinks(readme string) []string {
+	readme = codeFence.ReplaceAllString(readme, "")
 	var targets []string
 	for _, m := range relativeLink.FindAllStringSubmatch(readme, -1) {
+		targets = append(targets, m[1])
+	}
+	for _, m := range referenceLink.FindAllStringSubmatch(readme, -1) {
 		targets = append(targets, m[1])
 	}
 	return targets

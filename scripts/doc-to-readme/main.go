@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // docTail is what a check's doc.go holds after its comment.
@@ -100,7 +102,8 @@ func render(name, text, words string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("the comment does not open with %q", "Command fitness-check-"+name+" ")
 	}
-	d := new(comment.Parser).Parse(strings.ToUpper(rest[:1]) + rest[1:])
+	first, size := utf8.DecodeRuneInString(rest)
+	d := new(comment.Parser).Parse(string(unicode.ToUpper(first)) + rest[size:])
 	parts := []string{"# " + name}
 	for _, b := range d.Content {
 		parts = append(parts, block(b))
