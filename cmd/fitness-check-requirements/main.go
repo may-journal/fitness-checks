@@ -76,6 +76,7 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, tests, written, proven)...)
+	errs = append(errs, stepCaseErrors(docs, tests)...)
 	errs = append(errs, orphanChecks(docs, proven)...)
 	tooled, err := toolErrors(root, tests, written)
 	return append(errs, tooled...), notes, err

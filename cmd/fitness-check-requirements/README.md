@@ -69,6 +69,14 @@ An acceptance may chain 2 to 7 When and Then steps under its one Given, as 0001.
 - Citing: step 2 of 0001.2 is `0001.2.2`; a test named for a step, such as `Test0001_2_2`, fails.
 - Checks: overlap reads every step, a deleted step brought back fails, and a chain counts once toward the cap.
 
+Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test.
+
+- Missing: a step no case names fails, naming the step and the test to add its case to.
+- Stray: a case whose name opens with a step its acceptance does not chain fails, naming the case.
+- Cases: Go reads `t.Run` names and case table rows, and Java dynamic tests and `Named` arguments.
+- Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
+- Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
+
 ## Behavior
 
 - No code: a repo with no file in a module's language passes with `filesChecked: 0`.
