@@ -11,14 +11,22 @@ import (
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// IDLine is an ID and the line that declares it. An acceptance with three
-// chain lines carries its Given, and only a well-ordered chain its When.
+// IDLine is an ID and the line that declares it. An acceptance with a Given
+// carries it, and only a well-ordered chain its Steps.
 type IDLine struct {
 	ID        string
 	Line      int
 	Given     string
 	GivenLine int
-	When      string
+	Steps     []Step
+}
+
+// Step is one When and its Then. A numbered step has an ID such as
+// 0003.6.2, and a single step none, since its acceptance ID names it.
+type Step struct {
+	ID   string
+	Line int
+	When string
 }
 
 // Document is one parsed requirement doc.
@@ -32,9 +40,19 @@ type Document struct {
 	SourceLine int
 }
 
-// ids lists the doc's own ID followed by its acceptance IDs.
+// IDs lists the doc's own ID followed by each acceptance ID and the IDs of
+// its numbered steps.
 func (d Document) IDs() []IDLine {
-	return append([]IDLine{{ID: d.ID, Line: d.TitleLine}}, d.Acceptances...)
+	ids := []IDLine{{ID: d.ID, Line: d.TitleLine}}
+	for _, a := range d.Acceptances {
+		ids = append(ids, a)
+		for _, s := range a.Steps {
+			if s.ID != "" {
+				ids = append(ids, IDLine{ID: s.ID, Line: s.Line})
+			}
+		}
+	}
+	return ids
 }
 
 // line is a non-blank source line with its 1-based number.

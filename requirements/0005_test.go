@@ -543,6 +543,15 @@ func Test0005_5(t *testing.T) {
 				t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
 			}
 		}},
+		{"cited step resolves to its chain", func(t *testing.T) {
+			t.Parallel()
+			for step, want := range map[string]string{"`0001.1.2`": "", "`0001.1.3`": "architecture/05-user-journey.md:28: unresolved requirement 0001.1.3 in docs/requirements"} {
+				files := acEdit(acJourney, "`0001.1`", step)
+				files[acDoc] = acChained
+				out, code := acRun(t, files)
+				sees(t, out, code, min(len(want), 1), want)
+			}
+		}},
 		{"unchanged broken evidence stays reported", func(t *testing.T) {
 			t.Parallel()
 			drifts := []struct {
@@ -690,6 +699,15 @@ func Test0005_6(t *testing.T) {
 			write(t, repo, map[string]string{ajDoc2: ""})
 			out, code = fitness(t, repo, nil, ajCheck)
 			sees(t, out, code, 1, "architecture/05-user-journey.md:19: no requirement doc 0002 in docs/requirements")
+		}},
+		{"label citing a step reads as its doc", func(t *testing.T) {
+			t.Parallel()
+			files := ajEdit(ajEdit(acFixture(acRoot), ajOpen, "open(2 Open the app<br/>Req 0001.1.1)"), ajDone, "done[3 Record saved<br/>Req 0001.1.2]")
+			files[ajDoc] = acChained
+			out, code := ajRun(t, files)
+			sees(t, out, code, 0)
+			out, code = ajRun(t, ajEdit(files, "Req 0001.1.2", "Req 0001.1.3"))
+			sees(t, out, code, 1, "architecture/05-user-journey.md:19: no step 0001.1.3 in docs/requirements")
 		}},
 		{"label naming too many docs fails", func(t *testing.T) {
 			t.Parallel()
@@ -1772,6 +1790,11 @@ const (
 func acDocWith(given string) string {
 	return "# 0001 Open\n\n## Why\n\nI open the app.\n\n## Measurement\n\nopens\n-\ntries\n\n## Requirements\n\n- 0001.1\n    - Given " + given + "\n        - When it starts\n            - Then it opens\n"
 }
+
+// acChained is the fixture doc whose 0001.1 chains two steps, so `0001.1.2`
+// cites its second.
+var acChained = strings.Replace(acDocWith("User opens the app"), "        - When it starts\n            - Then it opens\n",
+	"        1. When it starts\n            - Then it opens\n        2. When it opens\n            - Then it shows the record\n", 1)
 
 // aaFixture is the default architecture with its one Given replaced.
 func aaFixture(given string) map[string]string {

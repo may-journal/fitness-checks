@@ -167,10 +167,19 @@ func reusedErrors(d requirement.Document, hist history) []string {
 	var errs []string
 	for _, id := range d.IDs() {
 		if hist.removed[id.ID] {
-			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so take the next free number"))
+			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so "+reuseFix(id.ID)))
 		}
 	}
 	return errs
+}
+
+// reuseFix says how to add back what a deleted ID held. Steps are numbered in
+// order, so a deleted step returns only under a new acceptance.
+func reuseFix(id string) string {
+	if strings.Count(id, ".") == 2 {
+		return "chain the step under a new acceptance ID"
+	}
+	return "take the next free number"
 }
 
 // sortedKeys returns m's keys in order, for stable output.

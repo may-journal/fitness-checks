@@ -26,6 +26,7 @@ Labels follow these rules:
 - Any four-digit number in a node, subgraph, or edge label is a requirement ID. Write it after the callout number, never first.
 - A Mermaid character code such as `#9829;` is not an ID.
 - An acceptance such as `0001.1` is not a doc ID. Acceptances keep their one owning test under the `requirements` check.
+- A cited step such as `0001.2.2` reads as its doc, 0001, once that step exists.
 - One label names at most eight IDs. A step that fulfils more splits into steps, such as one node per check family.
 - One ID may sit on several steps. Tables and prose outside the diagram cover nothing.
 
@@ -46,7 +47,7 @@ The check compares words only. It cannot tell whether a step is the behavior its
 Every error names the view line it concerns and the requirement ID.
 
 - A requirement doc no label names, at the diagram's fence line.
-- A label naming an acceptance ID or a doc that does not exist.
+- A label naming an acceptance ID, or a doc or step that does not exist.
 - A label naming more than eight IDs.
 - A behavior node with no ID, at its diagram line.
 - Two steps whose labels read as each other's docs, at each step's line.

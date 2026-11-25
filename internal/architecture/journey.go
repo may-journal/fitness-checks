@@ -14,9 +14,9 @@ import (
 // step that fulfils more is split.
 const maxLabelIDs = 8
 
-// labelID is a requirement number, or an acceptance ID, written in a
+// labelID is a requirement number, an acceptance ID or a cited step, written in a
 // journey label after its callout number.
-var labelID = regexp.MustCompile(`\b\d{4}(?:\.\d+)?\b`)
+var labelID = regexp.MustCompile(`\b\d{4}(?:\.\d+){0,2}\b`)
 
 // entityCode is a Mermaid character code such as #9829; in a label, which
 // names no requirement.
@@ -91,11 +91,11 @@ func (j *journey) fail(at Location, format string, args ...any) {
 // label that names any ID covers its node, so a mistyped ID fails once.
 func (j *journey) label(owner, text string, at Location) {
 	ids := uniqueIDs(labelID.FindAllString(entityCode.ReplaceAllString(text, ""), -1))
-	if len(ids) > maxLabelIDs {
-		j.fail(at, "label names %d requirements; split the step so each names at most %d", len(ids), maxLabelIDs)
+	if n := len(uniqueIDs(docsOf(ids))); n > maxLabelIDs {
+		j.fail(at, "label names %d requirements; split the step so each names at most %d", n, maxLabelIDs)
 	}
 	for _, id := range ids {
-		j.named[id] = j.valid(id, at)
+		j.mark(id, at)
 	}
 	if owner != "" && len(ids) > 0 {
 		j.nodes[owner] = true
@@ -118,6 +118,8 @@ func uniqueIDs(ids []string) []string {
 // acceptance ID names a test's promise, not a doc.
 func (j *journey) valid(id string, at Location) bool {
 	switch {
+	case stepID.MatchString(id):
+		return j.step(id, at)
 	case acceptanceID.MatchString(id):
 		j.fail(at, "%s is an acceptance ID; name requirement doc %s", id, id[:4])
 	case !j.m.hasDoc(id):
@@ -237,7 +239,7 @@ func (j *journey) misreads() []misread {
 		if e.View != journeyView || !promises(e.Kind) {
 			continue
 		}
-		ids := uniqueIDs(labelID.FindAllString(entityCode.ReplaceAllString(e.Name, ""), -1))
+		ids := uniqueIDs(docsOf(labelID.FindAllString(entityCode.ReplaceAllString(e.Name, ""), -1)))
 		if others := j.readsAs(titleWords(e.Name), ids); len(others) > 0 {
 			found = append(found, misread{e, ids, others})
 		}

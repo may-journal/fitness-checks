@@ -33,6 +33,9 @@ var (
 	// pageName is a name that starts with one acceptance ID, alone or
 	// followed by a space and a label.
 	pageName = regexp.MustCompile(`^([0-9]{4}\.[0-9]+)(?: \S.*)?$`)
+	// stepPage is a name that starts with a chained step such as 0003.6.2,
+	// capturing the step and its acceptance.
+	stepPage = regexp.MustCompile(`^(([0-9]{4}\.[0-9]+)\.[0-9]+)(?: \S.*)?$`)
 	// idLike is a leading run that looks like an ID, which a suggested name
 	// drops before its label.
 	idLike = regexp.MustCompile(`^[0-9.:\s-]+`)
@@ -285,6 +288,9 @@ func nameFinding(p page, ids []string) string {
 // idFinding is the finding for a name that does not start with a defined
 // acceptance ID, or "".
 func idFinding(name string, ids []string, example string) string {
+	if s := stepPage.FindStringSubmatch(name); s != nil && slices.Contains(ids, s[2]) {
+		return fmt.Sprintf("page %q names step %s; one page shows every step of an acceptance, so name it %q", name, s[1], s[2]+strings.TrimPrefix(name, s[1]))
+	}
 	m := pageName.FindStringSubmatch(name)
 	if m == nil {
 		return fmt.Sprintf("page %q does not start with an acceptance ID; name it such as %q", name, example)

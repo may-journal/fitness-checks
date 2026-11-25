@@ -30,13 +30,21 @@ users who have lost connection
 
 ## Requirements
 <!-- Top-level bullets are IDs: title ID + ".N", unique, never reused. -->
-<!-- Each ID nests exactly one Given, one When, one Then, one level (two spaces) deeper each, each line starting with its keyword. A second Given, When, or Then is a new ID. -->
+<!-- Each ID nests exactly one Given, one When, one Then, one level (two spaces) deeper each, each line starting with its keyword. A second Given is a new ID. -->
+<!-- One Given may chain 2 to 7 steps as a numbered list, `1.` to `7.`, each a When with one Then nested under it, as 0001.2 does. A single step stays a plain bullet. -->
+<!-- Cite step 2 of 0001.2 as `0001.2.2`; one test still proves the whole acceptance. -->
 <!-- A Given starts with an actor the system context declares, by name or Mermaid ID; see the architecture-actors check. -->
 <!-- Exactly one test is named for each ID, the way its language module names tests; the check's error names the test it expects. Delete the test when you delete the ID. -->
 - 0001.1
   - Given Writer has no network
     - When I edit an entry
       - Then it is saved locally
+- 0001.2
+  - Given Writer has edits saved while offline
+    1. When the network returns
+       - Then the edits upload
+    2. When another device opens the entry
+       - Then it shows the uploaded edits
 ```
 
 ## Rules
@@ -46,11 +54,20 @@ users who have lost connection
 - Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
 - Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
 - Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.
-- Acceptance: one Given, one When, and one Then, nested in order; the Given starts with an [actor](../fitness-check-architecture-actors/README.md).
+- Acceptance: one Given, then one When with one Then or a chain of steps, nested in order; the Given starts with an [actor](../fitness-check-architecture-actors/README.md).
 - Ownership: exactly one test named for each acceptance owns it. A test named for an undefined acceptance fails.
 - Every test: each top-level test in the repository must be named for an acceptance. Setup functions and helpers are not tests.
 
 Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
+
+## Steps
+
+An acceptance may chain 2 to 7 When and Then steps under its one Given, as 0001.2 in the template does. Each step stays short, and one test still proves the whole acceptance.
+
+- Numbering: a chain numbers its steps `1.` to `7.` in order, each a When with one Then nested under it.
+- Failures: eight steps, a gap, an unnumbered step or a numbered single step fail, naming the line.
+- Citing: step 2 of 0001.2 is `0001.2.2`; a test named for a step, such as `Test0001_2_2`, fails.
+- Checks: overlap reads every step, a deleted step brought back fails, and a chain counts once toward the cap.
 
 ## Behavior
 

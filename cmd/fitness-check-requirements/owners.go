@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/requirement"
@@ -68,12 +69,29 @@ func ownerError(path string, a requirement.IDLine, owners []string, written []la
 	return []string{requirement.At(path, a.Line, fmt.Sprintf("%s is owned by %d tests (%s); keep exactly one", a.ID, len(owners), strings.Join(owners, ", ")))}
 }
 
+// stepTest matches a test name ending in a step, such as Test0003_6_2,
+// capturing the acceptance and the step number.
+var stepTest = regexp.MustCompile(`(\d{4})_([1-9]\d*)_([1-9]\d*)$`)
+
+// namedStep is the acceptance and step a test is named for, or "" for both.
+// The name is the acceptance's test name with the step appended.
+func namedStep(t reqTest) (acceptance, step string) {
+	m := stepTest.FindStringSubmatch(t.Name)
+	if m == nil || t.Name != t.module.Tests.Name(m[1]+"."+m[2])+"_"+m[3] {
+		return "", ""
+	}
+	return m[1] + "." + m[2], m[1] + "." + m[2] + "." + m[3]
+}
+
 // testError flags a test named for an undefined acceptance, and a
 // test that names none.
 func testError(t reqTest, current map[string]bool) []string {
+	acceptance, step := namedStep(t)
 	switch {
 	case t.ID != "" && !current[t.ID]:
 		return []string{fmt.Sprintf("%s: %s names %s, which no requirement defines; delete the test with its acceptance", t.Loc, t.Name, t.ID)}
+	case step != "":
+		return []string{fmt.Sprintf("%s: %s names step %s; one test proves every step of its acceptance, so name it %s", t.Loc, t.Name, step, t.module.Tests.Name(acceptance))}
 	case t.ID == "":
 		return []string{fmt.Sprintf("%s: %s proves no requirement; rename it %s for the acceptance it proves, or delete it if another test covers that", t.Loc, t.Name, t.module.Tests.Name("NNNN.N"))}
 	}

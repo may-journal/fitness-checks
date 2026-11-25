@@ -3,8 +3,11 @@ package architecture
 import (
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
 var (
@@ -16,7 +19,7 @@ var (
 )
 
 // rowContent reads what a callout row already says: code spans that name
-// repository paths or acceptance IDs, and links to sources or requirements.
+// paths, acceptance IDs or steps, and links to sources or requirements.
 func (d *diagram) rowContent(s subject, text string, at Location) {
 	for _, match := range codeSpan.FindAllStringSubmatch(text, -1) {
 		d.span(s, match[1], at)
@@ -27,7 +30,7 @@ func (d *diagram) rowContent(s subject, text string, at Location) {
 }
 
 func (d *diagram) span(s subject, text string, at Location) {
-	if acceptanceID.MatchString(text) {
+	if acceptanceID.MatchString(text) || stepID.MatchString(text) {
 		d.m.requirementRef(text, at)
 		return
 	}
@@ -115,12 +118,15 @@ func inRange(first, last, size int) bool {
 }
 
 func (m *Model) requirementRef(id string, at Location) {
-	for _, doc := range m.Requirements {
-		for _, known := range doc.IDs() {
-			if known.ID == id {
-				return
-			}
-		}
+	if !m.hasID(id) {
+		m.fail(at, "unresolved requirement %s in docs/requirements", id)
 	}
-	m.fail(at, "unresolved requirement %s in docs/requirements", id)
+}
+
+// hasID reports a doc, acceptance or chained step ID some requirement doc
+// declares.
+func (m *Model) hasID(id string) bool {
+	return slices.ContainsFunc(m.Requirements, func(doc requirement.Document) bool {
+		return slices.ContainsFunc(doc.IDs(), func(known requirement.IDLine) bool { return known.ID == id })
+	})
 }
