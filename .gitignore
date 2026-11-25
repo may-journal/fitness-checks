@@ -1,2 +1,4 @@
 # Build output and the requirement suite's bundle, cache and installer.
 out/
+# Check binaries built at the repo root; the cmd/ folders stay tracked.
+/fitness-check-*
