@@ -152,6 +152,16 @@ func Test0001_2(t *testing.T) {
 			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
 				t.Errorf("folders for no changed check = %q, want none", got)
 			}
+	
+		}},
+		{"0001.2.2 shared suite changes run every folder and the slow cases", func(t *testing.T) {
+			t.Parallel()
+			for file, want := range map[string]string{"tests/requirements.sh": "true", "scripts/release-build.sh": "true", "cmd/fitness-check-gofmt/main.go": "false"} {
+				clone, base := changedClone(t, file)
+				if got := strings.TrimSpace(runScript(t, clone, "requirement-shard.sh", "suite", base)); got != want {
+					t.Errorf("after %s, suite = %s, want %s", file, got, want)
+				}
+			}
 		}},
 	})
 }
@@ -1068,13 +1078,15 @@ const sizedIndex = `{"format":1,"repository":"may-journal/fitness-checks","check
 // rootTests lists the top-level tests of the root requirements package.
 func rootTests(t *testing.T) []string {
 	t.Helper()
-	names := regexp.MustCompile(`(?m)^func (Test\w+)\(t \*testing\.T\)`)
+	names := regexp.MustCompile(`(?m)^func (Test[A-Za-z0-9_]*)`)
 	files, err := filepath.Glob("*_test.go")
 	mustDo(t, err)
 	var tests []string
 	for _, file := range files {
 		for _, m := range names.FindAllStringSubmatch(fiFile(t, file), -1) {
-			tests = append(tests, m[1])
+			if m[1] != "TestMain" {
+				tests = append(tests, m[1])
+			}
 		}
 	}
 	return tests

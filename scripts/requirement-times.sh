@@ -2,7 +2,7 @@
 # Writes tests/requirement-times.tsv, the seconds the cases of each root
 # requirement test took together, which scripts/requirement-shard.sh balances by.
 # Usage: scripts/requirement-times.sh <log>..., each the output of
-# tests/requirements.sh -v, such as the logs of every requirements job in CI.
+# tests/requirements.sh -v from one run, such as every requirements job of one CI run.
 set -eu
 cd "$(dirname "$0")/.."
 [ "$#" -gt 0 ] || { echo "usage: scripts/requirement-times.sh <go test -v log>..." >&2; exit 1; }
