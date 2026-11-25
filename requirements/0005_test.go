@@ -706,7 +706,7 @@ func Test0005_6(t *testing.T) {
 			out, code = ajRun(t, ajEdit(eight, ajTagOpen, "open(2 Open the app<br/>Req "+ids+")"))
 			sees(t, out, code, 0)
 		}},
-		{"generated journey region fails when stale and passes when fresh", func(t *testing.T) {
+		{"stale generated journey region fails and fresh one passes", func(t *testing.T) {
 			t.Parallel()
 			fresh := ajRegion(acFixture(acRoot), "    req0001[(2 Open<br/>Req 0001)]:::system")
 			out, code := ajRun(t, fresh)
@@ -717,16 +717,24 @@ func Test0005_6(t *testing.T) {
 			retitled := ajRegion(acFixture(acRoot), "    req0001[(2 Open The App<br/>Req 0001)]:::system")
 			out, code = ajRun(t, retitled)
 			sees(t, out, code, 1, "architecture/05-user-journey.md:18: the generated journey nodes differ")
+		}},
+		{"journey region with a missing end marker fails", func(t *testing.T) {
+			t.Parallel()
 			open := ajRegion(acFixture(acRoot), "")
 			open[ajView] = strings.Replace(open[ajView], "    %% journey-nodes:end\n", "", 1)
-			out, code = ajRun(t, open)
-			sees(t, out, code, 1, "has `%% journey-nodes:start` with no end marker after it")
-			repo := example(t, "happyRepo", ajSecondDoc(ajRegion(acFixture(acRoot), "    stale")))
-			out, code = fitness(t, repo, nil, ajCheck, "--fix")
+			out, code := ajRun(t, open)
+			sees(t, out, code, 1, "has `%% journey-nodes:start` with no end marker")
+		}},
+		{"fix rewrites a stale journey region and nothing else", func(t *testing.T) {
+			t.Parallel()
+			files := ajSecondDoc(ajRegion(acFixture(acRoot), "    stale"))
+			repo := example(t, "happyRepo", files)
+			out, code := fitness(t, repo, nil, ajCheck, "--fix")
 			sees(t, out, code, 0)
 			body, err := os.ReadFile(filepath.Join(repo, ajView))
-			if err != nil || !strings.Contains(string(body), "req0002[(3 Open<br/>Req 0002)]:::system") {
-				t.Errorf("--fix did not rewrite the region: %v\n%s", err, body)
+			want := strings.Replace(files[ajView], "    stale", "req0001[(2 Open<br/>Req 0001)]:::system\nreq0002[(3 Open<br/>Req 0002)]:::system", 1)
+			if err != nil || string(body) != want {
+				t.Errorf("--fix changed more than the region: %v\n%s", err, body)
 			}
 		}},
 		{"ids outside the diagram cover nothing", func(t *testing.T) {

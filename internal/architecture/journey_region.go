@@ -1,6 +1,7 @@
 package architecture
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -88,8 +89,10 @@ func pairProblem(starts, ends []int) (string, int) {
 	switch {
 	case len(starts) == 0:
 		return "has `" + regionEnd + "` with no start marker", ends[0]
-	case len(ends) == 0 || ends[0] < starts[0]:
-		return "has `" + regionStart + "` with no end marker after it", starts[0]
+	case len(ends) == 0:
+		return "has `" + regionStart + "` with no end marker", starts[0]
+	case ends[0] < starts[0]:
+		return "has `" + regionEnd + "` before `" + regionStart + "`", ends[0]
 	}
 	return "", 0
 }
@@ -119,7 +122,7 @@ func journeyViews(files []string) []string {
 }
 
 // loadDocs reads the requirement docs under root and the files around them.
-func loadDocs(root string) ([]requirement.Document, []string) {
+func loadDocs(root string) ([]requirement.Document, []string, []string) {
 	files := walkfs.FilesByExt(root, "")
 	var paths []string
 	for _, file := range files {
@@ -127,8 +130,8 @@ func loadDocs(root string) ([]requirement.Document, []string) {
 			paths = append(paths, file)
 		}
 	}
-	docs, _, _ := requirement.Load(root, paths)
-	return docs, files
+	docs, _, skipped := requirement.Load(root, paths)
+	return docs, files, skipped
 }
 
 // JourneyRegionErrors fails each journey view whose marked region differs
@@ -173,27 +176,46 @@ func trimmed(lines []string) []string {
 	return out
 }
 
-// RewriteJourneyRegion rewrites the marked region of each journey view under
-// root from the requirement docs, leaving every other line as written. A
-// view without markers is left alone.
+// RewriteJourneyRegion rewrites the marked region of each journey view from the docs.
+// It writes nothing when a doc fails to load or lacks a title, and leaves a view without markers alone.
 func RewriteJourneyRegion(root string) error {
-	docs, files := loadDocs(root)
+	docs, files, skipped := loadDocs(root)
+	if err := untitled(docs, skipped); err != nil {
+		return err
+	}
 	for _, file := range journeyViews(files) {
-		full := filepath.Join(root, filepath.FromSlash(file))
-		body, err := os.ReadFile(full)
-		if err != nil {
-			return err
-		}
-		lines := strings.Split(string(body), "\n")
-		r, found, _, _ := findRegion(lines)
-		if !found {
-			continue
-		}
-		next := append(slices.Clone(lines[:r.from]), regionLines(docs, r.indent)...)
-		next = append(next, lines[r.to:]...)
-		if err := os.WriteFile(full, []byte(strings.Join(next, "\n")), 0o644); err != nil {
+		if err := rewriteView(filepath.Join(root, filepath.FromSlash(file)), docs); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// untitled fails on a doc that did not load or lacks its ID or title.
+func untitled(docs []requirement.Document, skipped []string) error {
+	for _, doc := range docs {
+		if doc.ID == "" || doc.Title == "" {
+			skipped = append(skipped, doc.Path+": needs `# NNNN Title` before the region can be written")
+		}
+	}
+	if len(skipped) > 0 {
+		return errors.New(skipped[0])
+	}
+	return nil
+}
+
+// rewriteView writes one view's region from docs, unless it already holds them.
+func rewriteView(full string, docs []requirement.Document) error {
+	body, err := os.ReadFile(full)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(body), "\n")
+	r, found, _, _ := findRegion(lines)
+	if !found || len(regionErrors(full, lines, docs)) == 0 {
+		return nil
+	}
+	next := append(slices.Clone(lines[:r.from]), regionLines(docs, r.indent)...)
+	next = append(next, lines[r.to:]...)
+	return os.WriteFile(full, []byte(strings.Join(next, "\n")), 0o644)
 }

@@ -35,9 +35,9 @@ diagrams checked
     - When the architecture checks read the contract and its levels
       - Then repeated level text, duplicate claims and unreadable evidence fail naming their lines
 - 0005.6
-  - Given Developer has a journey diagram and a context diagram beside requirement docs and their Givens
-    - When the architecture checks compare requirements with journey steps and actors
-      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line
+  - Given Developer has a journey and a context diagram beside requirement docs and Givens
+    - When the architecture checks compare requirements with steps and actors
+      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line; `--fix` rewrites it
 - 0005.7
   - Given Developer has container and component views beside build targets and product folders
     - When the architecture checks compare the views with the runtimes and folders

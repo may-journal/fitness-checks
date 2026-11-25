@@ -30,6 +30,7 @@ Labels follow these rules:
 - One ID may sit on several steps. Tables and prose outside the diagram cover nothing.
 
 Personas and layout subgraphs promise no behavior and need no ID. Legends stay out of the model. Every other node, such as a screen, action, or system step, names an ID in its own label or an enclosing subgraph label. An edge label covers its IDs but no node.
+
 ## Generated region
 
 A journey view may hold one node per requirement doc, written from the doc's ID and `# NNNN Title` heading. Two Mermaid comments mark the region:
@@ -43,6 +44,7 @@ Between them, each doc in ID order becomes `reqNNNN[(N Title<br/>Req NNNN)]:::sy
 
 - A region whose lines differ from the docs fails at the start marker, naming `fitness architecture-journey --fix`.
 - `--fix` rewrites each region from the docs and leaves every other line alone.
+- `--fix` writes nothing when a doc fails to load or lacks its title.
 - A view with no markers stays hand-written and passes, so a repo opts in by adding them.
 - A repeated marker, or a start with no end after it, fails at its line.
 
@@ -64,7 +66,6 @@ Every error names the view line it concerns and the requirement ID.
 - A label naming an acceptance ID or a doc that does not exist.
 - A label naming more than eight IDs.
 - A behavior node with no ID, at its diagram line.
-- A generated region that differs from the docs, or broken markers, at the marker's line.
 - A generated region that differs from the docs, or broken markers, at the marker's line.
 - Two steps whose labels read as each other's docs, at each step's line.
 
