@@ -22,12 +22,12 @@ const wholeDoc = "-U100000"
 // historyLine matches an added or removed title or acceptance line in a diff.
 var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 
-// readHistory replays the doc commits oldest first, then paths, the docs judged now, as one more commit.
+// readHistory replays the commits to the docs in dir oldest first, then paths, the docs judged now, as one more commit.
 // Each restructure restarts the record, which is empty with a note when git fails.
-func readHistory(root string, paths []string) (h history, note string) {
+func readHistory(root, dir string, paths []string) (h history, note string) {
 	h = history{removed: map[string]bool{}}
 	out, err := exec.Command("git", "-C", root, "log", "--reverse", "--no-color", "--no-ext-diff",
-		"--no-renames", wholeDoc, "--format=%x00", "-p", "--", docsDir).Output()
+		"--no-renames", wholeDoc, "--format=%x00", "-p", "--", dir).Output()
 	if err != nil {
 		if why := gitFailure(err); !noHistory.MatchString(why) {
 			return h, "requirement IDs were not checked against git history: " + why

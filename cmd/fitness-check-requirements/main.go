@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
-	"github.com/may-journal/fitness-checks/internal/requirement"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/config"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/langs"
@@ -35,7 +36,8 @@ const docsDir = "docs/requirements/"
 const fixFlag = "--fix"
 
 func run(root string, args []string) (checkkit.Result, error) {
-	paths := docPaths(root)
+	roots := packages.Roots()
+	paths := docPaths(root, roots)
 	if err := dropSources(root, paths, args); err != nil {
 		return checkkit.Result{}, err
 	}
@@ -43,43 +45,86 @@ func run(root string, args []string) (checkkit.Result, error) {
 	if err != nil || len(written) == 0 {
 		return checkkit.Pass(0), err
 	}
-	checks, proven := reqChecks(root)
-	errs, notes, err := docErrors(root, paths, tests, written, proven)
+	checks, proven := reqChecks(root, roots)
+	errs, notes, err := packageErrors(root, roots, paths, tests, written, proven)
 	if err != nil {
 		return checkkit.Result{}, err
 	}
-	pairs, err := pairErrors(root, paths, append(files, checks...), tests)
+	pairs, err := pairErrors(root, roots, paths, append(files, checks...), tests)
 	res := result(len(paths)+len(files), append(errs, pairs...))
 	res.Info = notes
 	return res, err
 }
 
-// docErrors judges every doc's shape, IDs, shared areas, test ownership and tools, and returns a note for each unreadable doc.
-// A doc that proven names needs no test, since its fitness/req-NNNN check proves it.
-func docErrors(root string, paths []string, tests []reqTest, written []lang.Module, proven map[string]bool) (errs, notes []string, err error) {
-	docs, errs, skipped := requirement.Load(root, paths)
+// pkg is one package root with the docs, tests and requirement checks it
+// holds, judged like a repo of its own.
+type pkg struct {
+	root   string
+	paths  []string
+	tests  []reqTest
+	proven map[string]bool
+	// alone is true for the repo root of a repo that names no packages.
+	alone bool
+	// code is true when the root holds a file in a language the repo uses.
+	code bool
+}
+
+// split gives each package root the docs, tests, checks and code it owns.
+func split(roots, paths, code []string, tests []reqTest, proven map[string]map[string]bool) []pkg {
+	var out []pkg
+	for _, r := range roots {
+		p := pkg{root: r, paths: packages.Owned(roots, r, paths), proven: proven[r], alone: len(roots) == 1}
+		p.code = len(packages.Owned(roots, r, code)) > 0
+		for _, t := range tests {
+			if packages.Of(roots, t.File) == r {
+				p.tests = append(p.tests, t)
+			}
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// packageErrors judges each package root's docs and tests on their own, then
+// the test tools of every test.
+func packageErrors(root string, roots, paths []string, tests []reqTest, written []lang.Module, proven map[string]map[string]bool) (errs, notes []string, err error) {
+	limit, err := maxAcceptances(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	whole := true
+	code := walkfs.FilesByExt(root, lang.Exts(written)...)
+	for _, p := range split(roots, paths, code, tests, proven) {
+		found, skipped, judged := docErrors(root, p, written, limit)
+		errs, notes, whole = append(errs, found...), append(notes, skipped...), whole && judged
+	}
+	if !whole {
+		return errs, notes, nil
+	}
+	tooled, err := toolErrors(root, tests, written)
+	return append(errs, tooled...), notes, err
+}
+
+// docErrors judges one package's doc shapes, IDs, shared areas and test ownership, noting each unreadable doc and reporting a whole read.
+// A doc its proven numbers name needs no test, since its fitness/req-NNNN check proves it.
+func docErrors(root string, p pkg, written []lang.Module, limit int) (errs, notes []string, whole bool) {
+	docs, errs, skipped := requirement.Load(root, p.paths)
 	notes = skipped
 	if len(skipped) > 0 {
 		// A doc left out would leave its tests unowned and its IDs unknown.
-		return errs, append(notes, "ownership and history were not judged without every doc"), nil
+		return errs, append(notes, "ownership and history were not judged without every doc"), false
 	}
-	errs = append(errs, missingDocs(paths)...)
-	hist, historyNote := readHistory(root, paths)
+	errs = append(errs, missingDocs(p)...)
+	hist, historyNote := readHistory(root, packages.Join(p.root, docsDir), p.paths)
 	if historyNote != "" {
 		notes = append(notes, historyNote)
 	}
 	errs = append(errs, idErrors(docs, hist)...)
-	limit, err := maxAcceptances(root)
-	if err != nil {
-		return errs, notes, err
-	}
 	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
-	errs = append(errs, ownershipErrors(docs, tests, written, proven)...)
-	errs = append(errs, stepCaseErrors(docs, tests)...)
-	errs = append(errs, orphanChecks(docs, proven)...)
-	tooled, err := toolErrors(root, tests, written)
-	return append(errs, tooled...), notes, err
+	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
+	errs = append(errs, stepCaseErrors(docs, p.tests)...)
+	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
 }
 
 // dropSources deletes the leftover Source line from each doc at paths when
@@ -126,24 +171,40 @@ func collectTests(root string, modules []lang.Module) ([]reqTest, []string, []la
 	return tests, scan.Files, written, nil
 }
 
-// docPaths lists every requirement doc. A template.md beside them is the
-// doc-template check's concern, not a requirement.
-func docPaths(root string) []string {
+// docPaths lists every package root's requirement docs. A template.md
+// beside them is the doc-template check's concern, not a requirement.
+func docPaths(root string, roots []string) []string {
 	var out []string
 	for _, f := range walkfs.FilesByExt(root, ".md") {
-		if strings.HasPrefix(f, docsDir) && isDoc(f) {
+		if docIn(roots, f) {
 			out = append(out, f)
 		}
 	}
 	return out
 }
 
-// missingDocs fails a repo with code that has no requirement docs.
-func missingDocs(paths []string) []string {
-	if len(paths) > 0 {
+// docIn reports whether f is a requirement doc in the docs folder of the
+// package root among roots that owns it.
+func docIn(roots []string, f string) bool {
+	return requirement.InDocs(roots, f) && isDoc(f)
+}
+
+// needsDocs reports whether the root must hold docs: a package root with
+// code, or the repo root of a repo naming no packages.
+func (p pkg) needsDocs() bool {
+	if p.root == packages.Root {
+		return p.alone
+	}
+	return p.code
+}
+
+// missingDocs fails a package root with code that has no requirement docs.
+// The repo root of a monorepo may leave its behavior to its packages.
+func missingDocs(p pkg) []string {
+	if len(p.paths) > 0 || !p.needsDocs() {
 		return nil
 	}
-	return []string{docsDir + " has no requirement docs; add NNNN-kebab-title.md files from the template in the fitness-check-requirements README"}
+	return []string{packages.Join(p.root, docsDir) + " has no requirement docs; add NNNN-kebab-title.md files from the template in the fitness-check-requirements README"}
 }
 
 // idErrors flags a requirement ID that two docs share, and any doc or

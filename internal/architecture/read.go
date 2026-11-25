@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/requirement"
+	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
@@ -41,10 +43,53 @@ func Load(root string) (Model, error) {
 	return m, nil
 }
 
+// LoadJourney reads what the journey check judges in the package root dir: its journey view and requirement docs, under their repo paths.
+// The repo root loads as Load does, and its model leaves out every package's files, since their paths fall outside its docs.
+func LoadJourney(root, dir string) (Model, error) {
+	if dir == packages.Root {
+		return Load(root)
+	}
+	if untouched(dir) {
+		return Model{}, nil
+	}
+	return readJourney(root, dir)
+}
+
+// readJourney reads the requirement docs and journey view of the package
+// root dir, or an empty model when it has no view.
+func readJourney(root, dir string) (Model, error) {
+	files := packageFiles(root, dir)
+	m := Model{repo: newRepository(root, files), dir: dir}
+	if err := m.readRequirements(root, files); err != nil {
+		return m, err
+	}
+	if _, err := m.readViews(root, files); err != nil || len(m.Files) == 0 {
+		return Model{}, err
+	}
+	return m, nil
+}
+
+// untouched reports a scoped run that changes no file of the package root
+// dir, so its journey cannot move.
+func untouched(dir string) bool {
+	changed := checkkit.ChangedFiles()
+	return changed != nil && len(packages.Owned(packages.Roots(), dir, changed)) == 0
+}
+
+// packageFiles lists the tracked files the package root dir owns, by their
+// repo paths, leaving out those of a package nested inside it.
+func packageFiles(root, dir string) []string {
+	files := walkfs.FilesByExt(root, "")
+	if dir == packages.Root || dir == "" {
+		return files
+	}
+	return packages.Owned(packages.Roots(), dir, files)
+}
+
 func (m *Model) readViews(root string, files []string) (map[string]bool, error) {
 	present := map[string]bool{}
 	for _, file := range files {
-		view := viewFile(file)
+		view := viewFile(packages.Rel(m.dir, file))
 		if view == "" {
 			continue
 		}
@@ -78,7 +123,7 @@ func (m *Model) missingViews(present map[string]bool) {
 func (m *Model) readRequirements(root string, files []string) error {
 	var paths []string
 	for _, file := range files {
-		if requirementFile(file) {
+		if requirementFile(packages.Rel(m.dir, file)) {
 			paths = append(paths, file)
 		}
 	}

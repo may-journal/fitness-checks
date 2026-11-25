@@ -38,3 +38,7 @@ Checks
   - Given Developer has a large tree, a long branch, hundreds of docs or hundreds of changed files
     - When the tree, commit, prose and requirement checks judge it
       - Then each gives its verdict with only a few git calls in all
+- 0002.7
+  - Given Developer has a monorepo whose `.fitnessrc.json` names its package folders, or a repo that names none
+    - When the requirement checks judge its docs and tests
+      - Then each package with code owns its docs, tests and numbers, 0001 repeats only across packages, and a repo naming none is one

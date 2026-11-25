@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -76,7 +77,8 @@ func (p page) at() string { return fmt.Sprintf("%s:%d", p.file, p.line) }
 // Run judges every Swift file at root, even in a scoped run, allowing
 // maxPages pages per acceptance. A repo without docs or Storybook passes.
 func Run(root string, maxPages int) (checkkit.Result, error) {
-	docs := requirement.DocPaths(root)
+	roots := packages.Roots()
+	docs := requirement.DocPaths(root, roots)
 	files := walkfs.FilesByExt(root, swift.Ext)
 	if len(docs) == 0 || len(files) == 0 {
 		return checkkit.Pass(0), nil
@@ -88,7 +90,32 @@ func Run(root string, maxPages int) (checkkit.Result, error) {
 	if !uses {
 		return checkkit.Info(len(files), NoStorybook), nil
 	}
-	return verdict(len(files), judgeAgainst(root, docs, pages, maxPages)), nil
+	return verdict(len(files), judgePackages(root, roots, docs, files, pages, maxPages)), nil
+}
+
+// judgePackages judges each package root's pages against its own docs. A
+// package needs docs and Swift files of its own, and the repo root only
+// docs, as before.
+func judgePackages(root string, roots, docs, files []string, pages []page, maxPages int) []string {
+	var findings []string
+	for _, r := range roots {
+		own := packages.Owned(roots, r, docs)
+		if len(own) > 0 && (r == packages.Root || len(packages.Owned(roots, r, files)) > 0) {
+			findings = append(findings, judgeAgainst(root, own, ownedPages(roots, r, pages), maxPages)...)
+		}
+	}
+	return findings
+}
+
+// ownedPages keeps the pages declared in files that package root r owns.
+func ownedPages(roots []string, r string, pages []page) []page {
+	var out []page
+	for _, p := range pages {
+		if packages.Of(roots, p.file) == r {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // judgeAgainst judges pages against the acceptances the docs define, then

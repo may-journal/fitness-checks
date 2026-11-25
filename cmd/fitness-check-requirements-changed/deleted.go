@@ -10,7 +10,7 @@ import (
 
 // leftBehind fails the deletion of file when a requirement doc names it and neither that doc nor its tests changed.
 func leftBehind(root, file string, tests testSet, changed map[string]bool) []string {
-	docs := namingDocs(root, file)
+	docs := namingDocs(root, file, tests.docs)
 	proving := provingTests(docs, tests)
 	if len(docs) == 0 || slices.ContainsFunc(slices.Concat(docs, proving), func(f string) bool { return changed[f] }) {
 		return nil
@@ -18,12 +18,12 @@ func leftBehind(root, file string, tests testSet, changed map[string]bool) []str
 	return []string{fmt.Sprintf("%s was deleted, leaving %s unchanged; change or delete them with it", file, behind(docs, proving))}
 }
 
-// namingDocs lists the requirement docs whose text names file by its whole
-// path.
-func namingDocs(root, file string) []string {
+// namingDocs lists the requirement docs among candidates whose text names
+// file by its whole path.
+func namingDocs(root, file string, candidates []string) []string {
 	named := regexp.MustCompile(`(^|[^\w./-])` + regexp.QuoteMeta(file) + `\b`)
 	var docs []string
-	for _, d := range requirementDocs(root) {
+	for _, d := range candidates {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(d)))
 		if err == nil && named.Match(data) {
 			docs = append(docs, d)
@@ -36,7 +36,7 @@ func namingDocs(root, file string) []string {
 func provingTests(docs []string, tests testSet) []string {
 	var files []string
 	for _, d := range docs {
-		for _, f := range tests.numbers[docNumber(d)] {
+		for _, f := range tests.numbers[docNumber(tests.roots, d)] {
 			if !slices.Contains(files, f) {
 				files = append(files, f)
 			}

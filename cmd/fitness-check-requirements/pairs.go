@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
@@ -21,18 +23,20 @@ import (
 var numberedDoc = regexp.MustCompile(`^(\d{4})-.+\.md$`)
 
 // pairs maps each requirement number to its doc and test files, and each
-// requirement test file to the numbers it proves.
+// requirement test file to the numbers it proves. A number is qualified by
+// its package root, such as cmd/a/0001, so it pairs only within that package.
 type pairs struct {
+	roots   []string
 	docs    map[string][]string
 	tests   map[string][]string
 	numbers map[string][]string
 }
 
-// newPairs pairs every doc and test file by number, using the numbers in a test file's name and tests.
-func newPairs(docPaths, testFiles []string, tests []reqTest, changed []string) pairs {
-	p := pairs{docs: map[string][]string{}, tests: map[string][]string{}, numbers: map[string][]string{}}
+// newPairs pairs every doc and test file by number within its package root, using the numbers in a test file's name and tests.
+func newPairs(roots, docPaths, testFiles []string, tests []reqTest, changed []string) pairs {
+	p := pairs{roots: roots, docs: map[string][]string{}, tests: map[string][]string{}, numbers: map[string][]string{}}
 	for _, f := range append(slices.Clone(docPaths), changed...) {
-		if n := docNumber(f); n != "" {
+		if n := docNumber(roots, f); n != "" {
 			p.docs[n] = addOnce(p.docs[n], f)
 		}
 	}
@@ -43,24 +47,29 @@ func newPairs(docPaths, testFiles []string, tests []reqTest, changed []string) p
 // addTestFiles pairs each file by the numbers in its name, a requirement check by its folder number, and each test by its acceptance.
 func (p pairs) addTestFiles(files []string, tests []reqTest) {
 	for _, f := range files {
-		for _, n := range fileNumbers(f) {
+		for _, n := range fileNumbers(p.roots, f) {
 			p.addTest(n, f)
 		}
 	}
 	for _, t := range tests {
 		if t.ID != "" {
-			p.addTest(t.ID[:4], t.File)
+			p.addTest(packages.Join(packages.Of(p.roots, t.File), t.ID[:4]), t.File)
 		}
 	}
 }
 
-// fileNumbers lists the requirement numbers a file proves by its path: a
-// requirement check's number, or those its test file name carries.
-func fileNumbers(f string) []string {
-	if n := reqCheckNumber(f); n != "" {
-		return []string{n}
+// fileNumbers lists the qualified requirement numbers a file proves by its
+// path: a requirement check's number, or those its test file name carries.
+func fileNumbers(roots []string, f string) []string {
+	owner := packages.Of(roots, f)
+	if n := reqCheckNumber(packages.Rel(owner, f)); n != "" {
+		return []string{packages.Join(owner, n)}
 	}
-	return lang.TestFileNumbers(langs.All, f)
+	var out []string
+	for _, n := range lang.TestFileNumbers(langs.All, f) {
+		out = append(out, packages.Join(owner, n))
+	}
+	return out
 }
 
 // addTest records that file proves requirement n.
@@ -77,13 +86,14 @@ func addOnce(list []string, s string) []string {
 	return append(list, s)
 }
 
-// docNumber returns the requirement number of a doc path, or "".
-func docNumber(f string) string {
-	if !strings.HasPrefix(f, docsDir) {
+// docNumber returns the requirement number of a doc path qualified by its
+// package root among roots, or "". The repo root's numbers stay bare.
+func docNumber(roots []string, f string) string {
+	if !requirement.InDocs(roots, f) {
 		return ""
 	}
 	if m := numberedDoc.FindStringSubmatch(path.Base(f)); m != nil {
-		return m[1]
+		return packages.Join(packages.Of(roots, f), m[1])
 	}
 	return ""
 }
@@ -97,7 +107,7 @@ func (p pairs) judge(changed []string, reformatted map[string]bool, fixed func(s
 	var errs []string
 	for _, f := range changed {
 		errs = append(errs, p.unpairedTest(f, isChanged, fixed)...)
-		if n := docNumber(f); n != "" && !reformatted[f] {
+		if n := docNumber(p.roots, f); n != "" && !reformatted[f] {
 			errs = append(errs, unpaired(f, []string{n}, p.tests, "requirement test", isChanged)...)
 		}
 	}
@@ -139,15 +149,15 @@ func unchangedPartners(numbers []string, partners map[string][]string, changed m
 
 // pairErrors judges a scoped run's changed files, and a full scan or a local merge, cherry-pick or revert judges no pairs.
 // A failed git read is the error.
-func pairErrors(root string, docPaths, testFiles []string, tests []reqTest) ([]string, error) {
+func pairErrors(root string, roots, docPaths, testFiles []string, tests []reqTest) ([]string, error) {
 	changed := gitx.CommitChanges(root)
 	if changed == nil || gitx.Replaying(root) {
 		return nil, nil
 	}
 	base := gitx.ScopeBase(root)
-	p := newPairs(docPaths, testFiles, tests, changed)
+	p := newPairs(roots, docPaths, testFiles, tests, changed)
 	changed, err := p.withoutCommentOnly(root, base, changed)
-	reformatted, reformatErr := reformats(root, base, changed)
+	reformatted, reformatErr := reformats(root, roots, base, changed)
 	errs := p.judge(changed, reformatted, fixedAtBase(root, base))
 	sort.Strings(errs)
 	return errs, errors.Join(err, reformatErr)
@@ -174,7 +184,7 @@ func (p pairs) withoutCommentOnly(root, base string, changed []string) ([]string
 // owned keeps the changed files that prove a requirement or state one.
 func (p pairs) owned(changed []string) []string {
 	return slices.DeleteFunc(slices.Clone(changed), func(f string) bool {
-		return len(p.numbers[f]) == 0 && docNumber(f) == ""
+		return len(p.numbers[f]) == 0 && docNumber(p.roots, f) == ""
 	})
 }
 

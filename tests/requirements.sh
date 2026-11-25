@@ -35,4 +35,9 @@ go build -ldflags "-X main.version=$version -X main.bundleHashes=$platform=$dige
 FITNESS_INSTALL="$work/fitness-install"
 export FITNESS_CACHE_DIR FITNESS_INSTALL
 
-exec go test ./requirements -count=1 -parallel 32 "$@"
+# The repo root's requirements folder and each package's own, such as
+# cmd/<check>/requirements, hold the requirement tests.
+folders="$(go list ./... | grep '/requirements$')"
+[ -n "$folders" ] || { echo "no requirements folder found" >&2; exit 1; }
+# shellcheck disable=SC2086
+exec go test $folders -count=1 -parallel 32 "$@"

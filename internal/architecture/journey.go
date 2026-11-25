@@ -2,6 +2,7 @@ package architecture
 
 import (
 	"fmt"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"path"
 	"regexp"
 	"slices"
@@ -37,7 +38,7 @@ func (m *Model) journeyStart(at Location) {
 func (m *Model) JourneyFiles() int {
 	count := len(m.Requirements)
 	for _, file := range m.Files {
-		if viewFile(file) == journeyView {
+		if viewFile(packages.Rel(m.dir, file)) == journeyView {
 			count++
 		}
 	}

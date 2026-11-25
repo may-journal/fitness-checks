@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -25,7 +26,9 @@ func main() {
 }
 
 func run(root string, _ []string) (checkkit.Result, error) {
-	if skips(root) {
+	roots := packages.Roots()
+	docs := requirementDocs(root, roots)
+	if skips(root, docs) {
 		return checkkit.Pass(0), nil
 	}
 	scope, err := diffScope(root)
@@ -36,7 +39,7 @@ func run(root string, _ []string) (checkkit.Result, error) {
 	if err != nil {
 		return checkkit.Result{}, err
 	}
-	tests, err := scanTests(root)
+	tests, err := scanTests(root, roots, docs)
 	if err != nil {
 		return checkkit.Result{}, err
 	}
@@ -58,8 +61,8 @@ func judgeCode(root, base string, tests testSet, changes []change) (checkkit.Res
 
 // skips reports a run with nothing to judge: a full scan, a replay, or a
 // repo that has no requirement docs yet.
-func skips(root string) bool {
-	return gitx.CommitChanges(root) == nil || gitx.Replaying(root) || len(requirementDocs(root)) == 0
+func skips(root string, docs []string) bool {
+	return gitx.CommitChanges(root) == nil || gitx.Replaying(root) || len(docs) == 0
 }
 
 // judge fails each changed product file whose test or doc did not change, and each deleted one whose doc and tests stay.
@@ -95,12 +98,17 @@ func (c change) edit() comments.Edit {
 	return comments.Edit{From: c.from, File: c.path}
 }
 
-// problem names what is wrong with one product change: an edit lacking a test or doc, or a deletion leaving them behind.
+// problem names what a product change leaves out: a doc naming a deleted file, or a test or doc for an edit.
+// Both must be in its own package, and a package root with no requirement docs yet has no edit to pair.
 func (c change) problem(root string, tests testSet, changed map[string]bool) []string {
 	if c.deleted {
 		return leftBehind(root, c.path, tests, changed)
 	}
-	if what, which := missing(tests.anyTest(changed), anyDoc(changed)); what != "" {
+	pkg := packages.Of(tests.roots, c.path)
+	if !tests.documented(pkg) {
+		return nil
+	}
+	if what, which := missing(tests.anyTest(pkg, changed), tests.anyDoc(pkg, changed)); what != "" {
 		return []string{fmt.Sprintf("%s changed without %s; change %s with it", c.path, what, which)}
 	}
 	return nil
@@ -127,16 +135,6 @@ func changedSet(changes []change) map[string]bool {
 		set[c.path] = true
 	}
 	return set
-}
-
-// anyDoc reports whether a requirement doc changed.
-func anyDoc(changed map[string]bool) bool {
-	for f := range changed {
-		if docNumber(f) != "" {
-			return true
-		}
-	}
-	return false
 }
 
 // joinList names files as a reader lists them.

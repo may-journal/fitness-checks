@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/may-journal/fitness-checks/internal/architecture"
 	"github.com/may-journal/fitness-checks/internal/describe"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 )
@@ -21,18 +23,38 @@ func main() {
 const fixFlag = "--fix"
 
 func run(root string, args []string) (checkkit.Result, error) {
-	if slices.Contains(args, fixFlag) {
-		if err := architecture.RewriteJourneyRegion(root); err != nil {
-			return checkkit.Result{}, err
-		}
+	var errs, notes []string
+	var failed error
+	files := 0
+	for _, dir := range packages.Roots() {
+		found, noted, judged, err := judge(root, dir, slices.Contains(args, fixFlag))
+		errs, notes, files = append(errs, found...), append(notes, noted...), files+judged
+		failed = errors.Join(failed, err)
 	}
-	model, err := architecture.Load(root)
-	errs, notes := model.JourneyErrors()
-	errs = append(errs, model.JourneyRegionErrors()...)
-	result := checkkit.Pass(model.JourneyFiles())
+	return verdict(files, errs, notes), failed
+}
+
+// verdict passes with no errors and fails with any, carrying the notes.
+func verdict(files int, errs, notes []string) checkkit.Result {
+	result := checkkit.Pass(files)
 	if len(errs) > 0 {
-		result = checkkit.Fail(model.JourneyFiles(), errs...)
+		result = checkkit.Fail(files, errs...)
 	}
 	result.Info = notes
-	return result, err
+	return result
+}
+
+// judge compares the journey view of the package root dir with its own
+// docs, rewriting its marked region first when fix is set. It returns the
+// findings, notes and number of files judged.
+func judge(root, dir string, fix bool) (errs, notes []string, files int, err error) {
+	if fix {
+		if err := architecture.RewriteJourneyRegion(root, dir); err != nil {
+			return nil, nil, 0, err
+		}
+	}
+	model, err := architecture.LoadJourney(root, dir)
+	errs, notes = model.JourneyErrors()
+	errs = append(errs, model.JourneyRegionErrors()...)
+	return errs, notes, model.JourneyFiles(), err
 }
