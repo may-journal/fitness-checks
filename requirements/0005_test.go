@@ -865,6 +865,20 @@ func Test0005_6(t *testing.T) {
 				sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
 			}
 		}},
+		{"gherkin given reads like a bullet given", func(t *testing.T) {
+			t.Parallel()
+			gherkinDoc := func(given string) string {
+				return strings.Replace(acDocWith(given), "- 0001.1\n    - Given "+given+"\n        - When it starts\n            - Then it opens\n",
+					"```gherkin\nSCENARIO: 0001.1\n  GIVEN "+given+"\n  WHEN it starts\n  THEN it opens\n```\n", 1)
+			}
+			files := aaFixture("")
+			files[acDoc] = gherkinDoc("User" + aaOpens)
+			out, code := aaRun(t, files)
+			sees(t, out, code, 0)
+			files[acDoc] = gherkinDoc("Admin" + aaOpens)
+			out, code = aaRun(t, files)
+			sees(t, out, code, 1, acDoc+":17: Given \"Admin"+aaOpens+"\" starts with no actor")
+		}},
 		{"given naming only a state fails", func(t *testing.T) {
 			t.Parallel()
 			out, code := aaRun(t, aaFixture("User has an app"))

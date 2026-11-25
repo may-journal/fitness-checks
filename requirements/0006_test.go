@@ -102,7 +102,7 @@ func Test0006_1(t *testing.T) {
 		}},
 		{"stale source line fails then fixes", func(t *testing.T) {
 			t.Parallel()
-			doc := requirementDoc("0001.1")
+			doc := docWith("```gherkin\nSCENARIO: 0001.1\n  GIVEN two numbers\n  WHEN I add them\n  THEN I get their sum\n```\n")
 			sourced := withSource(doc, "`gone.go:99`")
 			repo := example(t, "happyRepo", with(pairedRepo(), map[string]string{pairedDoc: sourced}))
 			out, code := fitness(t, repo, nil, "requirements")

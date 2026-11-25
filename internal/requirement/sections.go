@@ -92,6 +92,9 @@ func parseRequirements(p *problems, docID string, s section) []IDLine {
 	if len(s.lines) == 0 {
 		return nil
 	}
+	if hasGherkin(s) {
+		return parseGherkin(p, docID, s)
+	}
 	var out []IDLine
 	seen := map[string]bool{}
 	for _, g := range groupItems(p, docID, s.lines) {

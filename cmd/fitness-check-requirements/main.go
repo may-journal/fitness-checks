@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"slices"
 	"sort"
 	"strings"
 
@@ -38,7 +36,7 @@ const fixFlag = "--fix"
 func run(root string, args []string) (checkkit.Result, error) {
 	roots := packages.Roots()
 	paths := docPaths(root, roots)
-	if err := dropSources(root, paths, args); err != nil {
+	if err := migrate(root, paths, args); err != nil {
 		return checkkit.Result{}, err
 	}
 	tests, files, written, err := collectTests(root, langs.All)
@@ -123,20 +121,6 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
 	errs = append(errs, stepCaseErrors(docs, p.tests)...)
 	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
-}
-
-// dropSources deletes the leftover Source line from each doc at paths when
-// args ask for the fix.
-func dropSources(root string, paths, args []string) error {
-	if !slices.Contains(args, fixFlag) {
-		return nil
-	}
-	docs, _, _ := requirement.Load(root, paths)
-	var err error
-	for _, d := range docs {
-		err = errors.Join(err, requirement.DropSource(root, d))
-	}
-	return err
 }
 
 // result passes with no errors and fails with any.

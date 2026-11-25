@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/packages"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
@@ -90,11 +91,17 @@ func renamedFrom(roots []string, f string, listed []string) string {
 }
 
 // wording is a doc's words in order without front matter, HTML comments, a base Source line, or formatter-changeable spacing and markers.
+// A Gherkin doc reads as its bullets, and the commas and joins that splitting a step into AND lines moves are left out.
 func wording(doc string, dropSource bool) string {
-	body := comments.WithoutHTMLComments(mdx.StripFrontMatter(doc))
+	body := requirement.BulletText(comments.WithoutHTMLComments(mdx.StripFrontMatter(doc)))
 	if dropSource {
 		body = sourceLine.ReplaceAllString(body, "")
 	}
-	body = listMarker.ReplaceAllString(body, "$1-$2")
-	return strings.Join(strings.Fields(body), " ")
+	body = listMarker.ReplaceAllString(strings.ReplaceAll(body, ",", " "), "$1-$2")
+	return strings.Join(slices.DeleteFunc(strings.Fields(body), isJoin), " ")
+}
+
+// isJoin reports whether word is one an AND or BUT line adds when a step splits.
+func isJoin(word string) bool {
+	return word == "and" || word == "but"
 }

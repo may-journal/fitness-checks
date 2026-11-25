@@ -15,9 +15,9 @@ repos with code or requirement docs
 ## Requirements
 
 - 0006.1
-  - Given Developer has requirement docs that break the template, step chain or acceptance cap
+  - Given Developer has bullet or Gherkin docs breaking the template, step chain or acceptance cap
     - When the requirement doc checks run
-      - Then each fails naming the doc and broken rule
+      - Then each fails naming the doc and rule
 - 0006.2
   - Given Developer has requirements or ADRs with missing, doubled or misnamed proof, or steps no case names
     - When the requirement ownership checks run on the repo

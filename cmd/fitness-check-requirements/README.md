@@ -77,6 +77,35 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
 - Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
 
+## Gherkin
+
+[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) lets the Requirements section hold one fenced `gherkin` block instead of bullets. The [Cucumber parser](https://github.com/cucumber/gherkin) reads it once each keyword is mapped from caps.
+
+```gherkin
+SCENARIO: 0001.2
+  GIVEN a phone with the app installed
+    AND the user is signed in
+  WHEN they upload an edited photo
+  THEN the upload shows its edits
+  WHEN they reopen the app
+  THEN the edits are still there
+```
+
+- Keywords: SCENARIO, GIVEN, WHEN, THEN, AND and BUT, each in caps.
+- Shape: a SCENARIO named by its ID, one GIVEN, then WHEN and THEN pairs. Two pairs or more chain as steps.
+- AND and BUT: one indent deeper than the line they extend, with no effect on step numbers.
+- Commas: a step holds none outside code; split it into an AND line.
+
+## Migrations
+
+Each format change ships as a migration named by the acceptance that states it, so a repo moves either way:
+
+- `fitness requirements --fix` runs every migration up, after deleting `Source:` lines.
+- `fitness requirements --up 0003.6-gherkin` turns bullets into one Gherkin block, leaving commas to split.
+- `fitness requirements --down 0003.6-gherkin` turns the block back into bullets, joining each AND to its line.
+
+Pairing reads a move to Gherkin as a reformat, commas split into AND lines included, so its tests need no change.
+
 ## Behavior
 
 [Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.
