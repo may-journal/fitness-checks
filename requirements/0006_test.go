@@ -173,18 +173,23 @@ func Test0006_2(t *testing.T) {
 			named := func(cases ...string) map[string]string {
 				return with(chained, map[string]string{"chain_test.go": caseFile("adder", "Test0001_2", cases...)})
 			}
-			out, code := fitness(t, example(t, "happyRepo", named("0001.2.1 adds", "0001.2.2 doubles", "edge")), nil, "requirements")
+			out, code := checked(t, named("0001.2.1 adds", "0001.2.2 doubles", "edge"))
 			sees(t, out, code, 0)
-			out, code = fitness(t, example(t, "happyRepo", named("0001.2.1 adds")), nil, "requirements")
+			out, code = checked(t, named("0001.2.1 adds"))
 			sees(t, out, code, 1, pairedDoc+":25: step 0001.2.2 has no test case; add a case to Test0001_2 whose name opens with 0001.2.2")
-			out, code = fitness(t, example(t, "happyRepo", named("0001.2.1 adds", "0001.2.2 doubles", "0001.2.3 halves", "0001.1.1 sums")), nil, "requirements")
+			out, code = checked(t, named("0001.2.1 adds", "0001.2.2 doubles", "0001.2.3 halves", "0001.1.1 sums"))
 			sees(t, out, code, 1, `chain_test.go:8: case "0001.2.3 halves" names step 0001.2.3, which 0001.2 does not chain`,
 				`chain_test.go:9: case "0001.1.1 sums" names step 0001.1.1, which 0001.2 does not chain`)
-			out, code = fitness(t, example(t, "happyRepo", with(goRepo(), map[string]string{"adder_test.go": caseFile("adder", "Test0001_1", "0001.1.1 adds")})), nil, "requirements")
+			out, code = checked(t, with(goRepo(), map[string]string{"adder_test.go": caseFile("adder", "Test0001_1", "0001.1.1 adds")}))
 			sees(t, out, code, 1, `case "0001.1.1 adds" names step 0001.1.1, which 0001.1 does not chain`)
-			node := with(scriptRepo(), map[string]string{"docs/requirements/0001-adds-numbers.md": docWith(chain("0001.1", 2))})
-			out, code = checked(t, node)
-			sees(t, out, code, 0)
+			for _, repo := range []map[string]string{scriptRepo(), swiftRepo()} {
+				out, code = checked(t, with(repo, map[string]string{pairedDoc: docWith(chain("0001.1", 2))}))
+				sees(t, out, code, 0)
+			}
+			out, _ = checked(t, with(reqs(chain("0001.1", 8)), map[string]string{"adder_test.go": caseFile("adder", "Test0001_1", stepCases("0001.1", 7)...)}))
+			if strings.Contains(out, "does not chain") {
+				t.Errorf("a malformed chain fails its good cases:\n%s", out)
+			}
 		}},
 		{"test proving no requirement fails", func(t *testing.T) {
 			t.Parallel()

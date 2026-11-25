@@ -6,37 +6,93 @@ import (
 	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
-// casesReported names the language modules whose scan reports the cases a
-// test runs. Node reports none yet, so its chains need no case per step
-// until fitness-runner issue 1099 lands.
-var casesReported = map[string]bool{"go": true, "java": true, "swift": true}
+// casesReported names the language modules whose requirement tests report
+// the cases they run. Node reports none until fitness-runner issue 1099, and
+// Swift only XCTest activities, which a Swift Testing test may not use.
+var casesReported = map[string]bool{"go": true, "java": true}
 
-// owned is an acceptance and the path of the doc declaring it.
+// owned is an acceptance, the path of the doc declaring it, and its tests.
 type owned struct {
 	requirement.IDLine
-	path string
+	path  string
+	tests []reqTest
 }
 
 // stepCaseErrors requires a case named for each chained step, and fails a
 // case naming a step its acceptance lacks.
 func stepCaseErrors(docs []requirement.Document, tests []reqTest) []string {
-	acceptances := byID(docs)
 	var errs []string
-	for _, t := range tests {
-		if a, ok := acceptances[t.ID]; ok && casesReported[t.module.Name] {
-			errs = append(errs, missingCases(a, t)...)
-			errs = append(errs, strayCases(a.IDLine, t)...)
+	for _, a := range ownedAcceptances(docs, tests) {
+		errs = append(errs, missingCases(a)...)
+		for _, t := range a.tests {
+			errs = append(errs, strayCases(a, t)...)
 		}
 	}
 	return errs
 }
 
-// missingCases fails each numbered step of a that no case of t names.
-func missingCases(a owned, t reqTest) []string {
-	named := map[string]bool{}
-	for _, c := range t.Cases {
-		named[c.Step] = true
+// ownedAcceptances lists each well-formed acceptance in docs with the tests
+// named for it.
+func ownedAcceptances(docs []requirement.Document, tests []reqTest) []*owned {
+	out, byID := wellFormed(docs)
+	for _, t := range tests {
+		if a := byID[t.ID]; a != nil {
+			a.tests = append(a.tests, t)
+		}
 	}
+	return out
+}
+
+// wellFormed lists each acceptance in docs that holds steps, and indexes
+// them by ID. A malformed chain holds none, and its doc already fails.
+func wellFormed(docs []requirement.Document) ([]*owned, map[string]*owned) {
+	var out []*owned
+	byID := map[string]*owned{}
+	for _, d := range docs {
+		for _, a := range d.Acceptances {
+			if len(a.Steps) > 0 {
+				byID[a.ID] = &owned{IDLine: a, path: d.Path}
+				out = append(out, byID[a.ID])
+			}
+		}
+	}
+	return out, byID
+}
+
+// soleReporter is a's one test, when its language reports cases.
+func soleReporter(a *owned) (reqTest, bool) {
+	if len(a.tests) != 1 {
+		return reqTest{}, false
+	}
+	return a.tests[0], casesReported[a.tests[0].module.Name]
+}
+
+// stepIDs is the set of a's numbered step IDs.
+func stepIDs(a *owned) map[string]bool {
+	ids := map[string]bool{}
+	for _, s := range a.Steps {
+		ids[s.ID] = s.ID != ""
+	}
+	return ids
+}
+
+// caseSteps is the set of step IDs t's case names open with.
+func caseSteps(t reqTest) map[string]bool {
+	steps := map[string]bool{}
+	for _, c := range t.Cases {
+		steps[c.Step] = c.Step != ""
+	}
+	return steps
+}
+
+// missingCases fails each numbered step of a that no case of its one test
+// names. Two owners already fail, so they are not judged here.
+func missingCases(a *owned) []string {
+	t, ok := soleReporter(a)
+	if !ok {
+		return nil
+	}
+	named := caseSteps(t)
 	var errs []string
 	for _, s := range a.Steps {
 		if s.ID != "" && !named[s.ID] {
@@ -48,11 +104,8 @@ func missingCases(a owned, t reqTest) []string {
 
 // strayCases fails each case of t whose name opens with a step ID that a
 // does not chain.
-func strayCases(a requirement.IDLine, t reqTest) []string {
-	chained := map[string]bool{}
-	for _, s := range a.Steps {
-		chained[s.ID] = s.ID != ""
-	}
+func strayCases(a *owned, t reqTest) []string {
+	chained := stepIDs(a)
 	var errs []string
 	for _, c := range t.Cases {
 		if c.Step != "" && !chained[c.Step] {
@@ -60,15 +113,4 @@ func strayCases(a requirement.IDLine, t reqTest) []string {
 		}
 	}
 	return errs
-}
-
-// byID maps each acceptance ID in docs to its acceptance and doc.
-func byID(docs []requirement.Document) map[string]owned {
-	out := map[string]owned{}
-	for _, d := range docs {
-		for _, a := range d.Acceptances {
-			out[a.ID] = owned{a, d.Path}
-		}
-	}
-	return out
 }

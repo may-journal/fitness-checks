@@ -19,7 +19,7 @@ repos with code or requirement docs
     - When the requirement doc checks run
       - Then each fails naming the doc and broken rule
 - 0006.2
-  - Given Developer has requirements, chained steps or ADRs whose proof is missing, doubled or misnamed
+  - Given Developer has requirements or ADRs with missing, doubled or misnamed proof, or steps no case names
     - When the requirement ownership checks run on the repo
       - Then each fails naming the requirement, step or case and what to fix
 - 0006.3
