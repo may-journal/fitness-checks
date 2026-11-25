@@ -43,6 +43,6 @@ repos with code or requirement docs
     - When the test and coverage checks run on the pinned runtime
       - Then each shortfall fails naming its cause
 - 0006.8
-  - Given Developer has Swift pages or views whose names, requirement IDs or localized text break the rules
+  - Given Developer has Swift pages or views whose names, repeated IDs or localized text break the rules
     - When the Swift Storybook and localized text checks run on the app
       - Then each break fails naming file, line and fix, or passes without Storybook
