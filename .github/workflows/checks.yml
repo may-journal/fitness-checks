@@ -104,9 +104,8 @@ jobs:
         timeout-minutes: 2
         env:
           REQUIREMENT_SHARD: ${{ matrix.shard }}
-        # The release build and measure script cases build for four platforms
-        # or every check thrice, so only main runs them in the measure job.
-        # The -v log gives each case's time for scripts/requirement-times.sh.
+        # Only main runs the slow release build and measure cases, in the
+        # measure job. The -v log gives each case's time for the shares.
         run: tests/requirements.sh -v -skip '^Test0001_[47]$/^(archive_and|stripped_program|measure_script)'
       - name: Report job outcome
         if: ${{ always() }}
@@ -138,8 +137,8 @@ jobs:
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   measure:
-    # The release build and measure script cases build for four platforms or
-    # every check thrice, so they run on main only, after each merge.
+    # The release build cases build four platforms and the measure case builds
+    # every check thrice. They run on main only, after each merge.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
