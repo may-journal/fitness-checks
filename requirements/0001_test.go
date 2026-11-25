@@ -461,6 +461,50 @@ func Test0001_8(t *testing.T) {
 	})
 }
 
+func Test0001_9(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"each root test runs in exactly one job", func(t *testing.T) {
+			t.Parallel()
+			names := regexp.MustCompile(`(?m)^func (Test\w+)\(t \*testing\.T\)`)
+			var tests []string
+			files, err := filepath.Glob("*_test.go")
+			mustDo(t, err)
+			for _, file := range files {
+				for _, m := range names.FindAllStringSubmatch(fiFile(t, file), -1) {
+					tests = append(tests, m[1])
+				}
+			}
+			for _, n := range []int{1, 3, 8} {
+				runs := map[string]int{}
+				for i := 1; i <= n; i++ {
+					pattern := regexp.MustCompile(strings.TrimSpace(runScript(t, "..", "requirement-shard.sh", fmt.Sprintf("%d/%d", i, n))))
+					for _, test := range tests {
+						if pattern.MatchString(test) {
+							runs[test]++
+						}
+					}
+				}
+				for _, test := range tests {
+					if runs[test] != 1 {
+						t.Errorf("split into %d jobs, %s runs in %d of them, want exactly one", n, test, runs[test])
+					}
+				}
+			}
+		}},
+		{"only the changed checks' folders run", func(t *testing.T) {
+			t.Parallel()
+			got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["gofmt","swiftlint"]`))
+			if want := []string{"./cmd/fitness-check-swiftlint/requirements"}; !slices.Equal(got, want) {
+				t.Errorf("folders for gofmt and swiftlint = %v, want %v", got, want)
+			}
+			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
+				t.Errorf("folders for no changed check = %q, want none", got)
+			}
+		}},
+	})
+}
+
 // checkDocumentedReadme fails t for each way a check folder's README differs
 // from what its binary says.
 func checkDocumentedReadme(t *testing.T, ours, folder, name, readme string) {

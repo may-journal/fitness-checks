@@ -46,3 +46,7 @@ Checks
   - Given Developer has each check's README
     - When the README test reads it
       - Then it holds the check's name, its summary and working links
+- 0001.9
+  - Given Developer has the root requirement tests and requirement folders in some checks
+    - When CI splits the requirement suite into parallel jobs for a change
+      - Then each root test runs in exactly one job and only the changed checks' folders run
