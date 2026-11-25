@@ -131,7 +131,7 @@ func Test0001_2(t *testing.T) {
 				t.Errorf("test-check.sh gofmt: %v\n%s", err, out)
 			}
 		}},
-		{"0001.2.2 each root test runs in exactly one job", func(t *testing.T) {
+		{"0001.2.2 each root test runs once", func(t *testing.T) {
 			t.Parallel()
 			tests := rootTests(t)
 			for _, n := range []int{1, 3, 8} {

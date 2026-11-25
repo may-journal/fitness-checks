@@ -95,8 +95,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          # A key of its own keeps the build cache these jobs fill, every check
-          # included, apart from the small one the other jobs save first.
+          # A key of its own keeps the build cache these jobs fill apart from
+          # the small one the other jobs save first.
           cache-dependency-path: |
             go.sum
             tests/requirements.sh
@@ -104,9 +104,9 @@ jobs:
         timeout-minutes: 2
         env:
           REQUIREMENT_SHARD: ${{ matrix.shard }}
-        # The measure script builds every check three times, so main runs it
-        # in the measure job instead of every pull request waiting on it. The
-        # -v log gives each test's time for scripts/requirement-times.sh.
+        # The measure script builds every check three times, so only main runs
+        # it in the measure job. The -v log gives each test's time for
+        # scripts/requirement-times.sh.
         run: tests/requirements.sh -v -skip '^Test0001_7$/^measure_script'
       - name: Report job outcome
         if: ${{ always() }}

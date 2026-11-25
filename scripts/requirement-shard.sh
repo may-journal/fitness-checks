@@ -1,14 +1,11 @@
 #!/bin/sh
-# Picks one share of the requirement suite, so CI runs the suite as parallel jobs.
-# Usage: scripts/requirement-shard.sh <i>/<n> prints the go test -run pattern
-# for share i of n of the root requirements package. Its top-level tests are
-# dealt out by their recorded times, so each runs in exactly one share.
-# Usage: scripts/requirement-shard.sh checks <JSON array of check names>
-# prints the requirement folders those checks own, one per line, or every
-# check's folder when no array is given.
+# Picks one share of the requirement suite so CI runs it as parallel jobs.
+# Usage: scripts/requirement-shard.sh <i>/<n>, or checks [JSON array of check names].
 set -eu
 cd "$(dirname "$0")/.."
 
+# checks prints the requirement folders the named checks own, or every
+# check's folder when no array is given.
 if [ "${1:-}" = checks ]; then
   names="$(printf '%s' "${2:-}" | tr -d '[]"' | tr ',' ' ')"
   [ -n "${2:-}" ] || names="$(ls -d cmd/fitness-check-* | sed 's|^cmd/fitness-check-||')"
@@ -24,6 +21,7 @@ if [ "${1:-}" = checks ]; then
   exit 0
 fi
 
+# <i>/<n> prints the -run pattern for share i of n of the root requirements package.
 share="${1:?usage: scripts/requirement-shard.sh <i>/<n> or checks <JSON array>}"
 i="${share%/*}"
 n="${share#*/}"

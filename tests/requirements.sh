@@ -1,14 +1,13 @@
 #!/bin/sh
 # Runs the requirement suite the way a user meets these checks. The installer
 # unpacks the pinned engine with this repo's check programs beside it.
-# REQUIREMENT_SHARD=<i>/<n> runs share i of n of the root requirements package,
-# and REQUIREMENT_SHARD=checks runs the folders of the checks REQUIREMENT_CHECKS
-# names as a JSON array, so CI splits the suite over parallel jobs.
 set -eu
 cd "$(dirname "$0")/.."
 
 # The repo root's requirements folder and each package's own, such as
-# cmd/<check>/requirements, hold the requirement tests.
+# cmd/<check>/requirements, hold the requirement tests. REQUIREMENT_SHARD
+# <i>/<n> runs share i of n of the root folder, and checks runs the folders
+# of the checks REQUIREMENT_CHECKS names.
 case "${REQUIREMENT_SHARD:-}" in
 "") folders="$(go list ./... | grep '/requirements$')" ;;
 checks) folders="$(scripts/requirement-shard.sh checks "${REQUIREMENT_CHECKS:-}")" ;;
