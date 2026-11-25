@@ -14,11 +14,14 @@ requirement docs with step chains
 
 ## Requirements
 
-- 0001.1
-  - Given Developer sets `requirements.maxSteps` and has a root or package requirement doc that chains steps
-    - When `prose-budget` reads it
-      - Then a chain up to that limit passes and one step more fails
-- 0001.2
-  - Given Developer sets no `requirements.maxSteps` or one below two
-    - When `prose-budget` reads a step chain in a root or package doc
-      - Then the default limit of seven steps applies
+```gherkin
+SCENARIO: 0001.1
+  GIVEN Developer sets `requirements.maxSteps` and has a root or package requirement doc that chains steps
+  WHEN `prose-budget` reads it
+  THEN a chain up to that limit passes and one step more fails
+
+SCENARIO: 0001.2
+  GIVEN Developer sets no `requirements.maxSteps` or one below two
+  WHEN `prose-budget` reads a step chain in a root or package doc
+  THEN the default limit of seven steps applies
+```

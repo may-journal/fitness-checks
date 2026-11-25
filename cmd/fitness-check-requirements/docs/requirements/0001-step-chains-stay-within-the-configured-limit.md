@@ -14,11 +14,14 @@ step chains
 
 ## Requirements
 
-- 0001.1
-  - Given Developer sets `requirements.maxSteps` and has a doc that chains one step more
-    - When `requirements` reads it
-      - Then it fails naming the chain and the limit
-- 0001.2
-  - Given Developer sets no `requirements.maxSteps` or one below two
-    - When `requirements` reads a step chain
-      - Then the default limit of seven steps applies
+```gherkin
+SCENARIO: 0001.1
+  GIVEN Developer sets `requirements.maxSteps` and has a doc that chains one step more
+  WHEN `requirements` reads it
+  THEN it fails naming the chain and the limit
+
+SCENARIO: 0001.2
+  GIVEN Developer sets no `requirements.maxSteps` or one below two
+  WHEN `requirements` reads a step chain
+  THEN the default limit of seven steps applies
+```

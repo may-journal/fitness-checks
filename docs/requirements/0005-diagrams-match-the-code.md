@@ -14,35 +14,45 @@ diagrams checked
 
 ## Requirements
 
-- 0005.1
-  - Given Developer has Mermaid diagrams of any type in docs, PR bodies and `.mmd` files
-    - When the Mermaid checks parse each diagram
-      - Then every broken diagram fails naming its line and type
-- 0005.2
-  - Given Developer has diagrams whose callouts and callout table rows should pair one to one
-    - When the Mermaid checks match callouts to table rows
-      - Then each missing, repeated or unpaired callout fails naming its line
-- 0005.3
-  - Given Developer has connectors labelled with numbers or out-of-order letters
-    - When the Mermaid checks read connector labels and run with `--fix`
-      - Then bad letters fail, and a fix gives each connector and row the next free letter once
-- 0005.4
-  - Given Developer has diagrams with callout tables, legends, captions and edge labels
-    - When the Mermaid checks read the diagram and its table
-      - Then each missing Why, missing legend, extra paragraph or prose label fails naming its line
-- 0005.5
-  - Given Developer has architecture levels and a contract with diagram IDs, source paths and requirement or step links
-    - When the architecture checks read the contract and its levels
-      - Then repeated level text, duplicate claims and unreadable evidence fail naming their lines
-- 0005.6
-  - Given Developer has journey and context diagrams beside bullet or Gherkin docs
-    - When the architecture checks compare requirements with steps and actors
-      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line
-- 0005.7
-  - Given Developer has container and component views beside build targets and product folders
-    - When the architecture checks compare the views with the runtimes and folders
-      - Then each undeclared, stale or unowned container, folder or call fails naming its source
-- 0005.8
-  - Given Developer has a code view of classes, symbols and edges
-    - When the architecture checks compare the code view with the source
-      - Then each omitted, stale, duplicate or missing class and edge fails naming its line
+```gherkin
+SCENARIO: 0005.1
+  GIVEN Developer has Mermaid diagrams of any type in docs and PR bodies and `.mmd` files
+  WHEN the Mermaid checks parse each diagram
+  THEN every broken diagram fails naming its line and type
+
+SCENARIO: 0005.2
+  GIVEN Developer has diagrams whose callouts and callout table rows should pair one to one
+  WHEN the Mermaid checks match callouts to table rows
+  THEN each missing or repeated or unpaired callout fails naming its line
+
+SCENARIO: 0005.3
+  GIVEN Developer has connectors labelled with numbers or out-of-order letters
+  WHEN the Mermaid checks read connector labels and run with `--fix`
+  THEN bad letters fail
+    AND a fix gives each connector and row the next free letter once
+
+SCENARIO: 0005.4
+  GIVEN Developer has diagrams with callout tables and legends and captions and edge labels
+  WHEN the Mermaid checks read the diagram and its table
+  THEN each missing Why or missing legend or extra paragraph or prose label fails naming its line
+
+SCENARIO: 0005.5
+  GIVEN Developer has architecture levels and a contract with diagram IDs or source paths and requirement or step links
+  WHEN the architecture checks read the contract and its levels
+  THEN repeated level text and duplicate claims and unreadable evidence fail naming their lines
+
+SCENARIO: 0005.6
+  GIVEN Developer has journey and context diagrams beside bullet or Gherkin docs
+  WHEN the architecture checks compare requirements with steps and actors
+  THEN each unnamed doc or unfulfilled step or crossed label or undeclared actor or stale region fails naming its line
+
+SCENARIO: 0005.7
+  GIVEN Developer has container and component views beside build targets and product folders
+  WHEN the architecture checks compare the views with the runtimes and folders
+  THEN each undeclared or stale or unowned container or folder or call fails naming its source
+
+SCENARIO: 0005.8
+  GIVEN Developer has a code view of classes and symbols and edges
+  WHEN the architecture checks compare the code view with the source
+  THEN each omitted or stale or duplicate or missing class and edge fails naming its line
+```

@@ -14,27 +14,39 @@ checks
 
 ## Requirements
 
-- 0008.1
-  - Given Developer has a check whose rule is a doc.go comment with a heading, list, link, code and spell checker line
-    - When the doc move script runs on its folder
-      - Then its README holds them as Markdown, its doc.go is one line that names and embeds the README, and the described summary stays
-- 0008.2
-  - Given Developer has a doc.go that holds more than its comment
-    - When the doc move script runs on its folder
-      - Then it fails naming the folder and leaves both files as they were
-- 0008.3
-  - Given Developer has every check moved to Markdown
-    - When the README test reads each folder
-      - Then each doc.go is one line naming its README and embedding it, and the repo README alone links the architecture page
-- 0008.4
-  - Given Developer has a README with a parenthesized link URL, or a non-prose first block
-    - When the check describes itself
-      - Then the summary has no stray parenthesis, and is empty without prose
-- 0008.5
-  - Given Developer has a doc.go comment that opens with a multi-byte letter
-    - When the doc move script runs on its folder
-      - Then the README opens with that letter as a whole capital
-- 0008.6
-  - Given Developer has each check's README
-    - When the README test reads it against the check's `--describe`
-      - Then the README names only config keys its check declares, besides check names, and says to run `fitness explain` when it declares keys
+```gherkin
+SCENARIO: 0008.1
+  GIVEN Developer has a check whose rule is a doc.go comment with a heading and list and link and code and spell checker line
+  WHEN the doc move script runs on its folder
+  THEN its README holds them as Markdown
+    AND its doc.go is one line that names and embeds the README
+    AND the described summary stays
+
+SCENARIO: 0008.2
+  GIVEN Developer has a doc.go that holds more than its comment
+  WHEN the doc move script runs on its folder
+  THEN it fails naming the folder and leaves both files as they were
+
+SCENARIO: 0008.3
+  GIVEN Developer has every check moved to Markdown
+  WHEN the README test reads each folder
+  THEN each doc.go is one line naming its README and embedding it
+    AND the repo README alone links the architecture page
+
+SCENARIO: 0008.4
+  GIVEN Developer has a README with a parenthesized link URL or a non-prose first block
+  WHEN the check describes itself
+  THEN the summary has no stray parenthesis
+    AND the summary is empty without prose
+
+SCENARIO: 0008.5
+  GIVEN Developer has a doc.go comment that opens with a multi-byte letter
+  WHEN the doc move script runs on its folder
+  THEN the README opens with that letter as a whole capital
+
+SCENARIO: 0008.6
+  GIVEN Developer has each check's README
+  WHEN the README test reads it against the check's `--describe`
+  THEN the README names only config keys its check declares besides check names
+    AND it says to run `fitness explain` when it declares keys
+```

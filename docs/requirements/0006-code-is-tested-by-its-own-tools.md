@@ -14,35 +14,48 @@ repos with code or requirement docs
 
 ## Requirements
 
-- 0006.1
-  - Given Developer has bullet or Gherkin docs breaking the template, step chain or acceptance cap
-    - When the requirement doc checks run
-      - Then each fails naming the doc and rule
-- 0006.2
-  - Given Developer has requirements or ADRs with missing, doubled or misnamed proof, or steps no case names
-    - When the requirement ownership checks run on the repo
-      - Then each fails naming the requirement, step or case and what to fix
-- 0006.3
-  - Given Developer has an unpaired change or a reused ID
-    - When the paired change and ID history checks judge my commit or pull request
-      - Then each fails naming the files or ID, and a pair or whole restructure passes
-- 0006.4
-  - Given Developer has Go files with a format, vet or branch-count problem
-    - When the Go tooling checks run on them
-      - Then each problem fails naming the file and line, and clean code passes
-- 0006.5
-  - Given Developer has JavaScript or TypeScript files with a lint or format problem, or a disable directive
-    - When the Node tooling checks run on them
-      - Then each problem fails naming the file and line, and clean code passes
-- 0006.6
-  - Given Developer has Java code with a format or style problem, or a build missing its plugin or config
-    - When the Java tooling checks run on it
-      - Then each problem fails naming the file and the fix, and clean code passes
-- 0006.7
-  - Given Developer has tests that fail, cover less than all code, or need a runtime version the repo pins
-    - When the test and coverage checks run on the pinned runtime
-      - Then each shortfall fails naming its cause
-- 0006.8
-  - Given Developer has Swift pages or views whose names, repeated IDs or localized text break the rules
-    - When the Swift Storybook and localized text checks run on the app
-      - Then each break fails naming file, line and fix, or passes without Storybook
+```gherkin
+SCENARIO: 0006.1
+  GIVEN Developer has bullet or Gherkin docs breaking the template or step chain or acceptance cap
+  WHEN the requirement doc checks run
+  THEN each fails naming the doc and rule
+
+SCENARIO: 0006.2
+  GIVEN Developer has requirements or ADRs with missing or doubled or misnamed proof or steps no case names
+  WHEN the requirement ownership checks run on the repo
+  THEN each fails naming the requirement or step or case and what to fix
+
+SCENARIO: 0006.3
+  GIVEN Developer has an unpaired change or a reused ID
+  WHEN the paired change and ID history checks judge my commit or pull request
+  THEN each fails naming the files or ID
+    AND a pair or whole restructure passes
+
+SCENARIO: 0006.4
+  GIVEN Developer has Go files with a format or vet or branch-count problem
+  WHEN the Go tooling checks run on them
+  THEN each problem fails naming the file and line
+    AND clean code passes
+
+SCENARIO: 0006.5
+  GIVEN Developer has JavaScript or TypeScript files with a lint or format problem or a disable directive
+  WHEN the Node tooling checks run on them
+  THEN each problem fails naming the file and line
+    AND clean code passes
+
+SCENARIO: 0006.6
+  GIVEN Developer has Java code with a format or style problem or a build missing its plugin or config
+  WHEN the Java tooling checks run on it
+  THEN each problem fails naming the file and the fix
+    AND clean code passes
+
+SCENARIO: 0006.7
+  GIVEN Developer has tests that fail or cover less than all code or need a runtime version the repo pins
+  WHEN the test and coverage checks run on the pinned runtime
+  THEN each shortfall fails naming its cause
+
+SCENARIO: 0006.8
+  GIVEN Developer has Swift pages or views whose names or repeated IDs or localized text break the rules
+  WHEN the Swift Storybook and localized text checks run on the app
+  THEN each break fails naming file and line and fix or passes without Storybook
+```
