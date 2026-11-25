@@ -35,12 +35,11 @@ esac
 
 # The test names come from the source, so no test binary is built to pick.
 names="$(grep -ho '^func Test[A-Za-z0-9_]*' requirements/*_test.go | sed 's/^func //' | grep -vx TestMain | sort)"
-# Each test weighs the seconds tests/requirement-times.tsv gives it, or 10
-# when it has no row. The heaviest goes first to the lightest share, so the
-# shares end close together.
-printf '%s\n' "$names" | awk -v i="$i" -v n="$n" -F'\t' '
-  FNR == NR { if ($0 !~ /^#/) weight[$1] = $2; next }
-  { w = ($1 in weight) ? weight[$1] : 10; printf "%012.3f\t%s\n", w, $1 }
+# Each test weighs the seconds tests/requirement-times.tsv gives it, or their
+# mean when it has no row. The heaviest goes first to the lightest share.
+printf '%s\n' "$names" | awk -F'\t' '
+  FNR == NR { if ($0 !~ /^#/) { weight[$1] = $2; sum += $2; rows++ }; next }
+  { w = ($1 in weight) ? weight[$1] : (rows ? sum / rows : 1); printf "%012.3f\t%s\n", w, $1 }
 ' tests/requirement-times.tsv - | sort -t"$(printf '\t')" -k1,1r -k2,2 | awk -v i="$i" -v n="$n" -F'\t' '
   {
     lightest = 1

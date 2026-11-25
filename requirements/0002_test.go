@@ -2,7 +2,6 @@ package requirements
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -149,7 +148,7 @@ func Test0002_2(t *testing.T) {
 		}},
 		{"local-branch declares itself and exits alone", func(t *testing.T) {
 			t.Parallel()
-			bin := goBuild(t, "./cmd/fitness-check-local-branch") + "/fitness-check-local-branch"
+			bin := filepath.Join(installOnly(t), "fitness-check-local-branch")
 			out, code := execute(t, func() *exec.Cmd { return exec.Command(bin, "--describe") })
 			sees(t, out, code, 0, `"name":"local-branch"`, `"scope":"github"`, `"protocol":1`)
 			out, code = execute(t, func() *exec.Cmd { return exec.Command(bin, "--root", t.TempDir()) })
@@ -681,17 +680,12 @@ func fewGitCalls(t *testing.T, calls string) {
 	}
 }
 
-// describedChecks holds each check program's --describe metadata, built once.
+// describedChecks holds each installed check program's --describe metadata,
+// read once.
 var describedChecks = sync.OnceValues(func() (map[string]checkkit.Describe, error) {
-	dir, err := os.MkdirTemp("", "checks-0169-")
+	dir, err := installedBundle()
 	if err != nil {
 		return nil, err
-	}
-	defer os.RemoveAll(dir)
-	build := exec.Command("go", "build", "-o", dir+string(filepath.Separator), "./cmd/...")
-	build.Dir = ".."
-	if out, err := build.CombinedOutput(); err != nil {
-		return nil, errors.New("go build ./cmd/...: " + string(out))
 	}
 	return describeAll(dir)
 })

@@ -43,7 +43,7 @@ func Test0001_1(t *testing.T) {
 		}},
 		{"describe prints name summary scope and the keys with their defaults", func(t *testing.T) {
 			t.Parallel()
-			ours := goBuild(t, "./cmd/...")
+			ours := installOnly(t)
 			for _, folder := range checkFolders(t, "..") {
 				name := filepath.Base(folder)
 				got := describeMap(t, filepath.Join(ours, name))
@@ -465,7 +465,7 @@ func Test0001_8(t *testing.T) {
 			var ours string
 			eachReadme(t, func(folder, name, readme string) {
 				if ours == "" {
-					ours = goBuild(t, "./cmd/...")
+					ours = installOnly(t)
 				}
 				checkDocumentedReadme(t, ours, folder, name, readme)
 			})
