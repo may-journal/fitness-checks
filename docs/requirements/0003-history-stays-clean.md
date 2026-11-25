@@ -2,7 +2,7 @@
 
 ## Why
 
-I read a branch's history and release notes and see what each change was, who helped, and which issue it served. Each issue is linked once, and each change has one dated entry.
+I read a branch's history and release notes and see what each change was, who helped, and which issue it served. Each issue is linked once.
 
 ## Measurement
 
@@ -30,18 +30,6 @@ commits and entry files checked
   - Given Developer has a branch and open PR that already link some issues
     - When the commit checks look for repeated issue links
       - Then a second link to the same issue fails naming the earlier commit or PR
-- 0003.5
-  - Given Developer has changelog entry files with good and bad names and headings
-    - When the changelog checks read each entry file
-      - Then each file needs one dated heading matching its name, and upstream `CHANGELOG.md` history passes as it is
-- 0003.6
-  - Given Developer has changelog entry files with different bullet counts, lengths and types
-    - When the changelog checks read the bullets
-      - Then an entry with fewer than three or more than five bullets, a long bullet, or an untyped bullet fails naming it
-- 0003.7
-  - Given Developer has staged commits with and without a new or edited entry file
-    - When the changelog checks read the staged commit
-      - Then the branch's one entry must name the change, and published entries stay as released
 - 0003.8
   - Given Developer has release manifests and version files that agree or differ
     - When the changelog checks read the release versions

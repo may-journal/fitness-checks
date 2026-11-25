@@ -2,5 +2,23 @@
   "checkVersions": {
     "*": "v1"
   },
+<<<<<<< HEAD
   "packages": ["cmd/fitness-check-prose-budget", "cmd/fitness-check-requirements", "cmd/fitness-check-swiftlint"]
+=======
+  "packages": [
+    "cmd/fitness-check-adr-as-issue",
+    "cmd/fitness-check-adr-checks",
+    "cmd/fitness-check-architecture-actors",
+    "cmd/fitness-check-architecture-code",
+    "cmd/fitness-check-architecture-components",
+    "cmd/fitness-check-architecture-containers",
+    "cmd/fitness-check-architecture-contract",
+    "cmd/fitness-check-architecture-journey",
+    "cmd/fitness-check-build-output-untracked",
+    "cmd/fitness-check-changelog",
+    "cmd/fitness-check-changelog-bullets",
+    "cmd/fitness-check-changelog-updated",
+    "cmd/fitness-check-swiftlint"
+  ]
+>>>>>>> 9aaccbe (feat(requirements): twelve checks own their requirement docs)
 }
