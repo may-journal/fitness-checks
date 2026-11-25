@@ -69,7 +69,7 @@ func Test0006_1(t *testing.T) {
 		}},
 		{"steps chain up to seven beside a single step", func(t *testing.T) {
 			t.Parallel()
-			tests := map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "Test0001_2")}
+			tests := map[string]string{"adder_test.go": testFile("adder", "Test0001_1"), "chain_test.go": caseFile("adder", "Test0001_2", stepCases("0001.2", 7)...)}
 			out, code := fitness(t, example(t, "happyRepo", with(reqs(acceptances("0001.1")+chain("0001.2", 7)), tests)), nil, "requirements")
 			sees(t, out, code, 0)
 			out, code = judged(t, reqs(chain("0001.1", 8)))
@@ -166,6 +166,25 @@ func Test0006_2(t *testing.T) {
 			sees(t, out, code, 1, "0001.1 is owned by 2 tests")
 			out, code = judged(t, with(goRepo(), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "Test0001_2")}))
 			sees(t, out, code, 1, "Test0001_2 names 0001.2, which no requirement defines")
+		}},
+		{"each chained step needs a named case", func(t *testing.T) {
+			t.Parallel()
+			chained := reqs(acceptances("0001.1") + chain("0001.2", 2))
+			named := func(cases ...string) map[string]string {
+				return with(chained, map[string]string{"chain_test.go": caseFile("adder", "Test0001_2", cases...)})
+			}
+			out, code := fitness(t, example(t, "happyRepo", named("0001.2.1 adds", "0001.2.2 doubles", "edge")), nil, "requirements")
+			sees(t, out, code, 0)
+			out, code = fitness(t, example(t, "happyRepo", named("0001.2.1 adds")), nil, "requirements")
+			sees(t, out, code, 1, pairedDoc+":25: step 0001.2.2 has no test case; add a case to Test0001_2 whose name opens with 0001.2.2")
+			out, code = fitness(t, example(t, "happyRepo", named("0001.2.1 adds", "0001.2.2 doubles", "0001.2.3 halves", "0001.1.1 sums")), nil, "requirements")
+			sees(t, out, code, 1, `chain_test.go:8: case "0001.2.3 halves" names step 0001.2.3, which 0001.2 does not chain`,
+				`chain_test.go:9: case "0001.1.1 sums" names step 0001.1.1, which 0001.2 does not chain`)
+			out, code = fitness(t, example(t, "happyRepo", with(goRepo(), map[string]string{"adder_test.go": caseFile("adder", "Test0001_1", "0001.1.1 adds")})), nil, "requirements")
+			sees(t, out, code, 1, `case "0001.1.1 adds" names step 0001.1.1, which 0001.1 does not chain`)
+			node := with(scriptRepo(), map[string]string{"docs/requirements/0001-adds-numbers.md": docWith(chain("0001.1", 2))})
+			out, code = checked(t, node)
+			sees(t, out, code, 0)
 		}},
 		{"test proving no requirement fails", func(t *testing.T) {
 			t.Parallel()
@@ -336,11 +355,14 @@ func Test0006_3(t *testing.T) {
 		{"deleted step brought back fails", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", goRepo())
-			commit(t, repo, reqs(chain("0001.1", 3)), "docs(requirements): chain 0001.1 in three steps")
+			cased := func(steps int) map[string]string {
+				return with(reqs(chain("0001.1", steps)), map[string]string{"adder_test.go": caseFile("adder", "Test0001_1", stepCases("0001.1", steps)...)})
+			}
+			commit(t, repo, cased(3), "docs(requirements): chain 0001.1 in three steps")
 			out, code := fitness(t, repo, nil, "requirements")
 			sees(t, out, code, 0)
-			commit(t, repo, reqs(chain("0001.1", 2)), "docs(requirements): drop step 0001.1.3")
-			write(t, repo, reqs(chain("0001.1", 3)))
+			commit(t, repo, cased(2), "docs(requirements): drop step 0001.1.3")
+			write(t, repo, cased(3))
 			out, code = fitness(t, repo, nil, "requirements")
 			sees(t, out, code, 1, pairedDoc+":23: 0001.1.3 was deleted before; IDs are never reused, so chain the step under a new acceptance ID")
 		}},

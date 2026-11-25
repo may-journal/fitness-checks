@@ -83,6 +83,26 @@ func testFile(pkg string, names ...string) string {
 	return body
 }
 
+// caseFile is a Go test file in pkg declaring test name, which runs one
+// empty case per case name.
+func caseFile(pkg, name string, cases ...string) string {
+	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
+	for _, c := range cases {
+		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n"
+	}
+	return body + "}\n"
+}
+
+// stepCases names one case for each of id's first steps, such as
+// "0001.2.1 step".
+func stepCases(id string, steps int) []string {
+	var out []string
+	for n := 1; n <= steps; n++ {
+		out = append(out, id+"."+strconv.Itoa(n)+" step")
+	}
+	return out
+}
+
 // requirementDoc is requirement 0001 with one Given/When/Then per ID.
 func requirementDoc(ids ...string) string {
 	return docWith(acceptances(ids...))
