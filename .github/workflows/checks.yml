@@ -104,10 +104,10 @@ jobs:
         timeout-minutes: 2
         env:
           REQUIREMENT_SHARD: ${{ matrix.shard }}
-        # The measure script builds every check three times, so only main runs
-        # it in the measure job. The -v log gives each test's time for
-        # scripts/requirement-times.sh.
-        run: tests/requirements.sh -v -skip '^Test0001_7$/^measure_script'
+        # The release build and measure script cases build for four platforms
+        # or every check thrice, so only main runs them in the measure job.
+        # The -v log gives each case's time for scripts/requirement-times.sh.
+        run: tests/requirements.sh -v -skip '^Test0001_[47]$/^(archive_and|stripped_program|measure_script)'
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB ${{ matrix.shard }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
@@ -138,8 +138,8 @@ jobs:
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   measure:
-    # The measure script builds every check three times, so it runs on main
-    # only, after each merge.
+    # The release build and measure script cases build for four platforms or
+    # every check thrice, so they run on main only, after each merge.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
@@ -151,12 +151,12 @@ jobs:
           cache-dependency-path: |
             go.sum
             tests/requirements.sh
-      - name: Run the measure script's requirement test
+      - name: Run the release build and measure script cases
         # One share of one keeps the run to the root package, and the later
-        # -run narrows it to the measure case.
+        # -run narrows it to the slow cases.
         env:
           REQUIREMENT_SHARD: 1/1
-        run: tests/requirements.sh -run '^Test0001_7$/^measure_script'
+        run: tests/requirements.sh -run '^Test0001_[47]$/^(archive_and|stripped_program|measure_script)'
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

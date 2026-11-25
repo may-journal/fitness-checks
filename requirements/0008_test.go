@@ -199,7 +199,7 @@ func Test0008_6(t *testing.T) {
 // --describe declares, nested keys included.
 func declaredKeys(t *testing.T) map[string]map[string]bool {
 	t.Helper()
-	bin := installOnly(t)
+	bin := goBuild(t, "./cmd/...")
 	all := map[string]map[string]bool{}
 	for _, folder := range checkFolders(t, "..") {
 		name := strings.TrimPrefix(filepath.Base(folder), "fitness-check-")
