@@ -751,3 +751,69 @@ func patternsExit(t *testing.T, program, line string) (string, int) {
 		return cmd
 	})
 }
+
+func Test0002_7(t *testing.T) {
+	t.Parallel()
+	runCases(t, []edgeCase{
+		{"each package owns its docs and tests", func(t *testing.T) {
+			t.Parallel()
+			out, code := fitness(t, example(t, "happyRepo", monorepo(true)), nil, "requirements")
+			sees(t, out, code, 0)
+			out, code = fitness(t, example(t, "happyRepo", with(monorepo(true), map[string]string{
+				packageDoc("a"): requirementDoc("0001.1", "0001.2"),
+			})), nil, "requirements")
+			sees(t, out, code, 1, packageDoc("a")+":21: 0001.2 has no test")
+			out, code = fitness(t, example(t, "happyRepo", with(monorepo(true), map[string]string{
+				packageDoc("b"): "", "pkgs/b/requirements/0001_test.go": "",
+			})), nil, "requirements")
+			sees(t, out, code, 1, "pkgs/b/docs/requirements/ has no requirement docs")
+		}},
+		{"a number repeats only across packages", func(t *testing.T) {
+			t.Parallel()
+			out, code := fitness(t, example(t, "happyRepo", with(monorepo(true), map[string]string{
+				"pkgs/a/docs/requirements/0001-other.md": requirementDoc("0001.1"),
+			})), nil, "requirements")
+			sees(t, out, code, 1, "requirement 0001 is used by "+packageDoc("a")+", pkgs/a/docs/requirements/0001-other.md")
+			if strings.Contains(out, "docs/requirements/0001-adds-numbers.md, pkgs/") {
+				t.Errorf("the repo root's 0001 must not clash with a package's:\n%s", out)
+			}
+		}},
+		{"a package change pairs with its own doc and test", func(t *testing.T) {
+			t.Parallel()
+			edit := map[string]string{"pkgs/a/a.go": monorepo(true)["pkgs/a/a.go"] + "\n// Two is two.\nconst Two = 2\n"}
+			pair := func(doc, test string) map[string]string {
+				return with(edit, map[string]string{doc: requirementDoc("0001.1", "0001.2"), test: testFile("requirements", "Test0001_1", "Test0001_2")})
+			}
+			out, code := rcStaged(t, monorepo(true), pair(pairedDoc, "adder_test.go"))
+			sees(t, out, code, 1, "pkgs/a/a.go changed without a test and a requirement doc")
+			out, code = rcStaged(t, monorepo(true), pair(packageDoc("a"), "pkgs/a/requirements/0001_test.go"))
+			sees(t, out, code, 0, rcPassed)
+		}},
+		{"a repo with no packages key is one package", func(t *testing.T) {
+			t.Parallel()
+			out, code := fitness(t, example(t, "happyRepo", monorepo(false)), nil, "requirements")
+			sees(t, out, code, 1, "0001.1 is owned by 3 tests")
+		}},
+	})
+}
+
+// monorepo is goRepo with packages pkgs/a and pkgs/b, each with its own
+// requirement 0001 and test, named in .fitnessrc.json when packages is set.
+func monorepo(packages bool) map[string]string {
+	rc := `{"policy": "external", "checks": ["requirements"]}`
+	if packages {
+		rc = `{"policy": "external", "checks": ["requirements"], "packages": ["pkgs/*"]}`
+	}
+	repo := with(goRepo(), map[string]string{".fitnessrc.json": rc + "\n"})
+	for _, name := range []string{"a", "b"} {
+		repo["pkgs/"+name+"/"+name+".go"] = "// Package " + name + " adds numbers.\npackage " + name + "\n"
+		repo[packageDoc(name)] = requirementDoc("0001.1")
+		repo["pkgs/"+name+"/requirements/0001_test.go"] = testFile("requirements", "Test0001_1")
+	}
+	return repo
+}
+
+// packageDoc is the path of requirement 0001 in package pkgs/<name>.
+func packageDoc(name string) string {
+	return "pkgs/" + name + "/docs/requirements/0001-adds-numbers.md"
+}

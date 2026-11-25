@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
@@ -22,13 +23,13 @@ var sourceLine = regexp.MustCompile(`(?m)^Source:.*$`)
 // base, so a formatter's rewrite, such as `biome format`, needs no test
 // change. It is empty when there is no base, and one git call reads every
 // doc's two versions.
-func reformats(root, base string, changed []string) (map[string]bool, error) {
+func reformats(root string, roots []string, base string, changed []string) (map[string]bool, error) {
 	found := map[string]bool{}
-	docs := slices.DeleteFunc(slices.Clone(changed), func(f string) bool { return docNumber(f) == "" })
+	docs := slices.DeleteFunc(slices.Clone(changed), func(f string) bool { return docNumber(roots, f) == "" })
 	if base == "" || len(docs) == 0 {
 		return found, nil
 	}
-	from := docsAtBase(root, base, docs)
+	from := docsAtBase(root, roots, base, docs)
 	var objects []string
 	for _, f := range docs {
 		objects = append(objects, base+":"+from[f], gitx.JudgedObject(f))
@@ -52,27 +53,33 @@ func sameWording(text map[string]string, before, after string) bool {
 }
 
 // docsAtBase maps each of docs to its path at base, read from one listing
-// of base's docs. A doc renamed since base maps to the base doc of its
-// number, since a number is never reused.
-func docsAtBase(root, base string, docs []string) map[string]string {
-	out, _ := exec.Command("git", "-C", root, "ls-tree", "--name-only", base, docsDir).Output()
+// of base's docs folders. A doc renamed since base maps to the base doc of
+// its number in its package, since a number is never reused there.
+func docsAtBase(root string, roots []string, base string, docs []string) map[string]string {
+	var dirs []string
+	for _, f := range docs {
+		if dir := packages.Join(packages.Of(roots, f), docsDir); !slices.Contains(dirs, dir) {
+			dirs = append(dirs, dir)
+		}
+	}
+	out, _ := exec.Command("git", append([]string{"-C", root, "ls-tree", "--name-only", base}, dirs...)...).Output()
 	listed := strings.Fields(string(out))
 	from := map[string]string{}
 	for _, f := range docs {
-		from[f] = renamedFrom(f, listed)
+		from[f] = renamedFrom(roots, f, listed)
 	}
 	return from
 }
 
 // renamedFrom is f when base lists it, else the one listed doc with f's
 // number. With none, or more than one, it is f.
-func renamedFrom(f string, listed []string) string {
+func renamedFrom(roots []string, f string, listed []string) string {
 	if slices.Contains(listed, f) {
 		return f
 	}
 	var same []string
 	for _, doc := range listed {
-		if docNumber(doc) == docNumber(f) {
+		if docNumber(roots, doc) == docNumber(roots, f) {
 			same = append(same, doc)
 		}
 	}

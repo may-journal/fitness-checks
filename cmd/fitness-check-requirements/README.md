@@ -85,6 +85,26 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Full and scoped runs judge every doc and test file, including unchanged files in pull requests that change only unrelated files.
 - Ownership is a repository-wide invariant: an unmapped repo stays red until every test owns a requirement.
 
+## Package roots
+
+A monorepo names its package folders once in `.fitnessrc.json`, and each package root is judged like a repo of its own:
+
+```json
+{ "packages": ["cmd/*"] }
+```
+
+```text
+docs/requirements/0001-the-monorepo-builds.md
+cmd/fitness-check-gofmt/docs/requirements/0001-go-files-are-formatted.md
+cmd/fitness-check-gofmt/requirements/0001_test.go
+```
+
+- Numbers: a number is unique within its package, so each package starts at 0001.
+- Tests: a package's requirement tests sit in its own folder and prove only its docs.
+- Missing docs: a package root with code and no docs fails. The repo root may leave its behavior to its packages.
+- Pairs: a test pairs with a doc of its own package, as does a product change in `requirements-changed`.
+- No key: without `packages`, the repo root is the only package, as before.
+
 ## Swift tests
 
 Swift requirement tests run on Swift Testing with [apple-ui-testing-library](https://github.com/may-journal/apple-ui-testing-library), hosted in the app, natively as Designed for iPad or on macOS. The [Swift module](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/swift/library.go) judges them.

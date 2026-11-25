@@ -37,7 +37,7 @@ func (m *Model) journeyStart(at Location) {
 func (m *Model) JourneyFiles() int {
 	count := len(m.Requirements)
 	for _, file := range m.Files {
-		if viewFile(file) == journeyView {
+		if viewFile(inPackage(m.dir, file)) == journeyView {
 			count++
 		}
 	}

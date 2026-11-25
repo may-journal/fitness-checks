@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/requirement"
-	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
 // Markers are Mermaid comments around nodes generated from the requirement docs, and the start marker lists the doc IDs its region holds.
@@ -126,23 +125,24 @@ func regionAt(line string, start, end int) region {
 	}
 }
 
-// journeyViews lists the journey view files under root.
-func journeyViews(files []string) []string {
+// journeyViews lists the journey view files of the package root dir.
+func journeyViews(dir string, files []string) []string {
 	var out []string
 	for _, file := range files {
-		if viewFile(file) == journeyView {
+		if viewFile(inPackage(dir, file)) == journeyView {
 			out = append(out, file)
 		}
 	}
 	return out
 }
 
-// loadDocs reads the requirement docs under root and the files around them.
-func loadDocs(root string) ([]requirement.Document, []string, []string) {
-	files := walkfs.FilesByExt(root, "")
+// loadDocs reads the requirement docs of the package root dir and the files
+// around them.
+func loadDocs(root, dir string) ([]requirement.Document, []string, []string) {
+	files := packageFiles(root, dir)
 	var paths []string
 	for _, file := range files {
-		if requirementFile(file) {
+		if requirementFile(inPackage(dir, file)) {
 			paths = append(paths, file)
 		}
 	}
@@ -158,7 +158,7 @@ func (m *Model) JourneyRegionErrors() []string {
 		return nil
 	}
 	var errs []string
-	for _, file := range journeyViews(m.Files) {
+	for _, file := range journeyViews(m.dir, m.Files) {
 		body, err := os.ReadFile(filepath.Join(m.repo.root, filepath.FromSlash(file)))
 		if err != nil {
 			errs = append(errs, file+":1: "+err.Error())
@@ -230,14 +230,14 @@ func trimmed(lines []string) []string {
 	return out
 }
 
-// RewriteJourneyRegion rewrites the marked region of each journey view from the docs.
+// RewriteJourneyRegion rewrites the marked region of each journey view in the package root dir from its docs.
 // It writes nothing when a doc fails to load or lacks a title, and leaves a view without markers alone.
-func RewriteJourneyRegion(root string) error {
-	docs, files, skipped := loadDocs(root)
+func RewriteJourneyRegion(root, dir string) error {
+	docs, files, skipped := loadDocs(root, dir)
 	if err := untitled(docs, skipped); err != nil {
 		return err
 	}
-	for _, file := range journeyViews(files) {
+	for _, file := range journeyViews(dir, files) {
 		if err := rewriteView(filepath.Join(root, filepath.FromSlash(file)), docs); err != nil {
 			return err
 		}

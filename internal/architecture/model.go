@@ -104,6 +104,9 @@ type Model struct {
 	Files         []string
 	Errors        []string
 	repo          repository
+	// dir is the package root a journey model reads, or empty for the repo
+	// root.
+	dir string
 	// journeyAt is the first journey diagram's fence line, or the journey
 	// view's first line when it has no diagram.
 	journeyAt Location

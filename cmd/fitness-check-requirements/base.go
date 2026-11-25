@@ -51,6 +51,9 @@ func baseErrors(root, rev, dir string) []string {
 	}
 	cmd := self.Command("--root", dir)
 	cmd.Env = append(toolchain.CleanEnv(os.Environ()), "GITHUB_BASE_REF=")
+	if roots, ok := os.LookupEnv(checkkit.PackagesEnv); ok {
+		cmd.Env = append(cmd.Env, checkkit.PackagesEnv+"="+roots)
+	}
 	out, _ := cmd.Output()
 	var res checkkit.Result
 	if json.Unmarshal(out, &res) != nil {
@@ -94,9 +97,10 @@ func judgedEntries(root, rev string) ([]byte, error) {
 	return kept.Bytes(), nil
 }
 
-// judged reports whether this check reads file.
+// judged reports whether this check reads file: a doc in any package's
+// docs folder, a .gitattributes or a test file.
 func judged(file string) bool {
-	return strings.HasPrefix(file, docsDir) || path.Base(file) == ".gitattributes" || lang.TestReads(langs.All, file)
+	return strings.HasPrefix(file, docsDir) || strings.Contains(file, "/"+docsDir) || path.Base(file) == ".gitattributes" || lang.TestReads(langs.All, file)
 }
 
 // gitIn runs git in dir with stdin as its input, without the hook

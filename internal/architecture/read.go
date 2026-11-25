@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/mermaid"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
@@ -41,10 +42,52 @@ func Load(root string) (Model, error) {
 	return m, nil
 }
 
+// LoadJourney reads what the journey check judges in the package root dir: its journey view and requirement docs, under their repo paths.
+// The repo root loads as Load does, and its model leaves out every package's files, since their paths fall outside its docs.
+func LoadJourney(root, dir string) (Model, error) {
+	if dir == packages.Root {
+		return Load(root)
+	}
+	files := packageFiles(root, dir)
+	m := Model{repo: newRepository(root, files), dir: dir}
+	if err := m.readRequirements(root, files); err != nil {
+		return m, err
+	}
+	if _, err := m.readViews(root, files); err != nil || len(m.Files) == 0 {
+		return Model{}, err
+	}
+	return m, nil
+}
+
+// packageFiles lists the tracked files under the package root dir, by
+// their repo paths.
+func packageFiles(root, dir string) []string {
+	files := walkfs.FilesByExt(root, "")
+	if dir == packages.Root {
+		return files
+	}
+	var out []string
+	for _, file := range files {
+		if strings.HasPrefix(file, dir+"/") {
+			out = append(out, file)
+		}
+	}
+	return out
+}
+
+// inPackage is file's path inside the package root dir, where empty is the
+// repo root.
+func inPackage(dir, file string) string {
+	if dir == "" {
+		return file
+	}
+	return packages.Rel(dir, file)
+}
+
 func (m *Model) readViews(root string, files []string) (map[string]bool, error) {
 	present := map[string]bool{}
 	for _, file := range files {
-		view := viewFile(file)
+		view := viewFile(inPackage(m.dir, file))
 		if view == "" {
 			continue
 		}
@@ -78,7 +121,7 @@ func (m *Model) missingViews(present map[string]bool) {
 func (m *Model) readRequirements(root string, files []string) error {
 	var paths []string
 	for _, file := range files {
-		if requirementFile(file) {
+		if requirementFile(inPackage(m.dir, file)) {
 			paths = append(paths, file)
 		}
 	}
