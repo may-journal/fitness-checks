@@ -94,12 +94,13 @@ func Run(root string, maxPages int) (checkkit.Result, error) {
 }
 
 // judgePackages judges each package root's pages against its own docs. A
-// root without docs or Swift files of its own has nothing to judge.
+// package needs docs and Swift files of its own, and the repo root only
+// docs, as before.
 func judgePackages(root string, roots, docs, files []string, pages []page, maxPages int) []string {
 	var findings []string
 	for _, r := range roots {
 		own := packages.Owned(roots, r, docs)
-		if len(own) > 0 && len(packages.Owned(roots, r, files)) > 0 {
+		if len(own) > 0 && (r == packages.Root || len(packages.Owned(roots, r, files)) > 0) {
 			findings = append(findings, judgeAgainst(root, own, ownedPages(roots, r, pages), maxPages)...)
 		}
 	}

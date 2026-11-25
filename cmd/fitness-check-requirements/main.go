@@ -65,13 +65,16 @@ type pkg struct {
 	proven map[string]bool
 	// alone is true for the repo root of a repo that names no packages.
 	alone bool
+	// code is true when the root holds a file in a language the repo uses.
+	code bool
 }
 
-// split gives each package root the docs, tests and checks it owns.
-func split(roots, paths []string, tests []reqTest, proven map[string]map[string]bool) []pkg {
+// split gives each package root the docs, tests, checks and code it owns.
+func split(roots, paths, code []string, tests []reqTest, proven map[string]map[string]bool) []pkg {
 	var out []pkg
 	for _, r := range roots {
 		p := pkg{root: r, paths: packages.Owned(roots, r, paths), proven: proven[r], alone: len(roots) == 1}
+		p.code = len(packages.Owned(roots, r, code)) > 0
 		for _, t := range tests {
 			if packages.Of(roots, t.File) == r {
 				p.tests = append(p.tests, t)
@@ -90,7 +93,8 @@ func packageErrors(root string, roots, paths []string, tests []reqTest, written 
 		return nil, nil, err
 	}
 	whole := true
-	for _, p := range split(roots, paths, tests, proven) {
+	code := walkfs.FilesByExt(root, lang.Exts(written)...)
+	for _, p := range split(roots, paths, code, tests, proven) {
 		found, skipped, judged := docErrors(root, p, written, limit)
 		errs, notes, whole = append(errs, found...), append(notes, skipped...), whole && judged
 	}
@@ -182,13 +186,22 @@ func docPaths(root string, roots []string) []string {
 // docIn reports whether f is a requirement doc in the docs folder of the
 // package root among roots that owns it.
 func docIn(roots []string, f string) bool {
-	return strings.HasPrefix(packages.Rel(packages.Of(roots, f), f), docsDir) && isDoc(f)
+	return requirement.InDocs(roots, f) && isDoc(f)
+}
+
+// needsDocs reports whether the root must hold docs: a package root with
+// code, or the repo root of a repo naming no packages.
+func (p pkg) needsDocs() bool {
+	if p.root == packages.Root {
+		return p.alone
+	}
+	return p.code
 }
 
 // missingDocs fails a package root with code that has no requirement docs.
 // The repo root of a monorepo may leave its behavior to its packages.
 func missingDocs(p pkg) []string {
-	if len(p.paths) > 0 || p.root == packages.Root && !p.alone {
+	if len(p.paths) > 0 || !p.needsDocs() {
 		return nil
 	}
 	return []string{packages.Join(p.root, docsDir) + " has no requirement docs; add NNNN-kebab-title.md files from the template in the fitness-check-requirements README"}

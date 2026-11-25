@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/packages"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
@@ -88,12 +89,11 @@ func addOnce(list []string, s string) []string {
 // docNumber returns the requirement number of a doc path qualified by its
 // package root among roots, or "". The repo root's numbers stay bare.
 func docNumber(roots []string, f string) string {
-	owner := packages.Of(roots, f)
-	if !strings.HasPrefix(packages.Rel(owner, f), docsDir) {
+	if !requirement.InDocs(roots, f) {
 		return ""
 	}
 	if m := numberedDoc.FindStringSubmatch(path.Base(f)); m != nil {
-		return packages.Join(owner, m[1])
+		return packages.Join(packages.Of(roots, f), m[1])
 	}
 	return ""
 }

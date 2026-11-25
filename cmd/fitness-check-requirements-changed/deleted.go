@@ -6,13 +6,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-
-	"github.com/may-journal/fitness-checks/internal/packages"
 )
 
 // leftBehind fails the deletion of file when a requirement doc names it and neither that doc nor its tests changed.
 func leftBehind(root, file string, tests testSet, changed map[string]bool) []string {
-	docs := namingDocs(root, file, packages.Owned(tests.roots, packages.Of(tests.roots, file), tests.docs))
+	docs := namingDocs(root, file, tests.docs)
 	proving := provingTests(docs, tests)
 	if len(docs) == 0 || slices.ContainsFunc(slices.Concat(docs, proving), func(f string) bool { return changed[f] }) {
 		return nil

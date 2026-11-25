@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/may-journal/fitness-checks/internal/architecture"
@@ -23,15 +24,14 @@ const fixFlag = "--fix"
 
 func run(root string, args []string) (checkkit.Result, error) {
 	var errs, notes []string
+	var failed error
 	files := 0
 	for _, dir := range packages.Roots() {
 		found, noted, judged, err := judge(root, dir, slices.Contains(args, fixFlag))
 		errs, notes, files = append(errs, found...), append(notes, noted...), files+judged
-		if err != nil {
-			return verdict(files, errs, notes), err
-		}
+		failed = errors.Join(failed, err)
 	}
-	return verdict(files, errs, notes), nil
+	return verdict(files, errs, notes), failed
 }
 
 // verdict passes with no errors and fails with any, carrying the notes.

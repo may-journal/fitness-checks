@@ -767,6 +767,8 @@ func Test0002_7(t *testing.T) {
 				packageDoc("b"): "", "pkgs/b/requirements/0001_test.go": "",
 			})), nil, "requirements")
 			sees(t, out, code, 1, "pkgs/b/docs/requirements/ has no requirement docs")
+			out, code = fitness(t, example(t, "happyRepo", with(monorepo(true), map[string]string{"pkgs/c/README.md": "# Shared assets\n"})), nil, "requirements")
+			sees(t, out, code, 0)
 		}},
 		{"a number repeats only across packages", func(t *testing.T) {
 			t.Parallel()
@@ -788,6 +790,9 @@ func Test0002_7(t *testing.T) {
 			sees(t, out, code, 1, "pkgs/a/a.go changed without a test and a requirement doc")
 			out, code = rcStaged(t, monorepo(true), pair(packageDoc("a"), "pkgs/a/requirements/0001_test.go"))
 			sees(t, out, code, 0, rcPassed)
+			naming := with(monorepo(true), map[string]string{pairedDoc: strings.Replace(requirementDoc("0001.1"), "by hand.", "by hand in pkgs/a/a.go.", 1)})
+			out, code = rcStaged(t, naming, map[string]string{"pkgs/a/a.go": ""})
+			sees(t, out, code, 1, "pkgs/a/a.go was deleted, leaving requirement doc "+pairedDoc)
 		}},
 		{"a repo with no packages key is one package", func(t *testing.T) {
 			t.Parallel()

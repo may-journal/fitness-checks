@@ -41,4 +41,4 @@ Checks
 - 0002.7
   - Given Developer has a monorepo whose `.fitnessrc.json` names its package folders, or a repo that names none
     - When the requirement checks judge its docs and tests
-      - Then each package owns its docs, tests and numbers, so 0001 repeats only across packages, and a repo naming none is one
+      - Then each package with code owns its docs, tests and numbers, 0001 repeats only across packages, and a repo naming none is one

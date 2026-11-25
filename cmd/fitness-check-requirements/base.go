@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/packages"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/golang/toolchain"
@@ -97,10 +99,10 @@ func judgedEntries(root, rev string) ([]byte, error) {
 	return kept.Bytes(), nil
 }
 
-// judged reports whether this check reads file: a doc in any package's
+// judged reports whether this check reads file: a doc in a package root's
 // docs folder, a .gitattributes or a test file.
 func judged(file string) bool {
-	return strings.HasPrefix(file, docsDir) || strings.Contains(file, "/"+docsDir) || path.Base(file) == ".gitattributes" || lang.TestReads(langs.All, file)
+	return requirement.InDocs(packages.Roots(), file) || path.Base(file) == ".gitattributes" || lang.TestReads(langs.All, file)
 }
 
 // gitIn runs git in dir with stdin as its input, without the hook

@@ -7,14 +7,12 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/packages"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
 	"github.com/may-journal/fitness-runner/go/pkg/lang/langs"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
-
-// docsDir holds the requirement docs, one per file.
-const docsDir = "docs/requirements/"
 
 // numberedDoc matches a requirement doc file: 0014-kebab-title.md.
 var numberedDoc = regexp.MustCompile(`^(\d{4})-.+\.md$`)
@@ -23,12 +21,11 @@ var numberedDoc = regexp.MustCompile(`^(\d{4})-.+\.md$`)
 // docs folder, qualified by that root, or "". The repo root's numbers stay
 // bare.
 func docNumber(roots []string, f string) string {
-	owner := packages.Of(roots, f)
-	if !strings.HasPrefix(packages.Rel(owner, f), docsDir) {
+	if !requirement.InDocs(roots, f) {
 		return ""
 	}
 	if m := numberedDoc.FindStringSubmatch(path.Base(f)); m != nil {
-		return packages.Join(owner, m[1])
+		return packages.Join(packages.Of(roots, f), m[1])
 	}
 	return ""
 }

@@ -37,5 +37,7 @@ export FITNESS_CACHE_DIR FITNESS_INSTALL
 
 # The repo root's requirements folder and each package's own, such as
 # cmd/<check>/requirements, hold the requirement tests.
-# shellcheck disable=SC2046
-exec go test $(go list ./... | grep '/requirements$') -count=1 -parallel 32 "$@"
+folders="$(go list ./... | grep '/requirements$')"
+[ -n "$folders" ] || { echo "no requirements folder found" >&2; exit 1; }
+# shellcheck disable=SC2086
+exec go test $folders -count=1 -parallel 32 "$@"

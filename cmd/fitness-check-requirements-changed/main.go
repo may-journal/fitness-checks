@@ -98,15 +98,15 @@ func (c change) edit() comments.Edit {
 	return comments.Edit{From: c.from, File: c.path}
 }
 
-// problem names what is wrong with one product change: an edit lacking its package's test or doc, or a deletion leaving them behind.
-// A package root with no requirement docs yet has nothing to pair.
+// problem names what a product change leaves out: a doc naming a deleted file, or a test or doc for an edit.
+// Both must be in its own package, and a package root with no requirement docs yet has no edit to pair.
 func (c change) problem(root string, tests testSet, changed map[string]bool) []string {
+	if c.deleted {
+		return leftBehind(root, c.path, tests, changed)
+	}
 	pkg := packages.Of(tests.roots, c.path)
 	if !tests.documented(pkg) {
 		return nil
-	}
-	if c.deleted {
-		return leftBehind(root, c.path, tests, changed)
 	}
 	if what, which := missing(tests.anyTest(pkg, changed), tests.anyDoc(pkg, changed)); what != "" {
 		return []string{fmt.Sprintf("%s changed without %s; change %s with it", c.path, what, which)}

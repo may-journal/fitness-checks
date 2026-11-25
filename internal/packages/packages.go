@@ -36,9 +36,9 @@ func Of(roots []string, file string) string {
 	return owner
 }
 
-// Rel is file's path inside root.
+// Rel is file's path inside root, where empty also means the repo root.
 func Rel(root, file string) string {
-	if root == Root {
+	if root == Root || root == "" {
 		return file
 	}
 	return strings.TrimPrefix(file, root+"/")

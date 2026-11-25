@@ -3,6 +3,7 @@ package architecture
 import (
 	"errors"
 	"fmt"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"os"
 	"path/filepath"
 	"slices"
@@ -129,7 +130,7 @@ func regionAt(line string, start, end int) region {
 func journeyViews(dir string, files []string) []string {
 	var out []string
 	for _, file := range files {
-		if viewFile(inPackage(dir, file)) == journeyView {
+		if viewFile(packages.Rel(dir, file)) == journeyView {
 			out = append(out, file)
 		}
 	}
@@ -142,7 +143,7 @@ func loadDocs(root, dir string) ([]requirement.Document, []string, []string) {
 	files := packageFiles(root, dir)
 	var paths []string
 	for _, file := range files {
-		if requirementFile(inPackage(dir, file)) {
+		if requirementFile(packages.Rel(dir, file)) {
 			paths = append(paths, file)
 		}
 	}
