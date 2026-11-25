@@ -35,8 +35,8 @@ repos with code or requirement docs
     - When the Node tooling checks run on them
       - Then each problem fails naming the file and line, and clean code passes
 - 0006.6
-  - Given Developer has Swift or Java code with a lint or format problem, or a build missing its plugin
-    - When the Swift and Java tooling checks run on it
+  - Given Developer has Java code with a format or style problem, or a build missing its plugin or config
+    - When the Java tooling checks run on it
       - Then each problem fails naming the file and the fix, and clean code passes
 - 0006.7
   - Given Developer has tests that fail, cover less than all code, or need a runtime version the repo pins
