@@ -98,6 +98,29 @@ func acceptances(ids ...string) string {
 	return body
 }
 
+// chain renders id as one Given and a numbered chain of steps, nested as
+// Biome formats it. Step N's When sits on line 2N+17 of docWith.
+func chain(id string, steps int) string {
+	body := "- " + id + "\n  - Given two numbers\n"
+	for n, step := range chainSteps[:steps] {
+		body += "    " + strconv.Itoa(n+1) + ". When " + step[0] + "\n       - Then " + step[1] + "\n"
+	}
+	return body
+}
+
+// chainSteps are eight When and Then pairs, worded apart so no two steps
+// read as duplicate lines.
+var chainSteps = [][2]string{
+	{"I add them", "I get their sum"},
+	{"I double that sum", "the total is even"},
+	{"I subtract the first number", "the second remains twice over"},
+	{"I halve the result", "one whole number is left"},
+	{"I square it", "a perfect square shows"},
+	{"I negate the square", "its sign flips below zero"},
+	{"I clear the display", "zero appears"},
+	{"I undo once", "the negative square returns"},
+}
+
 // docWith is requirement 0001 with the given Requirements, its Measurement
 // ratio set apart by blank lines as Biome formats it.
 func docWith(reqs string) string {

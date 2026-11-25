@@ -67,6 +67,27 @@ func Test0006_1(t *testing.T) {
 			out, code = judged(t, reqs("- 0001.1\n    - When I add them\n        - Given two numbers\n            - Then I get their sum\n"))
 			sees(t, out, code, 1, "each acceptance is one Given, then one When, then one Then, each nested under the line above")
 		}},
+		{"steps chain up to seven beside a single step", func(t *testing.T) {
+			t.Parallel()
+			tests := map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "Test0001_2")}
+			out, code := fitness(t, example(t, "happyRepo", with(reqs(acceptances("0001.1")+chain("0001.2", 7)), tests)), nil, "requirements")
+			sees(t, out, code, 0)
+			out, code = judged(t, reqs(chain("0001.1", 8)))
+			sees(t, out, code, 1, pairedDoc+":17: 0001.1 chains 8 steps, at most 7; move the rest to a new ID")
+		}},
+		{"misnumbered or single numbered steps fail", func(t *testing.T) {
+			t.Parallel()
+			for body, want := range map[string]string{
+				strings.Replace(chain("0001.1", 3), "    3. When", "    4. When", 1): ":23: number this step `3.`; a chain numbers its steps `1.` to `7.` in order",
+				strings.Replace(chain("0001.1", 2), "    2. When", "    - When", 1):  ":21: number this step `2.`",
+				chain("0001.1", 1): ":19: a single step is the plain bullet `- When`; number steps only in a chain of two or more",
+				strings.Replace(chain("0001.1", 2), "       - Then I get their sum\n", "", 1): ":19: step 1 needs exactly one Then nested under its When",
+				strings.Replace(chain("0001.1", 2), "    2. When", "    2. Then", 1):          ":21: " + "each step is a numbered When nested under the Given",
+			} {
+				out, code := judged(t, reqs(body))
+				sees(t, out, code, 1, pairedDoc+want)
+			}
+		}},
 		{"two docs share a when", func(t *testing.T) {
 			t.Parallel()
 			other := "docs/requirements/0002-adds-again.md"
@@ -150,6 +171,10 @@ func Test0006_2(t *testing.T) {
 			t.Parallel()
 			out, code := judged(t, with(goRepo(), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "TestAddsAgain")}))
 			sees(t, out, code, 1, "TestAddsAgain proves no requirement")
+			out, code = judged(t, with(reqs(chain("0001.1", 2)), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "Test0001_1_2")}))
+			sees(t, out, code, 1, "Test0001_1_2 names step 0001.1.2; one test proves every step of its acceptance, so name it Test0001_1")
+			out, code = judged(t, with(reqs(chain("0001.1", 2)), map[string]string{"adder_test.go": testFile("adder", "Test0001_1", "TestAdds0001_1_2")}))
+			sees(t, out, code, 1, "TestAdds0001_1_2 proves no requirement")
 			out, code = swiftJudged(t, map[string]string{swiftTest: swiftTestingFile("test0001_1", "testAddsAgain")})
 			sees(t, out, code, 1, "testAddsAgain proves no requirement; rename it testNNNN_N")
 			out, code = scriptChecked(t, `test("0001.1 adds two numbers", () => {});`, `it("adds again", () => {});`)
@@ -307,6 +332,17 @@ func Test0006_3(t *testing.T) {
 			write(t, repo, two)
 			out, code := fitness(t, repo, nil)
 			sees(t, out, code, 1, "0001.2 was deleted before")
+		}},
+		{"deleted step brought back fails", func(t *testing.T) {
+			t.Parallel()
+			repo := example(t, "happyRepo", goRepo())
+			commit(t, repo, reqs(chain("0001.1", 3)), "docs(requirements): chain 0001.1 in three steps")
+			out, code := fitness(t, repo, nil, "requirements")
+			sees(t, out, code, 0)
+			commit(t, repo, reqs(chain("0001.1", 2)), "docs(requirements): drop step 0001.1.3")
+			write(t, repo, reqs(chain("0001.1", 3)))
+			out, code = fitness(t, repo, nil, "requirements")
+			sees(t, out, code, 1, pairedDoc+":23: 0001.1.3 was deleted before; IDs are never reused, so chain the step under a new acceptance ID")
 		}},
 		{"whole restructure reuses numbers, then counts removals afresh", func(t *testing.T) {
 			t.Parallel()
@@ -1767,6 +1803,17 @@ func Test0006_8(t *testing.T) {
 			out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": storybookView("#Preview(\"day\") { BadgeView() }\n"), "App/Pages.swift": pages})
 			sees(t, out, code, 1, "App/BadgeView.swift:7 - page \"day\" does not start with an acceptance ID; name it such as \"0001.1 day\"",
 				"App/Pages.swift:1 - page \"BadgeView: empty\" does not start with an acceptance ID")
+		}},
+		{"chained acceptance keeps one page", func(t *testing.T) {
+			t.Parallel()
+			chained := strings.Replace(storybookDoc, "        - When the photo shows\n            - Then it has no badge\n",
+				"        1. When the photo shows\n            - Then it has no badge\n        2. When the tester taps it\n            - Then the badge stays hidden\n", 1)
+			out, code := storybookCheck(t, map[string]string{"docs/requirements/0001-badge.md": chained})
+			sees(t, out, code, 0, "All 1 checks passed")
+			out, code = storybookCheck(t, map[string]string{"docs/requirements/0001-badge.md": chained, "App/BadgeView.swift": storybookView("#Preview(\"0001.2.2 tapped\") { BadgeView() }\n")})
+			sees(t, out, code, 1, `App/BadgeView.swift:7 - page "0001.2.2 tapped" names step 0001.2.2; one page shows every step of an acceptance, so name it "0001.2 tapped"`)
+			out, code = storybookCheck(t, map[string]string{"docs/requirements/0001-badge.md": chained, "App/BadgeView.swift": storybookView("#Preview(\"0001.9.2 tapped\") { BadgeView() }\n")})
+			sees(t, out, code, 1, `App/BadgeView.swift:7 - page "0001.9.2 tapped" does not start with an acceptance ID`)
 		}},
 		{"page named by undefined ID fails", func(t *testing.T) {
 			t.Parallel()

@@ -8,6 +8,7 @@ import (
 	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
 	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
@@ -225,22 +226,35 @@ func snippet(s string) string {
 }
 
 // nestingErrors caps each list level at half the level above, rounded down, so 8 top items allow 4 children each.
-func nestingErrors(rel string, bl block, max int) []string {
+// It reports each level once, at the first item past its cap.
+func nestingErrors(rel string, bl block, top int) []string {
 	var errs []string
-	counts := map[int]int{}
+	counts, flagged := map[int]int{}, map[int]bool{}
 	for i, d := range bl.depths {
 		resetDeeper(counts, d)
+		resetDeeper(flagged, d)
 		counts[d]++
-		if counts[d] == (max>>d)+1 {
-			errs = append(errs, fmt.Sprintf("%s: a list has more than %d items at level %d: %q", rel, max>>d, d+1, snippet(bl.items[i])))
+		limit := levelLimit(rel, bl, i, top>>d)
+		if counts[d] > limit && !flagged[d] {
+			flagged[d] = true
+			errs = append(errs, fmt.Sprintf("%s: a list has more than %d items at level %d: %q", rel, limit, d+1, snippet(bl.items[i])))
 		}
 	}
 	return errs
 }
 
+// levelLimit is the cap at item i's level, half the level above. A numbered step under a requirement doc's Requirements
+// heading may chain up to requirement.MaxSteps, the most one acceptance holds.
+func levelLimit(rel string, bl block, i, half int) int {
+	if bl.ordered[i] && bl.sectionName == "Requirements" && strings.HasPrefix(rel, requirement.Dir) {
+		return max(half, requirement.MaxSteps)
+	}
+	return half
+}
+
 // resetDeeper resets the sibling counts of every level deeper than d, since an
 // item at level d starts a new group of children.
-func resetDeeper(counts map[int]int, d int) {
+func resetDeeper[V any](counts map[int]V, d int) {
 	for k := range counts {
 		if k > d {
 			delete(counts, k)

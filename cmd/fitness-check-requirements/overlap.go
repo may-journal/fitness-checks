@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -25,31 +26,36 @@ func overlapErrors(docs []requirement.Document) []string {
 	var errs []string
 	for i, a := range docs {
 		for _, b := range docs[i+1:] {
-			if x, y, ok := sharedArea(a, b); ok {
-				errs = append(errs, requirement.At(b.Path, y.Line, fmt.Sprintf("%s and %s both cover %q (%s, %s); extend one doc, see %s", a.Path, b.Path, "When "+y.When, x.ID, y.ID, adr0004)))
+			if x, y, when, ok := sharedArea(a, b); ok {
+				errs = append(errs, requirement.At(b.Path, y.Line, fmt.Sprintf("%s and %s both cover %q (%s, %s); extend one doc, see %s", a.Path, b.Path, "When "+when, x.ID, y.ID, adr0004)))
 			}
 		}
 	}
 	return errs
 }
 
-// sharedArea returns the first pair of a's and b's acceptances with the same
-// When and similar Givens.
-func sharedArea(a, b requirement.Document) (requirement.IDLine, requirement.IDLine, bool) {
+// sharedArea returns the first pair of a's and b's acceptances with a When
+// in common and similar Givens, and that When.
+func sharedArea(a, b requirement.Document) (requirement.IDLine, requirement.IDLine, string, bool) {
 	for _, x := range a.Acceptances {
 		for _, y := range b.Acceptances {
-			if sameArea(x, y) {
-				return x, y, true
+			if when, ok := sameArea(x, y); ok {
+				return x, y, when, true
 			}
 		}
 	}
-	return requirement.IDLine{}, requirement.IDLine{}, false
+	return requirement.IDLine{}, requirement.IDLine{}, "", false
 }
 
-// sameArea reports whether two acceptances share a When and have similar
-// Givens.
-func sameArea(x, y requirement.IDLine) bool {
-	return x.When != "" && strings.EqualFold(x.When, y.When) && similar(x.Given, y.Given)
+// sameArea returns a When that a step of each acceptance holds, when their
+// Givens are similar. Every step of a chain counts.
+func sameArea(x, y requirement.IDLine) (string, bool) {
+	for _, sx := range x.Steps {
+		if slices.ContainsFunc(y.Steps, func(sy requirement.Step) bool { return strings.EqualFold(sx.When, sy.When) }) {
+			return sx.When, similar(x.Given, y.Given)
+		}
+	}
+	return "", false
 }
 
 // similar reports whether the two Givens share at least minShared words and

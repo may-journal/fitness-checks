@@ -25,6 +25,7 @@ A name starts with one acceptance ID, alone or followed by a space and a label, 
 
 - a page with no name, such as `#Preview { … }`;
 - a name that does not start with an acceptance ID;
+- a name that starts with a chained step such as `0006.3.2`, since one page shows every step;
 - an ID that no doc in `docs/requirements` defines;
 - a name held in a variable or built by interpolation;
 - a page whose full name repeats an earlier page's, so a `--storybook` launch opens exactly one page;

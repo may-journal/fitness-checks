@@ -17,7 +17,7 @@ docs, bodies and comments the writing checks judge
 - 0004.1
   - Given Developer has prose with a long sentence, paragraph, section, list or dense passage
     - When the prose limit checks read it
-      - Then they fail naming the place and the limit, and pass short plain prose
+      - Then each fails naming place and limit, and plain prose and step chains pass
 - 0004.2
   - Given Developer has text with a misspelling, a forbidden phrase, bold, italic or a reframed sentence
     - When the spelling and wording checks read it

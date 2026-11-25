@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/may-journal/fitness-runner/go/pkg/mdx"
@@ -15,6 +16,8 @@ type block struct {
 	items       []string
 	// depths holds each item's nesting level, 0 for top-level items.
 	depths []int
+	// ordered marks each numbered item, such as "2. When".
+	ordered []bool
 }
 
 // words returns the block's masked prose word count.
@@ -49,6 +52,7 @@ type builder struct {
 	para        []string
 	items       []string
 	depths      []int
+	ordered     []bool
 	indents     []int
 	inFence     bool
 }
@@ -98,6 +102,7 @@ func (b *builder) item(raw, t string) {
 		b.flushPara()
 		b.items = append(b.items, text)
 		b.depths = append(b.depths, b.depth(len(raw)-len(strings.TrimLeft(raw, " \t"))))
+		b.ordered = append(b.ordered, orderedItem.MatchString(t))
 		return
 	}
 	b.flushList()
@@ -138,7 +143,10 @@ func (b *builder) flushList() {
 		return
 	}
 	b.blocks = append(b.blocks, block{
-		section: b.section, sectionName: b.sectionName, isList: true, items: b.items, depths: b.depths,
+		section: b.section, sectionName: b.sectionName, isList: true, items: b.items, depths: b.depths, ordered: b.ordered,
 	})
-	b.items, b.depths, b.indents = nil, nil, nil
+	b.items, b.depths, b.ordered, b.indents = nil, nil, nil, nil
 }
+
+// orderedItem is a numbered list item's marker, such as "2. ".
+var orderedItem = regexp.MustCompile(`^\d+\.\s`)

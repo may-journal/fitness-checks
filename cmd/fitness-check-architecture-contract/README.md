@@ -88,7 +88,7 @@ Other text is prose. For example, a consumer's `node_modules/.bin` is no claim, 
 - One person ID with two names, or one person name on two IDs.
 - Two elements claiming one source path when neither encloses the other.
 - Claimed paths, evidence files, or line ranges that do not exist.
-- Requirement references that resolve to no doc or acceptance. Doc shape errors belong to the `requirements` check.
+- Requirement references that resolve to no doc, acceptance or chained step such as `0001.2.2`. Doc shape errors belong to the `requirements` check.
 - Unsupported Mermaid forms and statements.
 
 Front matter, accessibility lines, C4 `Update…` style macros, and named C4 arguments such as `$tags` are styling and stay out of the model.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"os/exec"
 	"regexp"
@@ -14,6 +15,10 @@ type history struct {
 	removed map[string]bool
 }
 
+// wholeDoc is the diff context that keeps each changed doc whole in one hunk,
+// so a step line's acceptance is always above it.
+const wholeDoc = "-U100000"
+
 // historyLine matches an added or removed title or acceptance line in a diff.
 var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 
@@ -22,7 +27,7 @@ var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 func readHistory(root string, paths []string) (h history, note string) {
 	h = history{removed: map[string]bool{}}
 	out, err := exec.Command("git", "-C", root, "log", "--reverse", "--no-color", "--no-ext-diff",
-		"--no-renames", "-U0", "--format=%x00", "-p", "--", docsDir).Output()
+		"--no-renames", wholeDoc, "--format=%x00", "-p", "--", docsDir).Output()
 	if err != nil {
 		if why := gitFailure(err); !noHistory.MatchString(why) {
 			return h, "requirement IDs were not checked against git history: " + why
@@ -110,15 +115,64 @@ func gitFailure(err error) string {
 }
 
 // commitNet counts each ID's added minus removed lines in one commit, so an
-// edited or moved line nets to zero.
+// edited or moved line nets to zero. A step's ID comes from the acceptance
+// above it, on the side of the diff the step line is on.
 func commitNet(diff string) map[string]int {
 	net := map[string]int{}
+	var under sides
 	for _, line := range strings.Split(diff, "\n") {
 		if m := historyLine.FindStringSubmatch(line); m != nil {
-			net[m[2]+m[3]] += map[string]int{"+": 1, "-": -1}[m[1]]
+			net[m[2]+m[3]] += lineSign[m[1]]
+		}
+		under.follow(line)
+		if id := under.step(line); id != "" {
+			net[id] += lineSign[line[:1]]
 		}
 	}
 	return net
+}
+
+// lineSign is how an added or removed diff line counts toward its ID.
+var lineSign = map[string]int{"+": 1, "-": -1}
+
+// acceptanceLine matches an acceptance ID line on either side of a diff, or
+// in its context.
+var acceptanceLine = regexp.MustCompile(`^([ +-])- (\d{4}\.\d+)\s*$`)
+
+// stepLine matches an added or removed When line: numbered step N, or a
+// single step's plain bullet, which is step 1.
+var stepLine = regexp.MustCompile(`^[+-]\s+(?:(\d+)\.|-) When `)
+
+// sides is the acceptance each side of a diff is under: the old one for
+// removed lines, the new one for added lines.
+type sides struct{ old, new string }
+
+// follow moves each side to the acceptance a diff line opens there. A new
+// file starts under none.
+func (s *sides) follow(line string) {
+	if strings.HasPrefix(line, "diff --git ") {
+		*s = sides{}
+	}
+	m := acceptanceLine.FindStringSubmatch(line)
+	if m == nil {
+		return
+	}
+	if m[1] != "+" {
+		s.old = m[2]
+	}
+	if m[1] != "-" {
+		s.new = m[2]
+	}
+}
+
+// step is the ID of the step an added or removed When line holds, or "".
+func (s sides) step(line string) string {
+	m := stepLine.FindStringSubmatch(line)
+	under := map[string]string{"+": s.new, "-": s.old}[line[:min(1, len(line))]]
+	if m == nil || under == "" {
+		return ""
+	}
+	return under + "." + cmp.Or(m[1], "1")
 }
 
 // apply folds one commit's net changes into the live counts, recording IDs

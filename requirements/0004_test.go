@@ -39,6 +39,18 @@ func Test0004_1(t *testing.T) {
 			out, code := proseBudget(t, map[string]string{"README.md": nested})
 			sees(t, out, code, 1, "README.md: a list has more than 4 items at level 2")
 		}},
+		{"requirement doc chains seven numbered steps", func(t *testing.T) {
+			t.Parallel()
+			out, code := proseBudget(t, map[string]string{pairedDoc: docWith(chain("0001.1", 7))})
+			sees(t, out, code, 0)
+			out, code = proseBudget(t, map[string]string{pairedDoc: docWith(chain("0001.1", 8))})
+			sees(t, out, code, 1, pairedDoc+": a list has more than 7 items at level 3")
+			out, code = proseBudget(t, map[string]string{"README.md": docWith(chain("0001.1", 3))})
+			sees(t, out, code, 1, "README.md: a list has more than 2 items at level 3")
+			numbered := strings.Replace(docWith(chain("0001.1", 2)), "## Measurement", "- Steps\n"+strings.Repeat("    1. Sub step\n", 7)+"\n## Measurement", 1)
+			out, code = proseBudget(t, map[string]string{pairedDoc: numbered})
+			sees(t, out, code, 1, pairedDoc+": a list has more than 4 items at level 2")
+		}},
 		{"fenced code and measurement dash pass", func(t *testing.T) {
 			t.Parallel()
 			out, code := proseBudget(t, map[string]string{"README.md": readme + "\n```\n" + longSentence + "```\n"})

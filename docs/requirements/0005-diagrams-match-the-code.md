@@ -31,7 +31,7 @@ diagrams checked
     - When the Mermaid checks read the diagram and its table
       - Then each missing Why, missing legend, extra paragraph or prose label fails naming its line
 - 0005.5
-  - Given Developer has architecture levels and a contract with diagram IDs, source paths and requirement links
+  - Given Developer has architecture levels and a contract with diagram IDs, source paths and requirement or step links
     - When the architecture checks read the contract and its levels
       - Then repeated level text, duplicate claims and unreadable evidence fail naming their lines
 - 0005.6
