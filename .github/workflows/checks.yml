@@ -80,16 +80,83 @@ jobs:
         run: printf '### %s (%s)\n' "$CHECK" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   requirements:
+    # Eight jobs share the root requirements package, balanced by the times
+    # in tests/requirement-times.tsv, so a pull request waits on an eighth of
+    # it. The suite step fails once it passes two minutes.
+    name: requirements ${{ matrix.shard }}
     runs-on: ubuntu-24.04-arm
-    # The suite took 73s on a laptop; a cold runner also builds every check.
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          # A key of its own keeps the build cache these jobs fill, every check
+          # included, apart from the small one the other jobs save first.
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the requirement suite against these programs
+        timeout-minutes: 2
+        env:
+          REQUIREMENT_SHARD: ${{ matrix.shard }}
+        # The measure script builds every check three times, so main runs it
+        # in the measure job instead of every pull request waiting on it. The
+        # -v log gives each test's time for scripts/requirement-times.sh.
+        run: tests/requirements.sh -v -skip '^Test0001_7$/^measure_script'
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB ${{ matrix.shard }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  check-requirements:
+    # A pull request runs the requirement folders of the checks it changes,
+    # and main runs every check's folder.
+    needs: changed
+    if: ${{ github.event_name != 'pull_request' || needs.changed.outputs.checks != '[]' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the changed checks' requirement folders
+        timeout-minutes: 2
+        env:
+          REQUIREMENT_SHARD: checks
+          REQUIREMENT_CHECKS: ${{ github.event_name == 'pull_request' && needs.changed.outputs.checks || '' }}
+        run: tests/requirements.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  measure:
+    # The measure script builds every check three times, so it runs on main
+    # only, after each merge.
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run the requirement suite against these programs
-        run: tests/requirements.sh
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the measure script's requirement test
+        # One share of one keeps the run to the root package, and the later
+        # -run narrows it to the measure case.
+        env:
+          REQUIREMENT_SHARD: 1/1
+        run: tests/requirements.sh -run '^Test0001_7$/^measure_script'
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

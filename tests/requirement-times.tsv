@@ -1,0 +1,10 @@
+# Seconds each root requirement test took in CI; scripts/requirement-times.sh writes it.
+Test0001_1	48
+Test0001_3	41
+Test0001_4	48
+Test0003_1	50
+Test0005_8	48
+Test0006_2	32
+Test0006_3	78
+Test0006_7	24
+Test0007_3	27

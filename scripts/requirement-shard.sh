@@ -2,7 +2,7 @@
 # Picks one share of the requirement suite, so CI runs the suite as parallel jobs.
 # Usage: scripts/requirement-shard.sh <i>/<n> prints the go test -run pattern
 # for share i of n of the root requirements package. Its top-level tests are
-# dealt out in name order, so each runs in exactly one share.
+# dealt out by their recorded times, so each runs in exactly one share.
 # Usage: scripts/requirement-shard.sh checks <JSON array of check names>
 # prints the requirement folders those checks own, one per line, or every
 # check's folder when no array is given.
@@ -37,6 +37,17 @@ esac
 
 # The test names come from the source, so no test binary is built to pick.
 names="$(grep -ho '^func Test[A-Za-z0-9_]*' requirements/*_test.go | sed 's/^func //' | grep -vx TestMain | sort)"
-printf '%s\n' "$names" | awk -v i="$i" -v n="$n" '
-  (NR - 1) % n == i - 1 { picked = picked sep $0; sep = "|" }
+# Each test weighs the seconds tests/requirement-times.tsv gives it, or 10
+# when it has no row. The heaviest goes first to the lightest share, so the
+# shares end close together.
+printf '%s\n' "$names" | awk -v i="$i" -v n="$n" -F'\t' '
+  FNR == NR { if ($0 !~ /^#/) weight[$1] = $2; next }
+  { w = ($1 in weight) ? weight[$1] : 10; printf "%012.3f\t%s\n", w, $1 }
+' tests/requirement-times.tsv - | sort -t"$(printf '\t')" -k1,1r -k2,2 | awk -v i="$i" -v n="$n" -F'\t' '
+  {
+    lightest = 1
+    for (s = 2; s <= n; s++) if (load[s] < load[lightest]) lightest = s
+    load[lightest] += $1
+    if (lightest == i) { picked = picked sep $2; sep = "|" }
+  }
   END { printf "^(%s)$\n", picked }'
