@@ -78,9 +78,6 @@ func prRun(t *testing.T, given, files map[string]string, message string) (string
 	return fitness(t, repo, prEnv, "requirements")
 }
 
-// prEnv is the GitHub Actions environment of a pull request into main.
-var prEnv = []string{"GITHUB_ACTIONS=true", "GITHUB_BASE_REF=main"}
-
 // replayed replays an unpaired --no-verify test change over the same line
 // changed with its doc, returning what the first failing commit printed.
 func replayed(t *testing.T, replay []string, finish ...[]string) (out string, code int) {

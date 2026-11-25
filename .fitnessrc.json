@@ -1,5 +1,6 @@
 {
   "checkVersions": {
     "*": "v1"
-  }
+  },
+  "packages": ["cmd/fitness-check-swiftlint"]
 }

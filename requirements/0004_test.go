@@ -45,6 +45,10 @@ func Test0004_1(t *testing.T) {
 			sees(t, out, code, 0)
 			out, code = proseBudget(t, map[string]string{pairedDoc: docWith(chain("0001.1", 8))})
 			sees(t, out, code, 1, pairedDoc+": a list has more than 7 items at level 3")
+			// A package root owns its own requirement docs, which chain steps alike.
+			packaged := map[string]string{".fitnessrc.json": `{"packages": ["pkgs/*"]}` + "\n", "pkgs/adder/" + pairedDoc: docWith(chain("0001.1", 7))}
+			out, code = proseBudget(t, packaged)
+			sees(t, out, code, 0)
 			out, code = proseBudget(t, map[string]string{"README.md": docWith(chain("0001.1", 3))})
 			sees(t, out, code, 1, "README.md: a list has more than 2 items at level 3")
 			numbered := strings.Replace(docWith(chain("0001.1", 2)), "## Measurement", "- Steps\n"+strings.Repeat("    1. Sub step\n", 7)+"\n## Measurement", 1)

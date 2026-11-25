@@ -7,6 +7,7 @@ import (
 
 	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
@@ -230,11 +231,12 @@ func snippet(s string) string {
 func nestingErrors(rel string, bl block, top int) []string {
 	var errs []string
 	counts, flagged := map[int]int{}, map[int]bool{}
+	steps := chainsSteps(rel, bl)
 	for i, d := range bl.depths {
 		resetDeeper(counts, d)
 		resetDeeper(flagged, d)
 		counts[d]++
-		limit := levelLimit(rel, bl, i, top>>d)
+		limit := levelLimit(steps && bl.ordered[i], top>>d)
 		if counts[d] > limit && !flagged[d] {
 			flagged[d] = true
 			errs = append(errs, fmt.Sprintf("%s: a list has more than %d items at level %d: %q", rel, limit, d+1, snippet(bl.items[i])))
@@ -243,10 +245,16 @@ func nestingErrors(rel string, bl block, top int) []string {
 	return errs
 }
 
-// levelLimit is the cap at item i's level, half the level above. A numbered step under a requirement doc's Requirements
-// heading may chain up to requirement.MaxSteps, the most one acceptance holds.
-func levelLimit(rel string, bl block, i, half int) int {
-	if bl.ordered[i] && bl.sectionName == "Requirements" && strings.HasPrefix(rel, requirement.Dir) {
+// chainsSteps reports whether bl sits under a requirement doc's Requirements
+// heading, where numbered steps chain.
+func chainsSteps(rel string, bl block) bool {
+	return bl.sectionName == "Requirements" && requirement.InDocs(packages.Roots(), rel)
+}
+
+// levelLimit is the cap at an item's level, half the level above. A step, numbered under a requirement doc's
+// Requirements heading, may chain up to requirement.MaxSteps, the most one acceptance holds.
+func levelLimit(step bool, half int) int {
+	if step {
 		return max(half, requirement.MaxSteps)
 	}
 	return half
