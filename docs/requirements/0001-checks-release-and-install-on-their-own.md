@@ -20,8 +20,10 @@ Checks
       - Then it holds no engine, other check or engine config, describes itself, key defaults, and fitness runs it
 - 0001.2
   - Given Developer changes a check or its tests or a shared helper or `go.mod`
-    - When CI picks the checks to build and test for the change
-      - Then it names only the checks the change can alter, and builds, vets and tests each one
+    1. When CI picks the checks to build and test for the change
+       - Then it names only the checks the change can alter and builds and tests each one
+    2. When CI splits the requirement suite into parallel jobs for the change
+       - Then each root test runs in exactly one job and only the changed checks' folders run
 - 0001.3
   - Given Developer has merged commits of each kind to main, with and without earlier release tags
     - When the release workflow plans the releases
@@ -46,7 +48,3 @@ Checks
   - Given Developer has each check's README
     - When the README test reads it
       - Then it holds the check's name, its summary and working links
-- 0001.9
-  - Given Developer has the root requirement tests and requirement folders in some checks
-    - When CI splits the requirement suite into parallel jobs for a change
-      - Then each root test runs in exactly one job and only the changed checks' folders run
