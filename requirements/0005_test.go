@@ -708,33 +708,56 @@ func Test0005_6(t *testing.T) {
 		}},
 		{"stale generated journey region fails and fresh one passes", func(t *testing.T) {
 			t.Parallel()
-			fresh := ajRegion(acFixture(acRoot), "    req0001[(2 Open<br/>Req 0001)]:::system")
+			fresh := ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open<br/>Req 0001)]:::system")
 			out, code := ajRun(t, fresh)
 			sees(t, out, code, 0)
-			stale := ajSecondDoc(ajRegion(acFixture(acRoot), "    req0001[(2 Open<br/>Req 0001)]:::system"))
+			stale := ajSecondDoc(ajRegion(acFixture(acRoot), "0001 0002", "    req0001[(2 Open<br/>Req 0001)]:::system"))
 			out, code = ajRun(t, stale)
 			sees(t, out, code, 1, "the generated journey nodes differ from the requirement docs; run `fitness architecture-journey --fix` to rewrite them")
-			retitled := ajRegion(acFixture(acRoot), "    req0001[(2 Open The App<br/>Req 0001)]:::system")
+			retitled := ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open The App<br/>Req 0001)]:::system")
 			out, code = ajRun(t, retitled)
 			sees(t, out, code, 1, "architecture/05-user-journey.md:18: the generated journey nodes differ")
 		}},
+		{"each journey region holds only the docs its marker lists", func(t *testing.T) {
+			t.Parallel()
+			two := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open<br/>Req 0001)]:::system"))
+			two = ajEdit(two, "    %% journey-nodes:end\n", "    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    req0002[(3 Open<br/>Req 0002)]:::system\n    %% journey-nodes:end\n")
+			out, code := ajRun(t, two)
+			sees(t, out, code, 0)
+			swapped := ajEdit(ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open<br/>Req 0001)]:::system")), "%% journey-nodes:start 0001", "%% journey-nodes:start 0002")
+			out, code = ajRun(t, swapped)
+			sees(t, out, code, 1, "the generated journey nodes differ")
+		}},
+		{"a doc listed in no journey region or in two fails", func(t *testing.T) {
+			t.Parallel()
+			unlisted := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open<br/>Req 0001)]:::system"))
+			out, code := ajRun(t, unlisted)
+			sees(t, out, code, 1, "requirement doc 0002 is listed in no journey-nodes region")
+			twice := ajEdit(ajRegion(acFixture(acRoot), "0001", "    req0001[(2 Open<br/>Req 0001)]:::system"), "    %% journey-nodes:end\n", "    %% journey-nodes:end\n    %% journey-nodes:start 0001\n    req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n")
+			out, code = ajRun(t, twice)
+			sees(t, out, code, 1, "requirement doc 0001 is listed in two journey-nodes regions")
+			unknown := ajRegion(acFixture(acRoot), "0001 0009", "    req0001[(2 Open<br/>Req 0001)]:::system")
+			out, code = ajRun(t, unknown)
+			sees(t, out, code, 1, "lists 0009, which is no requirement doc")
+		}},
 		{"journey region with a missing end marker fails", func(t *testing.T) {
 			t.Parallel()
-			open := ajRegion(acFixture(acRoot), "")
+			open := ajRegion(acFixture(acRoot), "0001", "")
 			open[ajView] = strings.Replace(open[ajView], "    %% journey-nodes:end\n", "", 1)
 			out, code := ajRun(t, open)
 			sees(t, out, code, 1, "has `%% journey-nodes:start` with no end marker")
 		}},
-		{"fix rewrites a stale journey region and nothing else", func(t *testing.T) {
+		{"fix rewrites every stale journey region and nothing else", func(t *testing.T) {
 			t.Parallel()
-			files := ajSecondDoc(ajRegion(acFixture(acRoot), "    stale"))
+			files := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    stale"))
+			files = ajEdit(files, "    %% journey-nodes:end\n", "    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale\n    %% journey-nodes:end\n")
 			repo := example(t, "happyRepo", files)
 			out, code := fitness(t, repo, nil, ajCheck, "--fix")
 			sees(t, out, code, 0)
 			body, err := os.ReadFile(filepath.Join(repo, ajView))
-			want := strings.Replace(files[ajView], "    stale", "req0001[(2 Open<br/>Req 0001)]:::system\nreq0002[(3 Open<br/>Req 0002)]:::system", 1)
+			want := strings.Replace(files[ajView], "    stale\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale", "req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\nreq0002[(3 Open<br/>Req 0002)]:::system", 1)
 			if err != nil || string(body) != want {
-				t.Errorf("--fix changed more than the region: %v\n%s", err, body)
+				t.Errorf("--fix changed more than the regions: %v\n%s", err, body)
 			}
 		}},
 		{"ids outside the diagram cover nothing", func(t *testing.T) {
@@ -1699,10 +1722,10 @@ func ajEdit(files map[string]string, old, new string) map[string]string {
 	return files
 }
 
-// ajRegion replaces the fixture's two steps with a marked region holding
-// nodes, wired by the same edges.
-func ajRegion(files map[string]string, nodes string) map[string]string {
-	files = ajEdit(files, ajOpen+":::action\ndone", "%% journey-nodes:start\n"+nodes+"\n    %% journey-nodes:end\ndone")
+// ajRegion replaces the fixture's two steps with a marked region listing
+// ids and holding nodes, wired by the same edges.
+func ajRegion(files map[string]string, ids, nodes string) map[string]string {
+	files = ajEdit(files, ajOpen+":::action\ndone", "%% journey-nodes:start "+ids+"\n"+nodes+"\n    %% journey-nodes:end\ndone")
 	files = ajEdit(files, ajDone+":::screen\n", "")
 	files = ajEdit(files, "user --> open\nopen -->|saves| done", "user --> req0001\nreq0001 --> req0001")
 	return files

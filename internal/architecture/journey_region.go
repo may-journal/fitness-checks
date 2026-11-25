@@ -12,8 +12,8 @@ import (
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
-// Markers are Mermaid comments around the nodes generated from the requirement docs.
-// A journey view without them stays hand-written.
+// Markers are Mermaid comments around nodes generated from the requirement docs, and the start marker lists the doc IDs its region holds.
+// A journey view without markers stays hand-written.
 const (
 	regionStart = "%% journey-nodes:start"
 	regionEnd   = "%% journey-nodes:end"
@@ -31,12 +31,15 @@ var regionEscapes = strings.NewReplacer(
 	"{", "#123;", "}", "#125;", "<", "#60;", ">", "#62;", "|", "#124;", ";", "#59;",
 )
 
-// regionLines writes one system node per requirement doc, in ID order, from its ID and title.
-func regionLines(docs []requirement.Document, indent string) []string {
+// regionLines writes one system node per listed requirement doc, in ID order, from its ID and title.
+// A node's callout number is its place among all docs, so the regions number on without a gap.
+func regionLines(docs []requirement.Document, ids []string, indent string) []string {
 	var out []string
-	for _, doc := range sortedDocs(docs) {
-		node := fmt.Sprintf("req%s[(%d %s<br/>Req %s)]:::system", doc.ID, firstRegionNumber+len(out), regionEscapes.Replace(doc.Title), doc.ID)
-		out = append(out, indent+node)
+	for i, doc := range sortedDocs(docs) {
+		if slices.Contains(ids, doc.ID) {
+			node := fmt.Sprintf("req%s[(%d %s<br/>Req %s)]:::system", doc.ID, firstRegionNumber+i, regionEscapes.Replace(doc.Title), doc.ID)
+			out = append(out, indent+node)
+		}
 	}
 	return out
 }
@@ -53,61 +56,74 @@ func sortedDocs(docs []requirement.Document) []requirement.Document {
 	return out
 }
 
-// region holds the line numbers around a view's marked lines, and the markers' indent.
+// region holds the line numbers around one marked region's lines, the markers' indent and the doc IDs it lists.
 type region struct {
 	from, to int
 	indent   string
+	ids      []string
 }
 
-// marked lists the indexes of the lines that hold marker.
-func marked(lines []string, marker string) []int {
-	var out []int
+// findRegions locates every marked region in a view's lines. A view without markers has none, and a broken pair is a problem.
+func findRegions(lines []string) (regions []region, problem string, at int) {
+	open := -1
 	for i, l := range lines {
-		if strings.TrimSpace(l) == marker {
-			out = append(out, i)
+		kind := markerKind(l)
+		if problem = pairingProblem(kind, open); problem != "" {
+			return nil, problem, i + 1
 		}
+		if kind == regionEnd {
+			regions = append(regions, regionAt(lines[open], open, i))
+		}
+		open = nextOpen(kind, open, i)
 	}
-	return out
+	if open >= 0 {
+		return nil, "has `" + regionStart + "` with no end marker", open + 1
+	}
+	return regions, "", 0
 }
 
-// repeatProblem names a marker that appears twice, and the index of its second line.
-func repeatProblem(starts, ends []int) (string, int) {
-	if len(starts) > 1 {
-		return "has a second `" + regionStart + "` marker", starts[1]
+// nextOpen is the index of the open start marker after a marker of kind at index i, or -1.
+func nextOpen(kind string, open, i int) int {
+	switch kind {
+	case regionStart:
+		return i
+	case regionEnd:
+		return -1
 	}
-	if len(ends) > 1 {
-		return "has a second `" + regionEnd + "` marker", ends[1]
-	}
-	return "", 0
+	return open
 }
 
-// pairProblem names what is wrong with the markers' pairing, and the index it concerns.
-func pairProblem(starts, ends []int) (string, int) {
-	if problem, i := repeatProblem(starts, ends); problem != "" {
-		return problem, i
-	}
+// markerKind names the marker a line holds, or nothing.
+func markerKind(line string) string {
+	text := strings.TrimSpace(line)
 	switch {
-	case len(starts) == 0:
-		return "has `" + regionEnd + "` with no start marker", ends[0]
-	case len(ends) == 0:
-		return "has `" + regionStart + "` with no end marker", starts[0]
-	case ends[0] < starts[0]:
-		return "has `" + regionEnd + "` before `" + regionStart + "`", ends[0]
+	case text == regionStart || strings.HasPrefix(text, regionStart+" "):
+		return regionStart
+	case text == regionEnd:
+		return regionEnd
 	}
-	return "", 0
+	return ""
 }
 
-// findRegion locates the marked region in a view's lines. A view without markers has none, and a broken pair is a problem.
-func findRegion(lines []string) (r region, found bool, problem string, at int) {
-	starts, ends := marked(lines, regionStart), marked(lines, regionEnd)
-	if len(starts)+len(ends) == 0 {
-		return r, false, "", 0
+// pairingProblem names what is wrong with a marker met while a region is open at index open, or -1.
+func pairingProblem(kind string, open int) string {
+	switch {
+	case kind == regionStart && open >= 0:
+		return "has `" + regionStart + "` before the last region's end marker"
+	case kind == regionEnd && open < 0:
+		return "has `" + regionEnd + "` with no start marker"
 	}
-	if problem, i := pairProblem(starts, ends); problem != "" {
-		return r, false, problem, i + 1
+	return ""
+}
+
+// regionAt reads the region between the start line at index start and the end line at index end.
+func regionAt(line string, start, end int) region {
+	return region{
+		from:   start + 1,
+		to:     end,
+		indent: line[:len(line)-len(strings.TrimLeft(line, " \t"))],
+		ids:    strings.Fields(strings.TrimPrefix(strings.TrimSpace(line), regionStart)),
 	}
-	line := lines[starts[0]]
-	return region{starts[0] + 1, ends[0], line[:len(line)-len(strings.TrimLeft(line, " \t"))]}, true, "", 0
 }
 
 // journeyViews lists the journey view files under root.
@@ -154,17 +170,55 @@ func (m *Model) JourneyRegionErrors() []string {
 }
 
 func regionErrors(file string, lines []string, docs []requirement.Document) []string {
-	r, found, problem, at := findRegion(lines)
+	regions, problem, at := findRegions(lines)
+	if problem != "" {
+		return []string{fmt.Sprintf("%s:%d: journey view %s; mark each region with both markers, then run `%s`", file, at, problem, regionFix)}
+	}
+	if len(regions) == 0 {
+		return nil
+	}
+	errs := coverageErrors(file, regions, docs)
+	for _, r := range regions {
+		if !slices.Equal(trimmed(lines[r.from:r.to]), trimmed(regionLines(docs, r.ids, r.indent))) {
+			errs = append(errs, fmt.Sprintf("%s:%d: the generated journey nodes differ from the requirement docs; run `%s` to rewrite them", file, r.from, regionFix))
+		}
+	}
+	return errs
+}
+
+// coverageErrors fails a doc that no region lists, a doc two regions list and an ID that is no doc.
+func coverageErrors(file string, regions []region, docs []requirement.Document) []string {
+	var errs []string
+	known := map[string]bool{}
+	for _, doc := range sortedDocs(docs) {
+		known[doc.ID] = true
+		errs = append(errs, listingErrors(file, regions, doc.ID)...)
+	}
+	for _, r := range regions {
+		for _, id := range r.ids {
+			if !known[id] {
+				errs = append(errs, fmt.Sprintf("%s:%d: the journey-nodes marker lists %s, which is no requirement doc", file, r.from, id))
+			}
+		}
+	}
+	return errs
+}
+
+// listingErrors fails a doc that no region lists or that two regions list.
+func listingErrors(file string, regions []region, id string) []string {
+	var in []int
+	for _, r := range regions {
+		if slices.Contains(r.ids, id) {
+			in = append(in, r.from)
+		}
+	}
 	switch {
-	case problem != "":
-		return []string{fmt.Sprintf("%s:%d: journey view %s; mark one region with both markers, then run `%s`", file, at, problem, regionFix)}
-	case !found:
-		return nil
+	case len(in) == 0:
+		return []string{fmt.Sprintf("%s:%d: requirement doc %s is listed in no journey-nodes region; add it to a `%s` marker", file, regions[0].from, id, regionStart)}
+	case len(in) > 1:
+		return []string{fmt.Sprintf("%s:%d: requirement doc %s is listed in two journey-nodes regions; list it in one", file, in[1], id)}
 	}
-	if slices.Equal(trimmed(lines[r.from:r.to]), trimmed(regionLines(docs, r.indent))) {
-		return nil
-	}
-	return []string{fmt.Sprintf("%s:%d: the generated journey nodes differ from the requirement docs; run `%s` to rewrite them", file, r.from, regionFix)}
+	return nil
 }
 
 // trimmed drops each line's indent and trailing space, so only the nodes count.
@@ -204,18 +258,24 @@ func untitled(docs []requirement.Document, skipped []string) error {
 	return nil
 }
 
-// rewriteView writes one view's region from docs, unless it already holds them.
+// rewriteView writes each region of one view from docs, unless it already holds them.
 func rewriteView(full string, docs []requirement.Document) error {
 	body, err := os.ReadFile(full)
 	if err != nil {
 		return err
 	}
 	lines := strings.Split(string(body), "\n")
-	r, found, _, _ := findRegion(lines)
-	if !found || len(regionErrors(full, lines, docs)) == 0 {
+	regions, _, _ := findRegions(lines)
+	var next []string
+	last := 0
+	for _, r := range regions {
+		next = append(next, lines[last:r.from]...)
+		next = append(next, regionLines(docs, r.ids, r.indent)...)
+		last = r.to
+	}
+	next = append(next, lines[last:]...)
+	if slices.Equal(next, lines) {
 		return nil
 	}
-	next := append(slices.Clone(lines[:r.from]), regionLines(docs, r.indent)...)
-	next = append(next, lines[r.to:]...)
 	return os.WriteFile(full, []byte(strings.Join(next, "\n")), 0o644)
 }

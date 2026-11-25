@@ -33,20 +33,23 @@ Personas and layout subgraphs promise no behavior and need no ID. Legends stay o
 
 ## Generated region
 
-A journey view may hold one node per requirement doc, written from the doc's ID and `# NNNN Title` heading. Two Mermaid comments mark the region:
+A journey view may hold one node per requirement doc, written from the doc's ID and `# NNNN Title` heading. Each region sits between two Mermaid comments. The start marker lists the doc IDs the region holds, so one view may hold a region in each phase subgraph:
 
 ```
-%% journey-nodes:start
-%% journey-nodes:end
+subgraph get["Get the checks"]
+    %% journey-nodes:start 0001 0002
+    %% journey-nodes:end
+end
 ```
 
-Between them, each doc in ID order becomes `reqNNNN[(N Title<br/>Req NNNN)]:::system`, numbered from 2 after the persona. Subgraphs around the region, edges and the callout table stay hand-written.
+Between the markers, each listed doc in ID order becomes `reqNNNN[(N Title<br/>Req NNNN)]:::system`. `N` counts from 2 after the persona, over every doc in ID order, so the regions number on without a gap. Phases, edges and the callout table stay hand-written, and edges may name the generated `reqNNNN` ids or the subgraphs.
 
-- A region whose lines differ from the docs fails at the start marker, naming `fitness architecture-journey --fix`.
-- `--fix` rewrites each region from the docs and leaves every other line alone.
+- A region whose lines differ from its listed docs fails at its start marker, naming `fitness architecture-journey --fix`.
+- A doc that no region lists, or that two regions list, fails; so does a listed ID that is no doc.
+- `--fix` rewrites every region from the docs and leaves every other line alone.
 - `--fix` writes nothing when a doc fails to load or lacks its title.
 - A view with no markers stays hand-written and passes, so a repo opts in by adding them.
-- A repeated marker, or a start with no end after it, fails at its line.
+- A start marker inside another region, an end with no start, or a start with no end fails at its line.
 
 ## Steps that read as another doc
 
@@ -66,7 +69,7 @@ Every error names the view line it concerns and the requirement ID.
 - A label naming an acceptance ID or a doc that does not exist.
 - A label naming more than eight IDs.
 - A behavior node with no ID, at its diagram line.
-- A generated region that differs from the docs, or broken markers, at the marker's line.
+- A generated region that differs from its listed docs, an unlisted or twice-listed doc, or broken markers, at the marker's line.
 - Two steps whose labels read as each other's docs, at each step's line.
 
 A repo without architecture views passes with zero files. A missing journey view belongs to `architecture-contract`.

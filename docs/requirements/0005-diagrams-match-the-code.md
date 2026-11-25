@@ -37,7 +37,7 @@ diagrams checked
 - 0005.6
   - Given Developer has a journey and a context diagram beside requirement docs and Givens
     - When the architecture checks compare requirements with steps and actors
-      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line; `--fix` rewrites it
+      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line
 - 0005.7
   - Given Developer has container and component views beside build targets and product folders
     - When the architecture checks compare the views with the runtimes and folders

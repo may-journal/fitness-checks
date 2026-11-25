@@ -33,18 +33,21 @@ Numbers match the callout table. "Screen" is terminal output, since each check i
 
 ## Journey
 
-Each node is one whole requirement doc, in ID order. The nodes between the `journey-nodes` markers are generated from the docs' IDs and titles; run `fitness architecture-journey --fix` to rewrite them. The edges and callout table are hand-written.
+Each node is one whole requirement doc, grouped by phase. Nodes between `journey-nodes` markers are generated from the docs the start marker lists. Run `fitness architecture-journey --fix` to rewrite them. The phases, edges and callout table are hand-written.
 
 ```mermaid
 flowchart TB
     dev((1 Developer or agent)):::persona
 
-    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007, 0008]:::blocked
-
-    subgraph docs["Requirement docs"]
-        %% journey-nodes:start
+    subgraph get["Get the checks"]
+        %% journey-nodes:start 0001 0002
         req0001[(2 Checks Release And Install On Their Own<br/>Req 0001)]:::system
         req0002[(3 Checks Run Only Where They Apply<br/>Req 0002)]:::system
+        %% journey-nodes:end
+    end
+
+    subgraph judge["Judge a change"]
+        %% journey-nodes:start 0003 0004 0005 0006 0007 0008
         req0003[(4 History Stays Clean<br/>Req 0003)]:::system
         req0004[(5 Writing Stays Clear<br/>Req 0004)]:::system
         req0005[(6 Diagrams Match The Code<br/>Req 0005)]:::system
@@ -54,17 +57,14 @@ flowchart TB
         %% journey-nodes:end
     end
 
+    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007, 0008]:::blocked
+
     dev -->|A| req0001
     req0001 --> req0002
-    req0002 -->|B| req0003
-    req0003 --> req0004
-    req0004 --> req0005
-    req0005 --> req0006
-    req0006 --> req0007
-    req0007 --> req0008
-    req0008 --> red
+    req0002 -->|B| judge
+    judge --> red
     red -->|C| req0002
-    req0008 -->|D| req0001
+    judge -->|D| req0001
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px
@@ -72,7 +72,8 @@ flowchart TB
     classDef system fill:#ecfdf5,stroke:#10b981,color:#064e3b,stroke-width:2px
     classDef blocked fill:#fef2f2,stroke:#ef4444,color:#991b1b,stroke-width:2px
 
-    style docs fill:#ffffff,stroke:#e2e8f0,color:#475569,stroke-width:1px
+    style get fill:#ffffff,stroke:#e2e8f0,color:#475569,stroke-width:1px
+    style judge fill:#ffffff,stroke:#e2e8f0,color:#475569,stroke-width:1px
 ```
 
 Numbers match the callout table. System context: [01-system-context.md](01-system-context.md). Code: [04-code.md](04-code.md).
