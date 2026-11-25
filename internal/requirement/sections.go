@@ -18,10 +18,6 @@ var numberedItem = regexp.MustCompile(`^(\d{1,3})\. (.*)$`)
 // chainKeywords open the three nested lines under each acceptance ID.
 var chainKeywords = []string{"Given", "When", "Then"}
 
-// MaxSteps is the most When and Then steps one acceptance may chain, a span
-// of control of five, plus or minus two.
-const MaxSteps = 7
-
 // stepShape is what a numbered step that is not a When fails with.
 const stepShape = "each step is a numbered When nested under the Given, with one Then nested under the When"
 
@@ -191,7 +187,7 @@ func nests(kw string, parent, child item) bool {
 	return strings.HasPrefix(child.text, kw+" ") && child.indent > parent.indent
 }
 
-// checkChain requires one Given, then 2 to MaxSteps numbered steps. Step 2
+// checkChain requires one Given, then 2 to p.maxSteps numbered steps. Step 2
 // of 0003.6 is 0003.6.2.
 func checkChain(p *problems, g []item) IDLine {
 	if !checkChainLine(p, "Given", g[0], g[1]) {
@@ -201,8 +197,8 @@ func checkChain(p *problems, g []item) IDLine {
 	steps, ok := chainSteps(p, a.ID, g[1], g[2:])
 	switch {
 	case !ok:
-	case len(steps) > MaxSteps:
-		p.add(a.Line, fmt.Sprintf("%s chains %d steps, at most %d; move the rest to a new ID", a.ID, len(steps), MaxSteps))
+	case len(steps) > p.maxSteps:
+		p.add(a.Line, fmt.Sprintf("%s chains %d steps, at most %d; move the rest to a new ID", a.ID, len(steps), p.maxSteps))
 	case len(steps) == 1:
 		p.add(steps[0].Line, "a single step is the plain bullet `- When`; number steps only in a chain of two or more")
 	default:
@@ -233,7 +229,7 @@ func checkStep(p *problems, n int, given item, rest []item) bool {
 	case !nests("When", given, when):
 		p.add(when.n, stepShape)
 	case !numberedAs(when, n):
-		p.add(when.n, fmt.Sprintf("number this step `%d.`; a chain numbers its steps `1.` to `%d.` in order", n, MaxSteps))
+		p.add(when.n, fmt.Sprintf("number this step `%d.`; a chain numbers its steps `1.` to `%d.` in order", n, p.maxSteps))
 	case !thenUnder(when, rest[1:]):
 		p.add(when.n, fmt.Sprintf("step %d needs exactly one Then nested under its When", n))
 	default:

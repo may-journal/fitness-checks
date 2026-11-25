@@ -10,9 +10,11 @@ A repo can override each limit in `.fitnessrc.json`. Run `fitness explain prose-
 
 A paragraph is a run of consecutive prose lines. A section runs from one heading to the next, and its paragraphs and lists count toward its word limit. Prose before the first heading is its own section. A list is a run of consecutive items; nested items count individually.
 
-Each nested level holds at most half the items of the level above. A requirement doc's numbered steps may chain up to seven, as the [requirements](../fitness-check-requirements/README.md) check allows.
+Each nested level holds at most half the items of the level above. A requirement doc's numbered steps, in the repo or a package root, may chain as many as the [requirements](../fitness-check-requirements/README.md) check's step limit allows.
 
 ## Behavior
+
+[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states how it judges step chains, and its own test proves it.
 
 - Pass: every masked paragraph, section, and list in the file is within all six limits.
 - Fail: one error per limit crossed, naming the file, the offending element, and its count versus the limit.

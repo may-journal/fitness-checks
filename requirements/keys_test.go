@@ -16,6 +16,6 @@ var checkKeys = map[string]map[string]any{
 	"go-test-coverage":             {"goTestCoverage.entries": nil},
 	"go-complexity":                {"goComplexity.max": 5.0},
 	"localized-text":               {"localizedText.reference": nil, "localizedText.allow": nil},
-	"requirements":                 {"requirements.maxAcceptances": 8.0},
+	"requirements":                 {"requirements.maxAcceptances": 8.0, "requirements.maxSteps": 7.0},
 	"swift-storybook-requirements": {"swiftStorybookRequirements.maxPagesPerAcceptance": 1.0},
 }

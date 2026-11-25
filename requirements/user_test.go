@@ -28,4 +28,13 @@ var (
 	ansi              = acceptance.ANSI
 	names             = acceptance.Names
 	resultRow         = acceptance.ResultRow
+	goRepo            = acceptance.GoRepo
+	testFile          = acceptance.TestFile
+	requirementDoc    = acceptance.RequirementDoc
+	acceptances       = acceptance.Acceptances
+	chain             = acceptance.Chain
+	docWith           = acceptance.DocWith
+	with              = acceptance.With
+	loggedGit         = acceptance.LoggedGit
+	occurrences       = acceptance.Occurrences
 )

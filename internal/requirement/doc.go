@@ -83,6 +83,8 @@ var (
 type problems struct {
 	path string
 	errs []string
+	// maxSteps is the most steps one acceptance may chain.
+	maxSteps int
 }
 
 func (p *problems) add(n int, msg string) {
@@ -97,13 +99,14 @@ func At(file string, n int, msg string) string {
 // Load reads and parses every requirement doc. A doc it cannot read is left
 // out and named in skipped.
 func Load(root string, paths []string) (docs []Document, errs, skipped []string) {
+	limit := MaxSteps(root)
 	for _, p := range paths {
 		b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p)))
 		if err != nil {
 			skipped = append(skipped, walkfs.Unreadable(p, err))
 			continue
 		}
-		d, docErrs := Parse(p, string(b))
+		d, docErrs := ParseWith(p, string(b), limit)
 		docs = append(docs, d)
 		errs = append(errs, docErrs...)
 	}
@@ -111,9 +114,14 @@ func Load(root string, paths []string) (docs []Document, errs, skipped []string)
 }
 
 // Parse validates one doc's name, title, sections, measurement, and
-// Acceptances.
+// Acceptances, with the default step limit.
 func Parse(file, body string) (Document, []string) {
-	p := &problems{path: file}
+	return ParseWith(file, body, DefaultMaxSteps)
+}
+
+// ParseWith is Parse with acceptances chaining at most maxSteps steps.
+func ParseWith(file, body string, maxSteps int) (Document, []string) {
+	p := &problems{path: file, maxSteps: maxSteps}
 	head, sections := splitSections(contentLines(body))
 	d := Document{Path: file}
 	d.ID, d.TitleLine = checkNameAndTitle(p, file, head)

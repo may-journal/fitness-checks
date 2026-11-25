@@ -19,7 +19,7 @@ Checks
     - When each check is built on its own and its Go dependencies are listed
       - Then it holds no engine, other check or engine config, describes itself, key defaults, and fitness runs it
 - 0001.2
-  - Given Developer has a change to a check, a shared helper or `go.mod`
+  - Given Developer changes a check or its tests or a shared helper or `go.mod`
     - When CI picks the checks to build and test for the change
       - Then it names only the checks the change can alter, and builds, vets and tests each one
 - 0001.3

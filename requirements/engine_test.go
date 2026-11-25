@@ -123,26 +123,8 @@ func kindGitHub(kind string, labels ...string) []response {
 	return issueGitHub(kindIssue, "fitness:issue-check:"+kind+":", "", labels...)
 }
 
-// loggedGit returns a PATH setting whose git logs each call's arguments to the
-// returned file, one line each, before running the real git.
-func loggedGit(t *testing.T) (path, calls string) {
-	t.Helper()
-	real, err := exec.LookPath("git")
-	mustDo(t, err)
-	dir := t.TempDir()
-	calls = filepath.Join(t.TempDir(), "git.log")
-	write(t, dir, map[string]string{"git": "#!/bin/sh\necho \"$*\" >> \"" + calls + "\"\nexec \"" + real + "\" \"$@\"\n"})
-	return "PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH"), calls
-}
-
 // misspelledNote is a note cspell fails.
 const misspelledNote = "A mispeled wrd.\n"
-
-// occurrences counts how often want appears in the file at path.
-func occurrences(path, want string) int {
-	raw, _ := os.ReadFile(path)
-	return strings.Count(string(raw), want)
-}
 
 // passing is a local check's verdict that judged one file and found nothing.
 const passing = `{"ok": true, "errors": [], "filesChecked": 1}`
