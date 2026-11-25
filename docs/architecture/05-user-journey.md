@@ -33,34 +33,38 @@ Numbers match the callout table. "Screen" is terminal output, since each check i
 
 ## Journey
 
-Each node is one whole requirement doc, grouped by phase. The `architecture-journey` check reads the IDs in the labels.
+Each node is one whole requirement doc, grouped by phase. Nodes between `journey-nodes` markers are generated from the docs the start marker lists. Run `fitness architecture-journey --fix` to rewrite them. The phases, edges and callout table are hand-written.
 
 ```mermaid
 flowchart TB
     dev((1 Developer or agent)):::persona
 
     subgraph get["Get the checks"]
-        install[(2 Checks release and install on their own<br/>Req 0001)]:::system
-        apply[(3 Checks run only where they apply<br/>Req 0002)]:::system
+        %% journey-nodes:start 0001 0002
+        req0001[(2 Checks Release And Install On Their Own<br/>Req 0001)]:::system
+        req0002[(3 Checks Run Only Where They Apply<br/>Req 0002)]:::system
+        %% journey-nodes:end
     end
 
     subgraph judge["Judge a change"]
-        history[(4 History stays clean<br/>Req 0003)]:::system
-        writing[(5 Writing stays clear<br/>Req 0004)]:::system
-        diagrams[(6 Diagrams match the code<br/>Req 0005)]:::system
-        tested[(7 Code is tested by its own tools<br/>Req 0006)]:::system
-        source[(8 The repo holds only working source<br/>Req 0007)]:::system
-        docs[(9 Check docs are Markdown<br/>Req 0008)]:::system
+        %% journey-nodes:start 0003 0004 0005 0006 0007 0008
+        req0003[(4 History Stays Clean<br/>Req 0003)]:::system
+        req0004[(5 Writing Stays Clear<br/>Req 0004)]:::system
+        req0005[(6 Diagrams Match The Code<br/>Req 0005)]:::system
+        req0006[(7 Code Is Tested By Its Own Tools<br/>Req 0006)]:::system
+        req0007[(8 The Repo Holds Only Working Source<br/>Req 0007)]:::system
+        req0008[(9 Check Docs Are Markdown<br/>Req 0008)]:::system
+        %% journey-nodes:end
     end
 
     red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007, 0008]:::blocked
 
-    dev -->|A| install
-    install --> apply
-    apply -->|B| judge
+    dev -->|A| req0001
+    req0001 --> req0002
+    req0002 -->|B| judge
     judge --> red
-    red -->|C| apply
-    judge -->|D| install
+    red -->|C| req0002
+    judge -->|D| req0001
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px

@@ -31,9 +31,11 @@ type Step struct {
 
 // Document is one parsed requirement doc.
 type Document struct {
-	Path        string
-	ID          string
-	TitleLine   int
+	Path      string
+	ID        string
+	TitleLine int
+	// Title is the H1 text after the ID, or empty when the H1 is malformed.
+	Title       string
 	Acceptances []IDLine
 	// SourceLine is the line of the `Source:` line older docs end their
 	// Measurement with, or 0. The check fails it, and the fix deletes it.
@@ -115,6 +117,7 @@ func Parse(file, body string) (Document, []string) {
 	head, sections := splitSections(contentLines(body))
 	d := Document{Path: file}
 	d.ID, d.TitleLine = checkNameAndTitle(p, file, head)
+	d.Title = titleText(head)
 	checkSectionNames(p, sections)
 	byName := map[string]section{}
 	for _, s := range sections {
@@ -186,6 +189,16 @@ func checkNameAndTitle(p *problems, file string, head []line) (string, int) {
 		return "", n
 	}
 	return m[1], n
+}
+
+// titleText is the heading's words after its ID, or empty when the doc's
+// one heading line is not `# NNNN Title`.
+func titleText(head []line) string {
+	_, text := titleLine(head)
+	if t := titlePattern.FindStringSubmatch(text); t != nil {
+		return strings.TrimSpace(text[len("# ")+len(t[1]):])
+	}
+	return ""
 }
 
 // titleLine returns the one line before the sections, or none.
