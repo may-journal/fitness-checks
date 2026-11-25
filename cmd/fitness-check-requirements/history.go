@@ -6,7 +6,10 @@ import (
 	"os/exec"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
+
+	"github.com/may-journal/fitness-checks/internal/packages"
 )
 
 // history is what past commits say about requirement IDs.
@@ -22,22 +25,73 @@ const wholeDoc = "-U100000"
 // historyLine matches an added or removed title or acceptance line in a diff.
 var historyLine = regexp.MustCompile(`^([+-])(?:# (\d{4}) |- (\d{4}\.\d+)\s*$)`)
 
-// readHistory replays the commits to the docs in dir oldest first, then paths, the docs judged now, as one more commit.
-// Each restructure restarts the record, which is empty with a note when git fails.
-func readHistory(root, dir string, paths []string) (h history, note string) {
-	h = history{removed: map[string]bool{}}
-	out, err := exec.Command("git", "-C", root, "log", "--reverse", "--no-color", "--no-ext-diff",
-		"--no-renames", wholeDoc, "--format=%x00", "-p", "--", dir).Output()
-	if err != nil {
-		if why := gitFailure(err); !noHistory.MatchString(why) {
-			return h, "requirement IDs were not checked against git history: " + why
+// readHistories replays one git log of every root's doc commits into each root's record, empty with a note when git fails.
+func readHistories(root string, roots, paths []string) (map[string]history, string) {
+	hists := map[string]history{}
+	dirs := make([]string, len(roots))
+	for i, r := range roots {
+		hists[r] = history{removed: map[string]bool{}}
+		dirs[i] = packages.Join(r, docsDir)
+	}
+	log, note := docLog(root, dirs)
+	logs := splitLog(roots, log)
+	for _, r := range roots {
+		// A restructure the docs judged now keep none of restarts the record, as one more commit would.
+		if h := hists[r]; h.replay(logs[r]).keepsNone(packages.Owned(roots, r, paths)) {
+			clear(h.removed)
 		}
-		return h, ""
 	}
-	if h.replay(string(out)).keepsNone(paths) {
-		clear(h.removed)
+	return hists, note
+}
+
+// docLog is the patch log of dirs oldest first, or empty with a note when git fails with a history to read.
+// Its fixed prefixes, unquoted paths and paths relative to root keep each diff header matching a package root.
+func docLog(root string, dirs []string) (log, note string) {
+	out, err := exec.Command("git", append([]string{"-C", root, "-c", "core.quotePath=false", "log", "--reverse", "--no-color",
+		"--no-ext-diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "--relative", wholeDoc, "--format=%x00", "-p", "--"}, dirs...)...).Output()
+	if err == nil {
+		return string(out), ""
 	}
-	return h, ""
+	if why := gitFailure(err); !noHistory.MatchString(why) {
+		return "", "requirement IDs were not checked against git history: " + why
+	}
+	return "", ""
+}
+
+// splitLog divides a history log among roots by the root that owns each file's diff. Every root's log keeps every
+// commit, so each replays the same commits in order.
+func splitLog(roots []string, log string) map[string]string {
+	commits := map[string][]string{}
+	for _, commit := range strings.Split(log, "\x00") {
+		for r, part := range splitCommit(roots, commit) {
+			commits[r] = append(commits[r], part)
+		}
+	}
+	logs := map[string]string{}
+	for r, parts := range commits {
+		logs[r] = strings.Join(parts, "\x00")
+	}
+	return logs
+}
+
+// splitCommit divides one commit's patch among roots by the root that owns each file's diff, giving every root a part.
+func splitCommit(roots []string, commit string) map[string]string {
+	builders := map[string]*strings.Builder{}
+	for _, r := range roots {
+		builders[r] = &strings.Builder{}
+	}
+	owner := packages.Root
+	for _, line := range strings.SplitAfter(commit, "\n") {
+		if path, ok := diffPath(strings.TrimSuffix(line, "\n")); ok {
+			owner = packages.Of(roots, path)
+		}
+		builders[owner].WriteString(line)
+	}
+	parts := map[string]string{}
+	for r, b := range builders {
+		parts[r] = b.String()
+	}
+	return parts
 }
 
 // replay folds each commit of a history log into h, clearing the record after
@@ -60,8 +114,22 @@ func (d docFiles) keepsNone(paths []string) bool {
 	return len(d) > 0 && !slices.ContainsFunc(paths, func(p string) bool { return d[p] })
 }
 
-// diffFile matches the header that starts one file's part of a diff, capturing its path.
-var diffFile = regexp.MustCompile(`^diff --git a/.* b/(.*)$`)
+// diffHeader starts one file's part of a diff.
+const diffHeader = "diff --git "
+
+// diffPath is the path a diff header names. Both halves name one file without rename detection, so the second half
+// starts past the middle, quoted alike.
+func diffPath(line string) (string, bool) {
+	rest, ok := strings.CutPrefix(line, diffHeader)
+	if !ok {
+		return "", false
+	}
+	half := rest[len(rest)/2+1:]
+	if unquoted, err := strconv.Unquote(half); err == nil {
+		half = unquoted
+	}
+	return strings.TrimPrefix(half, "b/"), true
+}
 
 // docFiles holds the requirement doc paths that exist as history replays.
 type docFiles map[string]bool
@@ -71,8 +139,8 @@ type docFiles map[string]bool
 func (d docFiles) restructures(diff string) bool {
 	before, gone, path := len(d), 0, ""
 	for _, line := range strings.Split(diff, "\n") {
-		if m := diffFile.FindStringSubmatch(line); m != nil {
-			path = m[1]
+		if p, ok := diffPath(line); ok {
+			path = p
 		} else {
 			gone += d.fold(path, line)
 		}

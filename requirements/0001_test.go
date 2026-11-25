@@ -93,6 +93,13 @@ func Test0001_2(t *testing.T) {
 				t.Errorf("changed-checks = %v, want only gofmt", got)
 			}
 		}},
+		{"a check's own requirement test names only that check", func(t *testing.T) {
+			t.Parallel()
+			clone, base := changedClone(t, "cmd/fitness-check-prose-budget/requirements/0001_test.go")
+			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"prose-budget"}) {
+				t.Errorf("changed-checks = %v, want only prose-budget", got)
+			}
+		}},
 		{"shared helper names dependent checks", func(t *testing.T) {
 			t.Parallel()
 			for _, file := range []string{"internal/spell/mask.go", "internal/spell/dict/git.txt"} {

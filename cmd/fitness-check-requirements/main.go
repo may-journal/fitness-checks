@@ -94,20 +94,22 @@ func packageErrors(root string, roots, paths []string, tests []reqTest, written 
 	}
 	whole := true
 	code := walkfs.FilesByExt(root, lang.Exts(written)...)
+	hists, historyNote := readHistories(root, roots, paths)
 	for _, p := range split(roots, paths, code, tests, proven) {
-		found, skipped, judged := docErrors(root, p, written, limit)
+		found, skipped, judged := docErrors(root, p, hists[p.root], written, limit)
 		errs, notes, whole = append(errs, found...), append(notes, skipped...), whole && judged
 	}
 	if !whole {
 		return errs, notes, nil
 	}
+	notes = withNote(notes, historyNote)
 	tooled, err := toolErrors(root, tests, written)
 	return append(errs, tooled...), notes, err
 }
 
 // docErrors judges one package's doc shapes, IDs, shared areas and test ownership, noting each unreadable doc and reporting a whole read.
 // A doc its proven numbers name needs no test, since its fitness/req-NNNN check proves it.
-func docErrors(root string, p pkg, written []lang.Module, limit int) (errs, notes []string, whole bool) {
+func docErrors(root string, p pkg, hist history, written []lang.Module, limit int) (errs, notes []string, whole bool) {
 	docs, errs, skipped := requirement.Load(root, p.paths)
 	notes = skipped
 	if len(skipped) > 0 {
@@ -115,10 +117,6 @@ func docErrors(root string, p pkg, written []lang.Module, limit int) (errs, note
 		return errs, append(notes, "ownership and history were not judged without every doc"), false
 	}
 	errs = append(errs, missingDocs(p)...)
-	hist, historyNote := readHistory(root, packages.Join(p.root, docsDir), p.paths)
-	if historyNote != "" {
-		notes = append(notes, historyNote)
-	}
 	errs = append(errs, idErrors(docs, hist)...)
 	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
@@ -252,4 +250,12 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// withNote is notes with note added, unless note is empty.
+func withNote(notes []string, note string) []string {
+	if note == "" {
+		return notes
+	}
+	return append(notes, note)
 }

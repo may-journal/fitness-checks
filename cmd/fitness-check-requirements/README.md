@@ -31,7 +31,7 @@ users who have lost connection
 ## Requirements
 <!-- Top-level bullets are IDs: title ID + ".N", unique, never reused. -->
 <!-- Each ID nests exactly one Given, one When, one Then, one level (two spaces) deeper each, each line starting with its keyword. A second Given is a new ID. -->
-<!-- One Given may chain 2 to 7 steps as a numbered list, `1.` to `7.`, each a When with one Then nested under it, as 0001.2 does. A single step stays a plain bullet. -->
+<!-- One Given may chain 2 to `requirements.maxSteps` steps as a numbered list from `1.`, each a When with one Then nested under it, as 0001.2 does. A single step stays a plain bullet. -->
 <!-- Cite step 2 of 0001.2 as `0001.2.2`; one test still proves the whole acceptance. -->
 <!-- A Given starts with an actor the system context declares, by name or Mermaid ID; see the architecture-actors check. -->
 <!-- Exactly one test is named for each ID, the way its language module names tests; the check's error names the test it expects. Delete the test when you delete the ID. -->
@@ -62,10 +62,10 @@ Each language module finds its tests and names the test that owns an ID, as its 
 
 ## Steps
 
-An acceptance may chain 2 to 7 When and Then steps under its one Given, as 0001.2 in the template does. Each step stays short, and one test still proves the whole acceptance.
+An acceptance may chain 2 to `requirements.maxSteps` When and Then steps under its one Given, as 0001.2 in the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
 
-- Numbering: a chain numbers its steps `1.` to `7.` in order, each a When with one Then nested under it.
-- Failures: eight steps, a gap, an unnumbered step or a numbered single step fail, naming the line.
+- Numbering: a chain numbers its steps in order from `1.`, each a When with one Then nested under it.
+- Failures: more steps than `requirements.maxSteps`, a gap, an unnumbered step or a numbered single step fail, naming the line.
 - Citing: step 2 of 0001.2 is `0001.2.2`; a test named for a step, such as `Test0001_2_2`, fails.
 - Checks: overlap reads every step, a deleted step brought back fails, and a chain counts once toward the cap.
 
@@ -78,6 +78,8 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
 
 ## Behavior
+
+[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.
 
 - No code: a repo with no file in a module's language passes with `filesChecked: 0`.
 - Not code: a file a module names a tool config, or a file `.gitattributes` marks `linguist-generated`.
@@ -103,6 +105,7 @@ cmd/fitness-check-gofmt/requirements/0001_test.go
 - Tests: a package's requirement tests sit in its own folder and prove only its docs.
 - Missing docs: a package root with code and no docs fails. The repo root may leave its behavior to its packages.
 - Pairs: a test pairs with a doc of its own package, as does a product change in `requirements-changed`.
+- History: one git log reads every package's docs, and each package keeps its own removed IDs.
 - No key: without `packages`, the repo root is the only package, as before.
 
 ## Swift tests

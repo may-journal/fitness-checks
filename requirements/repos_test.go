@@ -10,16 +10,6 @@ import (
 // The Given files a user's repo adds to happyRepo. They live here, not as
 // tracked example repos, so this repo's own checks never judge them.
 
-// goRepo is a Go module whose requirement 0001 has its one owning test.
-func goRepo() map[string]string {
-	return map[string]string{
-		"go.mod":                                 "module example.com/adder\n\ngo 1.22\n",
-		"adder.go":                               "// Package adder adds numbers.\npackage adder\n\n// Add returns the sum of a and b.\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
-		"adder_test.go":                          testFile("adder", "Test0001_1"),
-		"docs/requirements/0001-adds-numbers.md": requirementDoc("0001.1"),
-	}
-}
-
 // pairedRepo is goRepo with requirement 0001's test in reqs/0001_test.go,
 // named for it, beside a shared helper that proves no requirement. Only the
 // requirements check runs, so commits meet no other check.
@@ -74,15 +64,6 @@ func xcTestFile(names ...string) string {
 	return body + "}\n"
 }
 
-// testFile is a Go test file in pkg declaring one passing test per name.
-func testFile(pkg string, names ...string) string {
-	body := "package " + pkg + "\n\nimport \"testing\"\n"
-	for _, n := range names {
-		body += "\nfunc " + n + "(t *testing.T) {}\n"
-	}
-	return body
-}
-
 // caseFile is a Go test file in pkg declaring test name, which runs one
 // empty case per case name.
 func caseFile(pkg, name string, cases ...string) string {
@@ -99,64 +80,6 @@ func stepCases(id string, steps int) []string {
 	var out []string
 	for n := 1; n <= steps; n++ {
 		out = append(out, id+"."+strconv.Itoa(n)+" step")
-	}
-	return out
-}
-
-// requirementDoc is requirement 0001 with one Given/When/Then per ID.
-func requirementDoc(ids ...string) string {
-	return docWith(acceptances(ids...))
-}
-
-// acceptances renders one well-formed chain per ID, nested two spaces deeper
-// at each level as Biome formats it.
-func acceptances(ids ...string) string {
-	body := ""
-	for _, id := range ids {
-		body += "- " + id + "\n  - Given two numbers\n    - When I add them\n      - Then I get their sum\n"
-	}
-	return body
-}
-
-// chain renders id as one Given and a numbered chain of steps, nested as
-// Biome formats it. Step N's When sits on line 2N+17 of docWith.
-func chain(id string, steps int) string {
-	body := "- " + id + "\n  - Given two numbers\n"
-	for n, step := range chainSteps[:steps] {
-		body += "    " + strconv.Itoa(n+1) + ". When " + step[0] + "\n       - Then " + step[1] + "\n"
-	}
-	return body
-}
-
-// chainSteps are eight When and Then pairs, worded apart so no two steps
-// read as duplicate lines.
-var chainSteps = [][2]string{
-	{"I add them", "I get their sum"},
-	{"I double that sum", "the total is even"},
-	{"I subtract the first number", "the second remains twice over"},
-	{"I halve the result", "one whole number is left"},
-	{"I square it", "a perfect square shows"},
-	{"I negate the square", "its sign flips below zero"},
-	{"I clear the display", "zero appears"},
-	{"I undo once", "the negative square returns"},
-}
-
-// docWith is requirement 0001 with the given Requirements, its Measurement
-// ratio set apart by blank lines as Biome formats it.
-func docWith(reqs string) string {
-	return "# 0001 Adds Numbers\n\n## Why\n\n" +
-		"I can add two numbers without doing it by hand.\n\n## Measurement\n\nsums that are right\n\n-\n\nsums asked for\n\n" +
-		"## Requirements\n\n" + reqs
-}
-
-// with returns base with overrides applied.
-func with(base map[string]string, overrides map[string]string) map[string]string {
-	out := map[string]string{}
-	for k, v := range base {
-		out[k] = v
-	}
-	for k, v := range overrides {
-		out[k] = v
 	}
 	return out
 }

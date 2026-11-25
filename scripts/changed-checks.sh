@@ -30,8 +30,11 @@ fi
 listed="$(go list -test -f '{{.ImportPath}} {{join .Deps " "}}' ./cmd/...)"
 pairs="$(printf '%s\n' "$listed" | awk -v m="$module/" '
   {
-    check = $1; sub("^" m "cmd/fitness-check-", "", check); sub(/\.test$/, "", check)
+    self = $1; sub("^" m, "", self); sub(/\.test$/, "", self)
+    # A folder inside a check, such as its requirements tests, belongs to it.
+    check = self; sub("^cmd/fitness-check-", "", check); sub(/\/.*/, "", check)
     print check, "cmd/fitness-check-" check
+    print check, self
     for (i = 2; i <= NF; i++) if (index($i, m) == 1) {
       dir = substr($i, length(m) + 1); sub(/\.test$/, "", dir)
       print check, dir

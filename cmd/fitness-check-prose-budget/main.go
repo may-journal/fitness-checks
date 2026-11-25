@@ -7,6 +7,7 @@ import (
 
 	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/match"
+	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-runner/go/pkg/bodycheck"
@@ -26,6 +27,7 @@ type limits struct {
 	words              int
 	commentWordsPerTok int
 	bodyComments       int
+	maxSteps           int
 }
 
 // descriptionName labels the pseudo-file in body-mode errors, where the
@@ -75,12 +77,13 @@ func settings(root string) limits {
 	if config.Read(root, &c) == nil {
 		applyLimits(&lim, c)
 	}
+	lim.maxSteps = requirement.MaxSteps(root)
 	return lim
 }
 
 // defaultLimits are the limits a repo gets when it sets none.
 func defaultLimits() limits {
-	var lim limits
+	lim := limits{maxSteps: requirement.DefaultMaxSteps}
 	applyLimits(&lim, defaults)
 	return lim
 }
@@ -205,7 +208,7 @@ func listErrors(rel string, blocks []block, lim limits) []string {
 // the word limit.
 func listError(rel string, bl block, lim limits) []string {
 	var errs []string
-	errs = append(errs, nestingErrors(rel, bl, lim.listItems)...)
+	errs = append(errs, nestingErrors(rel, bl, lim.listItems, lim.maxSteps)...)
 	for _, it := range bl.items {
 		if n := mdx.WordCount(mdx.MaskInline(it)); n > lim.listItemWords {
 			errs = append(errs, fmt.Sprintf("%s: a list item has %d words (max %d): %q",
@@ -227,14 +230,15 @@ func snippet(s string) string {
 
 // nestingErrors caps each list level at half the level above, rounded down, so 8 top items allow 4 children each.
 // It reports each level once, at the first item past its cap.
-func nestingErrors(rel string, bl block, top int) []string {
+func nestingErrors(rel string, bl block, top, maxSteps int) []string {
 	var errs []string
 	counts, flagged := map[int]int{}, map[int]bool{}
+	steps := chainsSteps(rel, bl)
 	for i, d := range bl.depths {
 		resetDeeper(counts, d)
 		resetDeeper(flagged, d)
 		counts[d]++
-		limit := levelLimit(rel, bl, i, top>>d)
+		limit := levelLimit(steps && bl.ordered[i], top>>d, maxSteps)
 		if counts[d] > limit && !flagged[d] {
 			flagged[d] = true
 			errs = append(errs, fmt.Sprintf("%s: a list has more than %d items at level %d: %q", rel, limit, d+1, snippet(bl.items[i])))
@@ -243,11 +247,17 @@ func nestingErrors(rel string, bl block, top int) []string {
 	return errs
 }
 
-// levelLimit is the cap at item i's level, half the level above. A numbered step under a requirement doc's Requirements
-// heading may chain up to requirement.MaxSteps, the most one acceptance holds.
-func levelLimit(rel string, bl block, i, half int) int {
-	if bl.ordered[i] && bl.sectionName == "Requirements" && strings.HasPrefix(rel, requirement.Dir) {
-		return max(half, requirement.MaxSteps)
+// chainsSteps reports whether bl sits under a requirement doc's Requirements
+// heading, where numbered steps chain.
+func chainsSteps(rel string, bl block) bool {
+	return bl.sectionName == "Requirements" && requirement.InDocs(packages.Roots(), rel)
+}
+
+// levelLimit is the cap at an item's level, half the level above. A step, numbered under a requirement doc's
+// Requirements heading, may chain up to maxSteps, the most one acceptance holds.
+func levelLimit(step bool, half, maxSteps int) int {
+	if step {
+		return max(half, maxSteps)
 	}
 	return half
 }
