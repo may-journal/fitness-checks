@@ -23,7 +23,7 @@ checks
     - When the doc move script runs on its folder
       - Then it fails naming the folder and leaves both files as they were
 - 0008.3
-  - Given Developer has the checks moved to Markdown so far
+  - Given Developer has every check moved to Markdown
     - When the README test reads each folder
       - Then each doc.go is one line naming its README and embedding it, and the repo README alone links the architecture page
 - 0008.4

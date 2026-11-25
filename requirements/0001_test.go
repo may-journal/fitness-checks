@@ -431,21 +431,10 @@ func Test0001_7(t *testing.T) {
 func Test0001_8(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"stub README holds name summary and links only", func(t *testing.T) {
-			t.Parallel()
-			eachReadme(t, func(folder, name, source, readme string) {
-				if want := readmeStub(name, program.Summary(source)); !readmeIsDocs(source) && readme != want {
-					t.Errorf("%s/README.md is not the stub:\n%s\nwant:\n%s", folder, readme, want)
-				}
-			})
-		}},
-		{"documented README names the check and opens with the described summary", func(t *testing.T) {
+		{"README names the check and opens with the described summary", func(t *testing.T) {
 			t.Parallel()
 			var ours string
-			eachReadme(t, func(folder, name, source, readme string) {
-				if !readmeIsDocs(source) {
-					return
-				}
+			eachReadme(t, func(folder, name, readme string) {
 				if ours == "" {
 					ours = goBuild(t, "./cmd/...")
 				}
@@ -454,12 +443,8 @@ func Test0001_8(t *testing.T) {
 		}},
 		{"relative links resolve", func(t *testing.T) {
 			t.Parallel()
-			eachReadme(t, func(folder, _, source, readme string) {
-				targets := stubTargets
-				if readmeIsDocs(source) {
-					targets = readmeLinks(readme)
-				}
-				for _, target := range targets {
+			eachReadme(t, func(folder, _, readme string) {
+				for _, target := range readmeLinks(readme) {
 					if _, err := os.Stat(filepath.Join(folder, target)); err != nil {
 						t.Errorf("%s/README.md links %s, which does not resolve: %v", folder, target, err)
 					}
@@ -469,8 +454,8 @@ func Test0001_8(t *testing.T) {
 	})
 }
 
-// checkDocumentedReadme fails t for each way a check folder's README, which
-// is the check's documentation, differs from what its binary says.
+// checkDocumentedReadme fails t for each way a check folder's README differs
+// from what its binary says.
 func checkDocumentedReadme(t *testing.T, ours, folder, name, readme string) {
 	t.Helper()
 	summary := program.Summary(readme)
@@ -491,23 +476,15 @@ func plainSentence(summary string) bool {
 	return summary != "" && unicode.IsLetter([]rune(summary)[0]) && !strings.Contains(summary, "](")
 }
 
-// eachReadme calls visit with each check folder that has a doc.go and a
-// README.md, its name, and their text.
-func eachReadme(t *testing.T, visit func(folder, name, docGo, readme string)) {
+// eachReadme calls visit with each check folder that has a README.md, its
+// name, and the README's text.
+func eachReadme(t *testing.T, visit func(folder, name, readme string)) {
 	t.Helper()
 	for _, folder := range checkFolders(t, "..") {
-		source, okDoc := readFolder(t, folder, "doc.go")
-		readme, okReadme := readFolder(t, folder, "README.md")
-		if okDoc && okReadme {
-			visit(folder, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"), source, readme)
+		if readme, ok := readFolder(t, folder, "README.md"); ok {
+			visit(folder, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"), readme)
 		}
 	}
-}
-
-// readmeIsDocs reports whether a check's doc.go source embeds its README.md as
-// the check's documentation, in place of doc.go itself.
-func readmeIsDocs(docGo string) bool {
-	return strings.Contains(docGo, "//go:embed README.md")
 }
 
 // relativeLink matches a Markdown link whose target is a file path, without
@@ -1023,19 +1000,6 @@ func indexFields(t *testing.T, out string) map[string]any {
 		got[version] = fields["files"]
 	}
 	return got
-}
-
-// stubTargets are the stub's relative links, as a check folder resolves them.
-var stubTargets = []string{"../../docs/architecture/03-components.md", "doc.go"}
-
-// readmeStub is the README every check folder holds, given its name and the
-// summary its doc comment opens with, as --describe prints it.
-func readmeStub(name, summary string) string {
-	return "# " + name + "\n\n" + summary + "\n\n" +
-		"- [Architecture](" + stubTargets[0] + ")\n" +
-		"- [Source](" + stubTargets[1] + ")\n" +
-		"- Full docs: [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks/cmd/fitness-check-" + name +
-		") or `fitness-check-" + name + " --describe`\n"
 }
 
 // readFolder reads file in folder, or reports why it could not.

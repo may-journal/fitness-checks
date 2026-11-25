@@ -45,4 +45,4 @@ Checks
 - 0001.8
   - Given Developer has each check's README
     - When the README test reads it
-      - Then it holds the check's name, the summary it prints and working links
+      - Then it holds the check's name, its summary and working links

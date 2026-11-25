@@ -1,6 +1,6 @@
 # fitness-checks
 
-The fitness checks that the [fitness-runner](https://github.com/may-journal/fitness-runner) engine runs. Each check is its own program in `cmd/fitness-check-<name>`, with a short README beside it. It imports the engine's public packages at the version `go.mod` pins, and no other check.
+The fitness checks that the [fitness-runner](https://github.com/may-journal/fitness-runner) engine runs. Each check is its own program in `cmd/fitness-check-<name>`, with its README.md beside it. It imports the engine's public packages at the version `go.mod` pins, and no other check.
 
 The engine, hooks, workflows and installer stay in fitness-runner. Its bundle keeps its own copy of each check until the engine finds these programs. [Split fitness-runner into an engine repo and a checks repo](https://github.com/may-journal/fitness-runner/issues/918) plans that step.
 
@@ -53,4 +53,4 @@ A version may also hold `files`, `exclude`, `needs` and `requires`, copied from 
 
 `go test ./...` builds every package and runs the tests that need no installed engine. [tests/requirements.sh](tests/requirements.sh) runs the requirement tests in `requirements/` as a user meets each check. It installs the fitness-runner engine `go.mod` pins, with this repo's check programs beside it. On a pull request, CI builds and tests only the checks [scripts/changed-checks.sh](scripts/changed-checks.sh) names, then runs that suite.
 
-Each check's full docs are its `README.md`, which GitHub renders and `fitness-check-<name> --describe` summarizes. A check not yet moved keeps them in its `doc.go`, which [pkg.go.dev](https://pkg.go.dev/github.com/may-journal/fitness-checks) renders, and its README only links them.
+Each check's full docs are its `README.md`, which GitHub renders and `fitness-check-<name> --describe` summarizes.

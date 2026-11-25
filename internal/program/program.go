@@ -8,9 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/doc"
-	"go/doc/comment"
-	"go/parser"
-	"go/token"
 	"io"
 	"os"
 	"regexp"
@@ -30,7 +27,7 @@ type described struct {
 	Protocol int `json:"protocol"`
 }
 
-// Main runs c, given its README.md source, or its doc.go for a check not yet moved.
+// Main runs c, given its README.md source.
 func Main(source string, c checkkit.Check) {
 	Configured(source, nil, c)
 }
@@ -63,25 +60,10 @@ func describe(out io.Writer, source string, keys func() ([]checkkit.ConfigKey, e
 	return 0
 }
 
-// Summary is the first sentence of a check's documentation as plain text.
-// The source is a README.md, which opens with a title, or a doc.go, whose
-// doc comment opens with "Command fitness-check-<name>".
-func Summary(source string) string {
-	if strings.HasPrefix(strings.TrimSpace(source), "#") {
-		return markdownSummary(source)
-	}
-	file, err := parser.ParseFile(token.NewFileSet(), "doc.go", source, parser.PackageClauseOnly|parser.ParseComments)
-	if err != nil || file.Doc == nil {
-		return ""
-	}
-	text := afterCommand(file.Doc.Text())
-	return unlinked(new(doc.Package).Synopsis(text), text)
-}
-
-// markdownSummary is the first sentence of the paragraph after the title of
-// the Markdown source. A first block that is not prose, such as
+// Summary is the first sentence of the paragraph after the title of a check's
+// README.md. A first block that is not prose, such as
 // a list, fence, quote, table or HTML, gives no summary.
-func markdownSummary(source string) string {
+func Summary(source string) string {
 	source = strings.ReplaceAll(source, "\r\n", "\n")
 	_, body, _ := strings.Cut(strings.TrimSpace(source), "\n")
 	paragraph, _, _ := strings.Cut(strings.TrimSpace(body), "\n\n")
@@ -98,25 +80,3 @@ var markdownProse = regexp.MustCompile(`^[^\s#>|<` + "`~" + `*+\-\d]|^\d+[^.)\d]
 // markdownLink matches an inline Markdown link, whose text is group 1. Its URL
 // may hold one level of balanced parentheses.
 var markdownLink = regexp.MustCompile(`\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)`)
-
-// afterCommand drops the "Command fitness-check-<name>" opening from text and
-// capitalizes what follows, so the sentence reads on its own.
-func afterCommand(text string) string {
-	rest, ok := strings.CutPrefix(text, "Command fitness-check-")
-	if !ok {
-		return text
-	}
-	if _, rest, ok = strings.Cut(rest, " "); !ok || rest == "" {
-		return text
-	}
-	return strings.ToUpper(rest[:1]) + rest[1:]
-}
-
-// unlinked drops the brackets Go keeps around a link in summary when it cuts
-// the sentence before text defines the link.
-func unlinked(summary, text string) string {
-	for _, def := range new(comment.Parser).Parse(text).Links {
-		summary = strings.ReplaceAll(summary, "["+def.Text+"]", def.Text)
-	}
-	return summary
-}
