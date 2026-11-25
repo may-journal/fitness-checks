@@ -706,6 +706,29 @@ func Test0005_6(t *testing.T) {
 			out, code = ajRun(t, ajEdit(eight, ajTagOpen, "open(2 Open the app<br/>Req "+ids+")"))
 			sees(t, out, code, 0)
 		}},
+		{"generated journey region fails when stale and passes when fresh", func(t *testing.T) {
+			t.Parallel()
+			fresh := ajRegion(acFixture(acRoot), "    req0001[(2 Open<br/>Req 0001)]:::system")
+			out, code := ajRun(t, fresh)
+			sees(t, out, code, 0)
+			stale := ajSecondDoc(ajRegion(acFixture(acRoot), "    req0001[(2 Open<br/>Req 0001)]:::system"))
+			out, code = ajRun(t, stale)
+			sees(t, out, code, 1, "the generated journey nodes differ from the requirement docs; run `fitness architecture-journey --fix` to rewrite them")
+			retitled := ajRegion(acFixture(acRoot), "    req0001[(2 Open The App<br/>Req 0001)]:::system")
+			out, code = ajRun(t, retitled)
+			sees(t, out, code, 1, "architecture/05-user-journey.md:18: the generated journey nodes differ")
+			open := ajRegion(acFixture(acRoot), "")
+			open[ajView] = strings.Replace(open[ajView], "    %% journey-nodes:end\n", "", 1)
+			out, code = ajRun(t, open)
+			sees(t, out, code, 1, "has `%% journey-nodes:start` with no end marker after it")
+			repo := example(t, "happyRepo", ajSecondDoc(ajRegion(acFixture(acRoot), "    stale")))
+			out, code = fitness(t, repo, nil, ajCheck, "--fix")
+			sees(t, out, code, 0)
+			body, err := os.ReadFile(filepath.Join(repo, ajView))
+			if err != nil || !strings.Contains(string(body), "req0002[(3 Open<br/>Req 0002)]:::system") {
+				t.Errorf("--fix did not rewrite the region: %v\n%s", err, body)
+			}
+		}},
 		{"ids outside the diagram cover nothing", func(t *testing.T) {
 			t.Parallel()
 			files := acFixture(acRoot)
@@ -1665,6 +1688,15 @@ func ajRun(t *testing.T, files map[string]string) (string, int) {
 // ajEdit replaces old with new in the journey view of a fixture.
 func ajEdit(files map[string]string, old, new string) map[string]string {
 	files[ajView] = strings.Replace(files[ajView], old, new, 1)
+	return files
+}
+
+// ajRegion replaces the fixture's two steps with a marked region holding
+// nodes, wired by the same edges.
+func ajRegion(files map[string]string, nodes string) map[string]string {
+	files = ajEdit(files, ajOpen+":::action\ndone", "%% journey-nodes:start\n"+nodes+"\n    %% journey-nodes:end\ndone")
+	files = ajEdit(files, ajDone+":::screen\n", "")
+	files = ajEdit(files, "user --> open\nopen -->|saves| done", "user --> req0001\nreq0001 --> req0001")
 	return files
 }
 
