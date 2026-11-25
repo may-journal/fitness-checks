@@ -54,5 +54,8 @@ go build -ldflags "-X main.version=$version -X main.bundleHashes=$platform=$dige
 FITNESS_INSTALL="$work/fitness-install"
 export FITNESS_CACHE_DIR FITNESS_INSTALL
 
+# As many cases and packages run at once as the machine has cores, so a
+# timed case never waits on more work than the cores can do.
+cores="$(getconf _NPROCESSORS_ONLN)"
 # shellcheck disable=SC2086
-exec go test $folders -count=1 -parallel 32 "$@"
+exec go test $folders -count=1 -p "$cores" -parallel "$cores" "$@"
