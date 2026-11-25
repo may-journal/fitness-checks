@@ -152,7 +152,7 @@ func Test0001_2(t *testing.T) {
 			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
 				t.Errorf("folders for no changed check = %q, want none", got)
 			}
-	
+
 		}},
 		{"0001.2.2 shared suite changes run every folder and the slow cases", func(t *testing.T) {
 			t.Parallel()
