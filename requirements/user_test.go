@@ -25,6 +25,8 @@ var (
 	passedWithNoFiles = acceptance.PassedWithNoFiles
 	showsInfo         = acceptance.ShowsInfo
 	passedWith        = acceptance.PassedWith
+	pathWithout       = acceptance.PathWithout
+	prEnv             = acceptance.PullRequestEnv
 	ansi              = acceptance.ANSI
 	names             = acceptance.Names
 	resultRow         = acceptance.ResultRow

@@ -2,5 +2,5 @@
   "checkVersions": {
     "*": "v1"
   },
-  "packages": ["cmd/fitness-check-prose-budget", "cmd/fitness-check-requirements"]
+  "packages": ["cmd/fitness-check-prose-budget", "cmd/fitness-check-requirements", "cmd/fitness-check-swiftlint"]
 }
