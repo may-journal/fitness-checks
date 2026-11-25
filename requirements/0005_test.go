@@ -755,7 +755,7 @@ func Test0005_6(t *testing.T) {
 			out, code := fitness(t, repo, nil, ajCheck, "--fix")
 			sees(t, out, code, 0)
 			body, err := os.ReadFile(filepath.Join(repo, ajView))
-			want := strings.Replace(files[ajView], "    stale\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale", "req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\nreq0002[(3 Open<br/>Req 0002)]:::system", 1)
+			want := strings.Replace(files[ajView], "    stale\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale", "req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    req0002[(3 Open<br/>Req 0002)]:::system", 1)
 			if err != nil || string(body) != want {
 				t.Errorf("--fix changed more than the regions: %v\n%s", err, body)
 			}
