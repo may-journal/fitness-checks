@@ -144,9 +144,6 @@ func occurrences(path, want string) int {
 	return strings.Count(string(raw), want)
 }
 
-// passing is a local check's verdict that judged one file and found nothing.
-const passing = `{"ok": true, "errors": [], "filesChecked": 1}`
-
 // planTemplate is a Plan that follows the template, with one task.
 func planTemplate(task string) string {
 	return "> One clear pitch for this Plan.\n\n## Background\n\nThis Plan is a test fixture.\n\n## What needs to happen\n\n" + task + "\n"
@@ -224,15 +221,6 @@ func user(t *testing.T, repo string, env []string, args ...string) (string, int)
 	cmd.Dir, cmd.Env = repo, append(userEnv(), env...)
 	out, _ := cmd.CombinedOutput()
 	return ansi.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
-}
-
-// verdictScript is a check program that prints verdict, or hangs when it
-// is empty.
-func verdictScript(verdict string) string {
-	if verdict == "" {
-		return "#!/bin/sh\nexec /bin/sleep 30\n"
-	}
-	return "#!/bin/sh\necho '" + verdict + "'\n"
 }
 
 // bodyEdit is the event GitHub delivers when issue's body is edited: its

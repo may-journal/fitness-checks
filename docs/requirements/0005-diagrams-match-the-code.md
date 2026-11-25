@@ -2,11 +2,11 @@
 
 ## Why
 
-I can trust every diagram I keep. Each one renders, explains its callouts, and matches the code and requirements it draws.
+I can trust every diagram I keep. Each one renders, explains its callouts, and adds detail at each level.
 
 ## Measurement
 
-diagrams that render and match their callout tables and the code they describe
+diagrams that render and match their callout tables
 
 -
 
@@ -31,18 +31,6 @@ diagrams checked
     - When the Mermaid checks read the diagram and its table
       - Then each missing Why, missing legend, extra paragraph or prose label fails naming its line
 - 0005.5
-  - Given Developer has architecture levels and a contract with diagram IDs, source paths and requirement or step links
-    - When the architecture checks read the contract and its levels
-      - Then repeated level text, duplicate claims and unreadable evidence fail naming their lines
-- 0005.6
-  - Given Developer has a journey and a context diagram beside requirement docs and Givens
-    - When the architecture checks compare requirements with steps and actors
-      - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line
-- 0005.7
-  - Given Developer has container and component views beside build targets and product folders
-    - When the architecture checks compare the views with the runtimes and folders
-      - Then each undeclared, stale or unowned container, folder or call fails naming its source
-- 0005.8
-  - Given Developer has a code view of classes, symbols and edges
-    - When the architecture checks compare the code view with the source
-      - Then each omitted, stale, duplicate or missing class and edge fails naming its line
+  - Given Developer has architecture level docs whose callout descriptions repeat a parent level's text
+    - When the Mermaid checks compare each level with the one above it
+      - Then a verbatim repeat fails naming the file and level, and distinct, blank or distant levels pass

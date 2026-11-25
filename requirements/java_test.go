@@ -18,12 +18,6 @@ var javaJDK = response{
 // javaSource is a Java source file every Java example repo holds.
 const javaSource = "src/main/java/App.java"
 
-// javaPom is a Maven build file whose build declares plugins.
-func javaPom(plugins string) string {
-	return "<project><modelVersion>4.0.0</modelVersion><groupId>com.example</groupId>" +
-		"<artifactId>app</artifactId><version>1</version><build><plugins>" + plugins + "</plugins></build></project>\n"
-}
-
 // javaParent is a Maven build that declares plugins and lists modules.
 func javaParent(plugins string, modules ...string) string {
 	list := "<modules>"

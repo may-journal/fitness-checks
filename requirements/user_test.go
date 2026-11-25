@@ -30,4 +30,13 @@ var (
 	ansi              = acceptance.ANSI
 	names             = acceptance.Names
 	resultRow         = acceptance.ResultRow
+	verdictScript     = acceptance.VerdictScript
+	entryFileText     = acceptance.EntryFileText
+	bareEntryText     = acceptance.BareEntryText
 )
+
+// passing is a local check's verdict that judged one file and found nothing.
+const passing = acceptance.Passing
+
+// upstreamChangelog is a CHANGELOG.md as an upstream project keeps it.
+const upstreamChangelog = acceptance.UpstreamChangelog

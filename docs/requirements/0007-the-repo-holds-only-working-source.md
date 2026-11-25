@@ -2,7 +2,7 @@
 
 ## Why
 
-I review real source only. Build output, plan files, copied code, repeated values, stale pins, unexplained ignore lines and broken workflows never land in the repo.
+I review real source only. Plan files, copied code, repeated values, stale pins, unexplained ignore lines and broken workflows never land in the repo.
 
 ## Measurement
 
@@ -14,10 +14,6 @@ repo files and settings checked
 
 ## Requirements
 
-- 0007.1
-  - Given Developer has tracked, ignored and imported `dist`, Maven and Gradle output
-    - When the source checks look for build output
-      - Then tracked, unignored or imported output fails with a fix
 - 0007.2
   - Given Developer has plan files, mockups and review artifacts in folders, names and checklists
     - When the source checks look for temporary design work

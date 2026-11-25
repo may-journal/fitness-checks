@@ -149,18 +149,6 @@ func docWith(reqs string) string {
 		"## Requirements\n\n" + reqs
 }
 
-// with returns base with overrides applied.
-func with(base map[string]string, overrides map[string]string) map[string]string {
-	out := map[string]string{}
-	for k, v := range base {
-		out[k] = v
-	}
-	for k, v := range overrides {
-		out[k] = v
-	}
-	return out
-}
-
 // hungTool is a JavaScript repo whose own prettier runs prelude, then hangs
 // after starting a child process. The child names prettier.pid on its command
 // line until it has moved its PID into that file, so processStopped finds it

@@ -31,9 +31,9 @@ docs, bodies and comments the writing checks judge
     - When the file name and link checks read the repo
       - Then they fail naming each file, and pass the repo's own case and real links
 - 0004.5
-  - Given Developer has Markdown docs and ADR files that differ from their folder's templates
+  - Given Developer has Markdown docs that differ from their folder's templates
     - When the doc template checks read the repo
-      - Then they fail naming each difference, and pass docs that match and ADRs kept as issues
+      - Then they fail naming each difference, and pass docs that match
 - 0004.6
   - Given Developer has an issue or Plan body with unchecked items or a broken Plan template
     - When the issue and Plan checks read the body
