@@ -178,7 +178,7 @@ func Test0008_6(t *testing.T) {
 			tops := topKeys(declared)
 			for name, keys := range declared {
 				readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
-				for _, key := range undeclaredKeys(readme, keys, tops) {
+				for _, key := range undeclaredKeys(readme, keys, tops, declared) {
 					t.Errorf("%s README names the key %s, which its --describe does not declare", name, key)
 				}
 			}
@@ -238,11 +238,15 @@ func topKeys(declared map[string]map[string]bool) map[string]bool {
 var codeSpan = regexp.MustCompile("`([^`\n]+)`")
 
 // undeclaredKeys lists the code spans in readme that name a top-level key or
-// a key under one that own does not declare.
-func undeclaredKeys(readme string, own, tops map[string]bool) []string {
+// a key under one that own does not declare. A span naming a check in
+// declared names that check, such as `requirements`, not its key.
+func undeclaredKeys(readme string, own, tops map[string]bool, declared map[string]map[string]bool) []string {
 	var bad []string
 	for _, m := range codeSpan.FindAllStringSubmatch(readme, -1) {
 		span := m[1]
+		if _, check := declared[span]; check {
+			continue
+		}
 		if tops[strings.Split(span, ".")[0]] && !own[span] {
 			bad = append(bad, span)
 		}

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/internal/config"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 	"github.com/may-journal/fitness-runner/go/pkg/lang"
@@ -15,7 +16,7 @@ import (
 )
 
 func main() {
-	program.Main(docSource, checkkit.Check{
+	program.Configured(docSource, config.Keys(defaults, configSource), checkkit.Check{
 		Describe: checkkit.Describe{
 			Name:     "requirements",
 			Scope:    checkkit.ScopeFiles,
@@ -68,6 +69,11 @@ func docErrors(root string, paths []string, tests []reqTest, written []lang.Modu
 		notes = append(notes, historyNote)
 	}
 	errs = append(errs, idErrors(docs, hist)...)
+	limit, err := maxAcceptances(root)
+	if err != nil {
+		return errs, notes, err
+	}
+	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, tests, written, proven)...)
 	errs = append(errs, orphanChecks(docs, proven)...)
