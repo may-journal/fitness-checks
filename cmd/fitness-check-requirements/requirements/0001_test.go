@@ -33,9 +33,9 @@ func chainRun(t *testing.T, requirements string, steps int) string {
 	return acceptance.Read(out)
 }
 
-// chainOverLimit fails unless a chain of limit steps passes the limit and
+// verifyChainLimit fails unless a chain of limit steps passes the limit and
 // one more step fails with every want, such as the chain and the limit.
-func chainOverLimit(t *testing.T, requirements string, limit int, want ...string) {
+func verifyChainLimit(t *testing.T, requirements string, limit int, want ...string) {
 	t.Helper()
 	if out := chainRun(t, requirements, limit); strings.Contains(out, "0001.1 chains") {
 		t.Errorf("a chain of %d steps must pass a limit of %d:\n%s", limit, limit, out)
@@ -53,11 +53,11 @@ func Test0001_1(t *testing.T) {
 	const set = `, "requirements": {"maxSteps": 3}`
 	t.Run("0001.1.2.1.1 it fails naming the chain", func(t *testing.T) {
 		t.Parallel()
-		chainOverLimit(t, set, 3, "0001.1 chains %[1]d steps")
+		verifyChainLimit(t, set, 3, "0001.1 chains %[1]d steps")
 	})
 	t.Run("0001.1.2.1.2 it names the limit", func(t *testing.T) {
 		t.Parallel()
-		chainOverLimit(t, set, 3, "at most %[2]d")
+		verifyChainLimit(t, set, 3, "at most %[2]d")
 	})
 }
 
@@ -65,8 +65,8 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.2.1.1 the default limit of seven steps applies", func(t *testing.T) {
 		t.Parallel()
-		chainOverLimit(t, "", 7, "0001.1 chains %d steps, at most %d")
+		verifyChainLimit(t, "", 7, "0001.1 chains %d steps, at most %d")
 		// A chain holds two steps at least, so a smaller limit keeps the default.
-		chainOverLimit(t, `, "requirements": {"maxSteps": 1}`, 7, "0001.1 chains %d steps, at most %d")
+		verifyChainLimit(t, `, "requirements": {"maxSteps": 1}`, 7, "0001.1 chains %d steps, at most %d")
 	})
 }

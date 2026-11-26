@@ -79,7 +79,7 @@ func Test0005_4(t *testing.T) {
 		out, code := checked(t, named(sum))
 		acceptance.Sees(t, out, code, 1, `add a case to Test0001_2 named "`+even+`"`)
 	})
-	t.Run("0005.4.1.3.1 it fails naming the case and the name it needs", func(t *testing.T) {
+	t.Run("0005.4.1.3.1 it fails naming the case plus the name it needs", func(t *testing.T) {
 		t.Parallel()
 		out, code := checked(t, named(sum, "0001.2.1.2.1 totals"))
 		acceptance.Sees(t, out, code, 1, `THEN 0001.2.1.2.1 has a case named "0001.2.1.2.1 totals" in Test0001_2; rename it to "`+even+`"`)
