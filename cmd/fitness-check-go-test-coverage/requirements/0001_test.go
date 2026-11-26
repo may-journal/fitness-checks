@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
@@ -20,23 +21,24 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no Go modules passes without files", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, _ := goTestCoverage(t, nil)
+		out, code := goTestCoverage(t, nil)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "go-test-coverage")
 	})
-	t.Run("0001.1.2 a missing Go shows the download hint", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 it reports info with the hint `see https://go.dev/dl`", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", command(entryTest))
 		out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "go")}, "go-test-coverage")
 		acceptance.ShowsInfo(t, out, code, "go-test-coverage", "Go not installed: see https://go.dev/dl")
 	})
-	t.Run("0001.1.3 a library with no declared entry fails asking to declare entries", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 it fails asking to declare entries", func(t *testing.T) {
 		t.Parallel()
 		out, code := goTestCoverage(t, library("{}\n"))
 		acceptance.Sees(t, out, code, 1, "no entry packages; declare library entries with --entry=import/path")
 	})
-	t.Run("0001.1.4 an unknown entry fails naming it", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it fails naming that package", func(t *testing.T) {
 		t.Parallel()
 		out, code := goTestCoverage(t, command(entryTest), "--entry=example.test/nope")
 		acceptance.Sees(t, out, code, 1, `unknown entry package "example.test/nope"`)
@@ -45,61 +47,114 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 untested statements in each entry fail", func(t *testing.T) {
-		t.Parallel()
+	partial := func(t *testing.T) (string, int) {
 		lib := library(`{"goTestCoverage": {"entries": ["example.test/cli/lib"]}}` + "\n")
 		files := command("")
 		files[".fitnessrc.json"] = lib[".fitnessrc.json"]
 		for _, name := range []string{"lib.go", "lib_test.go"} {
 			files["lib/"+name] = lib[name]
 		}
-		out, code := goTestCoverage(t, files)
-		acceptance.Sees(t, out, code, 1, "entry example.test/cli: 0/1 statements; required 100%", "entry example.test/cli/lib: 1/2 statements; required 100%")
-	})
-	t.Run("0001.2.2 a named helper passed to t.Run fails", func(t *testing.T) {
+		return goTestCoverage(t, files)
+	}
+	t.Run("0001.2.1.1.1 it fails naming each entry", func(t *testing.T) {
 		t.Parallel()
-		wrapped := "package main\n\nimport \"testing\"\n\nfunc TestAll(t *testing.T) { t.Run(\"entry\", runsMain) }\n\nfunc runsMain(t *testing.T) { main() }\n"
-		out, code := goTestCoverage(t, command(wrapped))
-		acceptance.Sees(t, out, code, 1, "main_test.go:5: TestAll passes named helper runsMain to t.Run")
+		out, code := partial(t)
+		acceptance.Sees(t, out, code, 1, "entry example.test/cli:", "entry example.test/cli/lib:")
+	})
+	t.Run("0001.2.1.1.2 it names the entry's covered statements", func(t *testing.T) {
+		t.Parallel()
+		out, code := partial(t)
+		acceptance.Sees(t, out, code, 1, "example.test/cli: 0/", "example.test/cli/lib: 1/")
+	})
+	t.Run("0001.2.1.1.3 it names the entry's total statements", func(t *testing.T) {
+		t.Parallel()
+		out, code := partial(t)
+		acceptance.Sees(t, out, code, 1, "0/1 statements; required 100%", "1/2 statements; required 100%")
+	})
+	wrapped := func(t *testing.T) (string, int) {
+		source := "package main\n\nimport \"testing\"\n\nfunc TestAll(t *testing.T) { t.Run(\"entry\", runsMain) }\n\nfunc runsMain(t *testing.T) { main() }\n"
+		return goTestCoverage(t, command(source))
+	}
+	t.Run("0001.2.1.2.1 it fails naming the file with its line", func(t *testing.T) {
+		t.Parallel()
+		out, code := wrapped(t)
+		acceptance.Sees(t, out, code, 1, "main_test.go:5:")
+	})
+	t.Run("0001.2.1.2.2 it fails naming the helper", func(t *testing.T) {
+		t.Parallel()
+		out, code := wrapped(t)
+		acceptance.Sees(t, out, code, 1, "TestAll passes named helper runsMain to t.Run")
 	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 the audit map is written outside the repo", func(t *testing.T) {
-		t.Parallel()
+	audited := func(t *testing.T) (string, int, string) {
 		claims := filepath.Join(t.TempDir(), "claims.json")
 		out, code := goTestCoverage(t, command(entryTest), "--audit-map="+claims)
+		return out, code, claims
+	}
+	t.Run("0001.3.1.1.1 it passes", func(t *testing.T) {
+		t.Parallel()
+		out, code, _ := audited(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.3.1.1.2 it writes the source map there", func(t *testing.T) {
+		t.Parallel()
+		_, _, claims := audited(t)
 		if _, err := os.Stat(claims); err != nil {
 			t.Errorf("source map was not written: %v", err)
 		}
 	})
-	t.Run("0001.3.2 unstable test coverage is reported", func(t *testing.T) {
-		t.Parallel()
+	unstable := func(t *testing.T) (string, int) {
 		files := command(flipTest)
 		files["flip.go"] = flip
-		out, code := goTestCoverage(t, files)
-		acceptance.Sees(t, out, code, 0, "example.test/cli/TestFlip (", "unstable coverage; excluded from overlap advice")
-	})
-	t.Run("0001.3.3 parallel plus serial tests overlap correctly", func(t *testing.T) {
+		return goTestCoverage(t, files)
+	}
+	t.Run("0001.3.1.2.1 it reports the test as unstable", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", slowTests())
-		out, code := acceptance.Fitness(t, repo, nil, "go-test-coverage")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		runs := auditRuns(t, repo)
-		if len(runs) != 32 {
-			t.Fatalf("audit ran the sixteen tests %d times, want 32", len(runs))
-		}
-		counts := overlaps(runs)
-		if counts["parallel-parallel"] == 0 {
+		out, code := unstable(t)
+		acceptance.Sees(t, out, code, 0, "example.test/cli/TestFlip (", "unstable coverage")
+	})
+	t.Run("0001.3.1.2.2 it excludes the test from overlap advice", func(t *testing.T) {
+		t.Parallel()
+		out, code := unstable(t)
+		acceptance.Sees(t, out, code, 0, "excluded from overlap advice")
+	})
+	// The audit of sixteen one-second tests runs once for the three cases that
+	// judge how go test overlaps them.
+	var once sync.Once
+	var counts map[string]int
+	var audit func(t *testing.T) map[string]int
+	audit = func(t *testing.T) map[string]int {
+		once.Do(func() {
+			repo := acceptance.Example(t, "happyRepo", slowTests())
+			out, code := acceptance.Fitness(t, repo, nil, "go-test-coverage")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			runs := auditRuns(t, repo)
+			if len(runs) != 32 {
+				t.Errorf("audit ran the sixteen tests %d times, want 32", len(runs))
+			}
+			counts = overlaps(runs)
+		})
+		return counts
+	}
+	t.Run("0001.3.1.3.1 parallel tests run alongside each other", func(t *testing.T) {
+		t.Parallel()
+		if audit(t)["parallel-parallel"] == 0 {
 			t.Errorf("no two runs of the parallel tests overlapped; go test runs them side by side")
 		}
-		if counts["serial-serial"] == 0 {
+	})
+	t.Run("0001.3.1.3.2 serial packages run side by side", func(t *testing.T) {
+		t.Parallel()
+		if audit(t)["serial-serial"] == 0 {
 			t.Errorf("no two serial packages' runs overlapped; go test runs packages side by side")
 		}
-		if counts["forbidden"] > 0 {
-			t.Errorf("%d pairs of runs overlapped within a serial package or one test; go test runs them in turn", counts["forbidden"])
+	})
+	t.Run("0001.3.1.3.3 tests within one serial package never run side by side", func(t *testing.T) {
+		t.Parallel()
+		if n := audit(t)["forbidden"]; n > 0 {
+			t.Errorf("%d pairs of runs overlapped within a serial package or one test; go test runs them in turn", n)
 		}
 	})
 }
