@@ -56,7 +56,11 @@ func judgeCode(root, base string, tests testSet, changes []change) (checkkit.Res
 	if err != nil {
 		return checkkit.Result{}, err
 	}
-	return judge(root, tests, judged), nil
+	synced, err := readSynced(root, judged)
+	if err != nil {
+		return checkkit.Result{}, err
+	}
+	return judge(root, tests, synced, judged), nil
 }
 
 // skips reports a run with nothing to judge: a full scan, a replay, or a
@@ -66,12 +70,13 @@ func skips(root string, docs []string) bool {
 }
 
 // judge fails each changed product file whose test or doc did not change, and each deleted one whose doc and tests stay.
-func judge(root string, tests testSet, changes []change) checkkit.Result {
+// A file the sync wrote pairs with its source repo instead.
+func judge(root string, tests testSet, synced syncedSet, changes []change) checkkit.Result {
 	product := productChanges(root, tests, changes)
 	changed := changedSet(changes)
 	var errs []string
 	for _, c := range product {
-		errs = append(errs, c.problem(root, tests, changed)...)
+		errs = append(errs, c.problem(root, tests, synced, changed)...)
 	}
 	if len(errs) > 0 {
 		return checkkit.Fail(len(product), errs...)
@@ -99,10 +104,13 @@ func (c change) edit() comments.Edit {
 }
 
 // problem names what a product change leaves out: a doc naming a deleted file, or a test or doc for an edit.
-// Both must be in its own package, and a package root with no requirement docs yet has no edit to pair.
-func (c change) problem(root string, tests testSet, changed map[string]bool) []string {
+// Both must be in its own package, which needs requirement docs, and a synced file fails only when edited by hand.
+func (c change) problem(root string, tests testSet, synced syncedSet, changed map[string]bool) []string {
 	if c.deleted {
 		return leftBehind(root, c.path, tests, changed)
+	}
+	if owned, problems := synced.verdict(c.path); owned {
+		return problems
 	}
 	pkg := packages.Of(tests.roots, c.path)
 	if !tests.documented(pkg) {
