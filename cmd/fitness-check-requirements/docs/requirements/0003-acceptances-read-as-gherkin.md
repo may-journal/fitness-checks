@@ -54,10 +54,8 @@ Numbered acceptances
       5. WHEN one commit removes one then appends it
          1. THEN it passes
 6. Removed lines uncapped
-   1. GIVEN Developer has a doc at the cap with `Removed` lines
-      1. WHEN `requirements` reads it
-         1. THEN it passes
-      2. WHEN `prose-budget` reads it
+   1. GIVEN Developer has a capped doc with `Removed` lines
+      1. WHEN either `requirements` or `prose-budget` reads it
          1. THEN it passes
 7. Unknown flags fail
    1. GIVEN Developer runs `requirements` with a flag it does not have
@@ -68,10 +66,5 @@ Numbered acceptances
       1. WHEN the last becomes `Removed`
          1. THEN it passes
       2. WHEN the last is deleted outright
-         1. THEN it names the `Removed` line to add
-9. Clauses stay split
-   1. GIVEN Developer has numbered acceptances `requirements` reads
-      1. WHEN a step holds a lowercase "and" or "but" outside code or quotes
-         1. THEN it asks to split at the word
-      2. WHEN the word sits in code or in quotes
-         1. THEN it passes
+         1. THEN it names the `Removed` line
+9. Removed in 2026.11.26.2000: moved to 0008

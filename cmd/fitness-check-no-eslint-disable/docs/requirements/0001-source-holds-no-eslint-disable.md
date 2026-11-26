@@ -19,11 +19,9 @@ JS and TS source files
    2. GIVEN some hold ESLint directives
       1. WHEN a file holds an `eslint-disable` directive
          1. THEN it fails once per hit
-         2. THEN each hit names the file
-         3. THEN each hit names the line
-         4. THEN each hit names the directive
-         5. THEN `eslint-disable-line` counts as a hit
-         6. THEN `eslint-disable-next-line` counts as a hit
+         2. THEN each hit names its `file:line`
+         3. THEN each hit names its directive
+         4. THEN `eslint-disable-line` or `eslint-disable-next-line` counts as a hit
       2. WHEN no file holds a directive
          1. THEN it passes
          2. THEN it counts the files scanned

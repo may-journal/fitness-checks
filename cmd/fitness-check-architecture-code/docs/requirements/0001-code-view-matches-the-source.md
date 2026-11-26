@@ -20,8 +20,7 @@ code view classes and edges
       1. WHEN each class matches its source declaration
          1. THEN it passes with generics
          2. THEN it passes with extensions
-         3. THEN it passes with any spacing
-         4. THEN it passes with methods elsewhere
+         3. THEN it passes with any spacing or methods elsewhere
       2. WHEN a class's linked lines lack its symbol
          1. THEN it fails naming where it is declared if anywhere
       3. WHEN a kind or signature or member differs from the source

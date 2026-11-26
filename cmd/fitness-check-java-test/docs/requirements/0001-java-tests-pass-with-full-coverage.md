@@ -42,13 +42,12 @@ build roots with Java code
    1. GIVEN Developer has a Maven or Gradle build with passing tests
       1. WHEN the build is Maven
          1. THEN it runs `verify` once
-         2. THEN it reads the Surefire reports
-         3. THEN it reads the Failsafe reports
+         2. THEN it reads Surefire or Failsafe reports
       2. WHEN the build is Gradle
          1. THEN it cleans the build
          2. THEN it reruns the tests
-         3. THEN it reruns the JaCoCo report
-         4. THEN it runs with `--build-cache`
+         3. THEN it reruns JaCoCo
+         4. THEN it uses `--build-cache`
       3. WHEN the build cache restores the reports of unchanged tests
          1. THEN the restored reports count
       4. WHEN `org.gradle.caching` is not `true` in the build

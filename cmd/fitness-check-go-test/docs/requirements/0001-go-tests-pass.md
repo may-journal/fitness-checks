@@ -31,9 +31,8 @@ repos with Go modules
       5. WHEN the repo has no Go module to test
          1. THEN it passes with no files
          2. THEN it never runs `go test`
-         3. THEN a `testdata` module counts as none
-         4. THEN a `vendor` module counts as none
-         5. THEN a change touching no Go file counts as none
+         3. THEN a `testdata` or `vendor` module counts as none
+         4. THEN a change touching no Go file counts as none
       6. WHEN Go is not on PATH
          1. THEN it reports info with the hint `see https://go.dev/dl`
       7. WHEN `go test` fails without a finding

@@ -264,12 +264,9 @@ func Test0003_6(t *testing.T) {
 		rootDoc:           acceptance.DocWith(reqs),
 		"adder_test.go":   tests,
 	}))
-	for i, check := range []string{"requirements", "prose-budget"} {
-		t.Run(fmt.Sprintf("0003.6.%d %s passes at the cap", i+1, check), func(t *testing.T) {
-			t.Parallel()
-			out, code := acceptance.Fitness(t, repo, nil, check)
-			acceptance.Sees(t, acceptance.Read(out), code, 0, check+" passed")
-		})
+	for _, check := range []string{"requirements", "prose-budget"} {
+		out, code := acceptance.Fitness(t, repo, nil, check)
+		acceptance.Sees(t, acceptance.Read(out), code, 0, check+" passed")
 	}
 }
 
@@ -294,20 +291,5 @@ func Test0003_8(t *testing.T) {
 		t.Parallel()
 		out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst)
 		acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was an acceptance and this doc no longer holds it; a removed acceptance keeps its number, so add `2. Removed in YYYY.MM.DD.HHMM: <reason>` to Requirements")
-	})
-}
-
-func Test0003_9(t *testing.T) {
-	t.Parallel()
-	t.Run("0003.9.1 a lowercase and or but outside code or quotes asks to split", func(t *testing.T) {
-		t.Parallel()
-		gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "THEN each part stands alone and code spans drop out"), `20: split this item at its "and"`)
-		gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "THEN it is a sum but not a product"), `20: split this item at its "but"`)
-	})
-	t.Run("0003.9.2 the word in code or in quotes passes", func(t *testing.T) {
-		t.Parallel()
-		reqs := oneAcceptance("GIVEN two numbers such as `1 and 2`", "WHEN I add them", `THEN I get the word "and" or “but”`)
-		out, code := judged(t, gherkinRepo(t, reqs, acceptance.TestFile("adder", "Test0001_1")))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }

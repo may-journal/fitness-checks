@@ -17,9 +17,8 @@ repos checked
 1. Build output stays out of git
    1. GIVEN Developer has a repo
    2. GIVEN it may hold `dist` output
-   3. GIVEN it may hold Maven output
-   4. GIVEN it may hold Gradle output
-   5. GIVEN it may hold TypeScript imports
+   3. GIVEN it may hold Maven or Gradle output
+   4. GIVEN it may hold TypeScript imports
       1. WHEN git does not ignore the `dist` folder
          1. THEN it fails with the hint to add `dist/` to `.gitignore`
       2. WHEN git tracks files under any `dist` folder

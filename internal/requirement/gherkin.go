@@ -285,8 +285,8 @@ func cutWord(text string) (string, string) {
 	return word, rest
 }
 
-// checkItem fails an AND or BUT, a keyword not in caps, a comma outside code,
-// or a lowercase "and" or "but" outside code and quotes. It returns the item's kind.
+// checkItem fails an AND or BUT, or the wording of a step. It returns the
+// item's kind.
 func checkItem(p *problems, n int, word, rest string) kind {
 	upper := strings.ToUpper(word)
 	if joinWords[upper] {
@@ -297,7 +297,14 @@ func checkItem(p *problems, n int, word, rest string) kind {
 	if k == other {
 		return other
 	}
-	if word != upper {
+	itemWording(p, n, word, rest)
+	return k
+}
+
+// itemWording fails a keyword not in caps, a comma outside code, or a
+// lowercase "and" or "but" outside code and quotes.
+func itemWording(p *problems, n int, word, rest string) {
+	if upper := strings.ToUpper(word); word != upper {
 		p.add(n, "write the keyword "+upper+" in caps")
 	}
 	if hasComma(rest) {
@@ -306,7 +313,6 @@ func checkItem(p *problems, n int, word, rest string) kind {
 	if w := joinWord(rest); w != "" {
 		p.add(n, "split this item at its \""+w+"\"; an extra condition is the next GIVEN and an extra result the next THEN")
 	}
-	return k
 }
 
 // readAs is the Gherkin keyword for kind k after kind prev. A failed AND or

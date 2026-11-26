@@ -19,10 +19,9 @@ checks
    2. GIVEN the comment has a heading plus a list plus a link plus code plus a spell checker line
       1. WHEN the doc move script runs on its folder
          1. THEN its README holds them as Markdown
-         2. THEN its doc.go is one line that names the README
-         3. THEN its doc.go is one line that embeds the README
-         4. THEN the described summary stays
-         5. THEN its Behavior holds one link to its requirement doc
+         2. THEN its doc.go is one line naming the README it embeds
+         3. THEN the described summary stays
+         4. THEN its Behavior holds one link to its requirement doc
 2. A doc with extras fails
    1. GIVEN Developer has a doc.go that holds more than its comment
       1. WHEN the doc move script runs on its folder
@@ -31,9 +30,8 @@ checks
 3. Every check is moved
    1. GIVEN Developer has every check moved to Markdown
       1. WHEN the README test reads each folder
-         1. THEN each doc.go is one line naming its README
-         2. THEN each doc.go is one line embedding its README
-         3. THEN the repo README alone links the architecture page
+         1. THEN each doc.go is one line naming the README it embeds
+         2. THEN the repo README alone links the architecture page
 4. Summaries read cleanly
    1. GIVEN Developer has a README with a parenthesized link URL
    2. GIVEN another README has a first block that is not prose
