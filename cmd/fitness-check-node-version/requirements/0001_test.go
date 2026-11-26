@@ -17,35 +17,43 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no package json passes with zero files", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 `node-version` passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nil, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "node-version")
 	})
-	t.Run("0001.1.2 a missing nvmrc fails", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails with `missing .nvmrc`", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, map[string]string{"package.json": "{}\n"}, nil)
 		acceptance.Sees(t, out, code, 1, "missing .nvmrc")
 	})
-	t.Run("0001.1.3 an nvmrc at or below the active Node passes", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("1\n"), nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = nodeVersionCheck(t, nodeVersionRepo("v1.2.3\n"), nil)
+	})
+	t.Run("0001.1.2.3.2 it reads a `v` prefix as no prefix", func(t *testing.T) {
+		t.Parallel()
+		out, code := nodeVersionCheck(t, nodeVersionRepo("v1.2.3\n"), nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 an nvmrc above the active Node fails", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails with `does not satisfy .nvmrc`", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("999\n"), nil)
-		acceptance.Sees(t, out, code, 1, "does not satisfy .nvmrc (requires 999.x). Run: nvm use")
+		acceptance.Sees(t, out, code, 1, "does not satisfy .nvmrc (requires 999.x)")
 	})
-	t.Run("0001.1.5 an nvmrc without a number fails", func(t *testing.T) {
+	t.Run("0001.1.2.4.2 it gives the fix `nvm use`", func(t *testing.T) {
+		t.Parallel()
+		out, code := nodeVersionCheck(t, nodeVersionRepo("999\n"), nil)
+		acceptance.Sees(t, out, code, 1, "Run: nvm use")
+	})
+	t.Run("0001.1.2.5.1 it fails as an unsatisfiable `NaN.x`", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("latest\n"), nil)
 		acceptance.Sees(t, out, code, 1, "does not satisfy .nvmrc (requires NaN.x). Run: nvm use")
 	})
-	t.Run("0001.1.6 a missing node reports info with an install hint", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it reports info with an install hint", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("1\n"), []string{acceptance.PathWithout(t, "node")})
 		acceptance.ShowsInfo(t, out, code, "node-version", "node not found on PATH. Install Node.js")
