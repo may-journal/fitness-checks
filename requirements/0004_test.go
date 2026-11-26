@@ -39,7 +39,7 @@ func Test0004_1(t *testing.T) {
 			out, code := proseBudget(t, map[string]string{"README.md": nested})
 			sees(t, out, code, 1, "README.md: a list has more than 4 items at level 2")
 		}},
-		{"requirement doc chains seven numbered steps", func(t *testing.T) {
+		{"requirement doc chains seven numbered steps and passes as a step chain", func(t *testing.T) {
 			t.Parallel()
 			out, code := proseBudget(t, map[string]string{pairedDoc: docWith(chain("0001.1", 7))})
 			sees(t, out, code, 0)

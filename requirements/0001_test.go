@@ -93,7 +93,7 @@ func Test0001_2(t *testing.T) {
 				t.Errorf("changed-checks = %v, want only gofmt", got)
 			}
 		}},
-		{"0001.2.1 a check's own requirement test names only that check", func(t *testing.T) {
+		{"0001.2.1 a changed test of a check tests only that check", func(t *testing.T) {
 			t.Parallel()
 			clone, base := changedClone(t, "cmd/fitness-check-prose-budget/requirements/0001_test.go")
 			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"prose-budget"}) {
@@ -644,7 +644,7 @@ func strayDeps(t *testing.T, folder string) []string {
 	mustDo(t, err)
 	return slices.DeleteFunc(strings.Fields(string(out)), func(dep string) bool {
 		pkg := strings.TrimSuffix(strings.Trim(dep, "[]"), ".test")
-		// A package under the check's own folder, such as its migrations, is part of it.
+		// A package under the check's own folder, such as a helper package, is part of it.
 		mine := strings.HasSuffix(pkg, own) || strings.Contains(pkg, own+"/")
 		other := strings.Contains(pkg, "/cmd/fitness-check-") && !mine
 		return !other && !engineOnly(pkg)

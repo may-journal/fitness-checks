@@ -41,8 +41,12 @@ func chainsWithin(t *testing.T, requirements string, limit int) {
 		t.Errorf("a chain of %d steps must pass a limit of %d:\n%s", limit, limit, out)
 	}
 	want := fmt.Sprintf("0001.1 chains %d steps, at most %d", limit+1, limit)
-	if out := chainRun(t, requirements, limit+1); !strings.Contains(out, want) {
+	out := chainRun(t, requirements, limit+1)
+	if !strings.Contains(out, want) {
 		t.Errorf("output is missing %q:\n%s", want, out)
+	}
+	if named := fmt.Sprintf("0001.1 chains %d steps", limit+1); !strings.Contains(out, named) {
+		t.Errorf("output does not name the chain %q:\n%s", named, out)
 	}
 }
 

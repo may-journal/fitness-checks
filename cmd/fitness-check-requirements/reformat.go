@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	gherkin "github.com/may-journal/fitness-checks/cmd/fitness-check-requirements/migrations/0003.2-gherkin"
 	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
@@ -54,8 +53,8 @@ func sameWording(text map[string]string, f, before, after string) bool {
 	if !ok {
 		return false
 	}
-	was, wasGherkin := gherkin.Bullets(f, was)
-	is, isGherkin := gherkin.Bullets(f, is)
+	was, wasGherkin := asBullets(f, was)
+	is, isGherkin := asBullets(f, is)
 	moved := wasGherkin != isGherkin
 	return wording(was, true, moved) == wording(is, false, moved)
 }

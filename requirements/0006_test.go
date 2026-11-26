@@ -153,7 +153,7 @@ func Test0006_2(t *testing.T) {
 			sees(t, out, code, 1, `0001.1 has no test; name exactly one test test("0001.1 …")`)
 			junitOwnership(t)
 		}},
-		{"acceptance with no test or two tests", func(t *testing.T) {
+		{"acceptance with no test or two tests fails naming the requirement", func(t *testing.T) {
 			t.Parallel()
 			out, code := judged(t, with(goRepo(), map[string]string{"adder_test.go": ""}))
 			sees(t, out, code, 1, "0001.1 has no test; name exactly one test Test0001_1")

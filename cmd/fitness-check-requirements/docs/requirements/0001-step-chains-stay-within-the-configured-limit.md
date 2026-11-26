@@ -14,11 +14,14 @@ step chains
 
 ## Requirements
 
-- 0001.1
-  - Given Developer sets `requirements.maxSteps` and has a doc that chains one step more
-    - When `requirements` reads it
-      - Then it fails naming the chain and the limit
-- 0001.2
-  - Given Developer sets no `requirements.maxSteps` or one below two
-    - When `requirements` reads a step chain
-      - Then the default limit of seven steps applies
+1. A set limit holds
+   1. GIVEN Developer sets `requirements.maxSteps`
+   2. GIVEN a doc chains one step more
+      1. WHEN `requirements` reads it
+         1. THEN it fails naming the chain
+         2. THEN it names the limit
+2. The default limit is seven
+   1. GIVEN Developer sets no `requirements.maxSteps`
+   2. GIVEN Developer sets one below two
+      1. WHEN `requirements` reads a step chain
+         1. THEN the default limit of seven steps applies

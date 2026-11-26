@@ -100,7 +100,7 @@ func Test0001_3(t *testing.T) {
 		out, code = prosed(t, strings.ReplaceAll(numberedDoc(8), ". Removed in 2026.11.25.1230: folded into", ". Adds"))
 		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 8 items at level 1")
 	})
-	t.Run("0001.3.2 GIVENs or THENs past half the limit fail", func(t *testing.T) {
+	t.Run("0001.3.2 GIVENs or a WHEN's THENs past half the list limit fail at that level", func(t *testing.T) {
 		t.Parallel()
 		within := "1. Adds\n" + items("   ", "GIVEN two numbers", 4) + "      1. WHEN I add them\n" + items("         ", "THEN I get their sum", 4)
 		out, code := prosed(t, acceptance.DocWith(within))

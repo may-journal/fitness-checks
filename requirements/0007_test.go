@@ -73,7 +73,7 @@ func Test0007_1(t *testing.T) {
 			out, code := buildOutputRun(t, repo)
 			sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
 		}},
-		{"build-output-untracked rejects tracked Maven and Gradle output", func(t *testing.T) {
+		{"build-output-untracked rejects tracked Maven and Gradle output with a fix", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", map[string]string{
 				"pom.xml":                          "<project/>\n",

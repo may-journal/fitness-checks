@@ -29,16 +29,14 @@ func main() {
 // docsDir holds the requirement docs, one per file.
 const docsDir = "docs/requirements/"
 
-// fixFlag makes the check delete every leftover Source line and run every
-// migration up before it judges, so `fitness requirements --fix` converts a
-// repo's docs.
+// fixFlag makes the check delete every leftover Source line before it judges.
 const fixFlag = "--fix"
 
 func run(root string, args []string) (checkkit.Result, error) {
 	roots := packages.Roots()
 	paths := docPaths(root, roots)
-	if err := migrate(root, paths, args); err != nil {
-		return migrateResult(err)
+	if err := fix(root, paths, args); err != nil {
+		return fixResult(err)
 	}
 	tests, files, written, err := collectTests(root, langs.All)
 	if err != nil || len(written) == 0 {

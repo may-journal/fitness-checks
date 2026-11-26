@@ -14,37 +14,48 @@ Checks
 
 ## Requirements
 
-- 0001.1
-  - Given Developer has every check folder in the repo
-    - When each check is built alone and its Go dependencies listed
-      - Then it holds no engine, another check's code or engine config, describes itself, key defaults, and fitness runs it
-- 0001.2
-  - Given Developer changes a check or its tests or a shared helper or `go.mod`
-    1. When CI picks the checks to test
-       - Then it builds and tests only the checks the change can alter
-    2. When CI splits the requirement suite into jobs
-       - Then each root test runs once and only changed checks' folders run
-- 0001.3
-  - Given Developer has merged commits of each kind to main with and without release tags
-    - When the release workflow plans the releases
-      - Then each changed check gets the bump its commits call for, and no other check releases
-- 0001.4
-  - Given Developer has a release tag for one check
-    - When the release workflow builds that check
-      - Then it writes a stripped, compressed archive and checksum for each platform, named by tag
-- 0001.5
-  - Given Developer has releases at several majors for a check, with moved or missing major tags
-    - When the release workflow moves the major tags
-      - Then each major tag points at its newest release, and a refused move fails with GitHub's message
-- 0001.6
-  - Given Developer has published, draft and prerelease releases of several checks
-    - When the release workflow builds the release index
-      - Then it lists each published check's newest version per major with artifacts, checksums and describe fields, fetching only new versions
-- 0001.7
-  - Given Developer has a size baseline for the check programs
-    - When the size check and the measure script run on the repo
-      - Then a program over its limit fails by name, and the sizes are recorded
-- 0001.8
-  - Given Developer has each check's README
-    - When the README test reads it
-      - Then it holds the check's name, its summary and working links
+1. Checks stand alone
+   1. GIVEN Developer has every check folder
+      1. WHEN each check is built alone
+         1. THEN it holds no engine or other check's code
+         2. THEN it describes itself and declares key defaults
+         3. THEN fitness runs it
+2. CI tests changes
+   1. GIVEN Developer changes a check
+   2. GIVEN its tests change
+   3. GIVEN a shared helper changes
+   4. GIVEN `go.mod` changes
+      1. WHEN CI picks the checks to test
+         1. THEN it tests only checks the change can alter
+      2. WHEN CI splits the requirement suite into jobs
+         1. THEN each root test runs once
+         2. THEN only changed checks' folders run
+3. Releases follow commits
+   1. GIVEN Developer has merged commits with and without release tags
+      1. WHEN the release workflow plans the releases
+         1. THEN each changed check gets the bump its commits call for
+         2. THEN no other check releases
+4. Archives ship per platform
+   1. GIVEN Developer has a release tag for one check
+      1. WHEN the release workflow builds that check
+         1. THEN it writes a stripped archive and checksum per platform
+5. Major tags follow releases
+   1. GIVEN Developer has releases at several majors with moved or missing major tags
+      1. WHEN the release workflow moves the major tags
+         1. THEN each points at its newest release
+         2. THEN a refused move fails
+6. The index lists new versions
+   1. GIVEN Developer has published and draft releases of several checks
+      1. WHEN the release workflow builds the release index
+         1. THEN it lists each published check's newest version per major
+         2. THEN each entry holds artifacts and checksums and describe fields
+         3. THEN it fetches only new versions
+7. Sizes stay limited
+   1. GIVEN Developer has a size baseline for the check programs
+      1. WHEN the size check runs
+         1. THEN a program over its limit fails by name
+         2. THEN the sizes are recorded
+8. READMEs name checks
+   1. GIVEN Developer has each check's README
+      1. WHEN the README test reads it
+         1. THEN it holds its name and summary and links

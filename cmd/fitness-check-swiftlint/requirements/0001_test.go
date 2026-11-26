@@ -85,7 +85,7 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.5 a repo with no Swift files passes without SwiftLint", func(t *testing.T) {
+	t.Run("0001.1.5 a repo with no Swift files passes with no files and never runs SwiftLint", func(t *testing.T) {
 		t.Parallel()
 		rp, out, code := swiftlintRun(t, swiftlintRepo(t, nil))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
