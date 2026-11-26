@@ -42,14 +42,14 @@ func Test0001_1(t *testing.T) {
 			passedWith(t, out, aaCheck, "1")
 		}
 	})
-	t.Run("0001.1.2.1.2 it passes though some actors start no Given", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 it passes though some actors start no GIVEN", func(t *testing.T) {
 		t.Parallel()
 		// Host is declared but named by no Given.
 		out, code := aaRun(t, aaWith("User"+aaOpens, aaRel, aaHost))
 		sees(t, out, code, 0)
 		passedWith(t, out, aaCheck, "1")
 	})
-	t.Run("0001.1.2.2.1 it fails naming the Given line", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails naming the GIVEN line", func(t *testing.T) {
 		t.Parallel()
 		given := "no network"
 		out, code := aaRun(t, aaFixture(given))
@@ -88,7 +88,7 @@ func Test0001_1(t *testing.T) {
 	ambiguous := func(t *testing.T) (string, int) {
 		return aaRun(t, aaWith("User"+aaOpens, aaRel, aaRel+"\nPerson(User, \"4 Host\")"))
 	}
-	t.Run("0001.1.2.4.1 it fails as ambiguous naming the Given line", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails as ambiguous naming the GIVEN line", func(t *testing.T) {
 		t.Parallel()
 		out, code := ambiguous(t)
 		sees(t, out, code, 1, aaGiven+"actor \"User\" is ambiguous")
@@ -204,7 +204,7 @@ func Test0001_2(t *testing.T) {
 			sees(t, out, code, 1, aaGiven)
 		}
 	})
-	t.Run("0001.2.1.2.2 it fails each Given naming that actor", func(t *testing.T) {
+	t.Run("0001.2.1.2.2 it fails each GIVEN naming that actor", func(t *testing.T) {
 		t.Parallel()
 		given := "Host" + aaOpens
 		out, code := aaRun(t, aaWith(given, aaRel, aaHost))
