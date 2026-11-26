@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 section the template lacks or has", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it fails naming the `Unexpected` or `Missing` section", func(t *testing.T) {
 		t.Parallel()
 		out, code := docTemplate(t, map[string]string{
 			"docs/adr/template.md":   docTemplateADR,
@@ -31,7 +31,7 @@ func Test0001_1(t *testing.T) {
 			"docs/adr/0001-extra.md: Unexpected `## Status` section",
 			"docs/adr/0002-short.md: Missing `## Decision` section")
 	})
-	t.Run("0001.1.2 nested and named templates nearest wins", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 the first folder walking up with a governing template decides", func(t *testing.T) {
 		t.Parallel()
 		out, code := docTemplate(t, map[string]string{
 			"docs/templates/adr.md":           docTemplateADR,
@@ -46,7 +46,7 @@ func Test0001_1(t *testing.T) {
 			"docs/views/notes.md: Missing `## Context` section",
 			"docs/views/notes.md: Unexpected `## Open threads` section")
 	})
-	t.Run("0001.1.3 doc matching none of several templates", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 one error names all of them", func(t *testing.T) {
 		t.Parallel()
 		out, code := docTemplate(t, map[string]string{
 			"docs/adr/adr.template.md":  docTemplateADR,
@@ -56,7 +56,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1,
 			"docs/adr/0001-bad.md: sections match none of its templates: docs/adr/adr.template.md, docs/adr/note.template.md")
 	})
-	t.Run("0001.1.4 github templates do not govern files", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it governs no file", func(t *testing.T) {
 		t.Parallel()
 		out, code := docTemplate(t, map[string]string{
 			"docs/arch/templates/adr.md":       docTemplateADR,
@@ -71,28 +71,52 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	out, code := docTemplate(t, map[string]string{
-		"docs/adr/template.md":             "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\nno comment here\n",
-		".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\nno comment\n",
-		".github/ISSUE_TEMPLATE/plan.md":   "## Goal\n\nno comment\n",
+	unguided := func(t *testing.T) (string, int) {
+		return docTemplate(t, map[string]string{
+			"docs/adr/template.md":             "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\nno comment here\n",
+			".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\nno comment\n",
+			".github/ISSUE_TEMPLATE/plan.md":   "## Goal\n\nno comment\n",
+		})
+	}
+	t.Run("0001.2.1.1.1 it fails naming the template", func(t *testing.T) {
+		t.Parallel()
+		out, code := unguided(t)
+		acceptance.Sees(t, out, code, 1, "docs/adr/template.md: section", ".github/PULL_REQUEST_TEMPLATE.md: section", ".github/ISSUE_TEMPLATE/plan.md: section")
 	})
-	acceptance.Sees(t, out, code, 1,
-		"docs/adr/template.md: section `## Decision` needs a guiding <!-- comment -->",
-		".github/PULL_REQUEST_TEMPLATE.md: section `## Background` needs a guiding <!-- comment -->",
-		".github/ISSUE_TEMPLATE/plan.md: section `## Goal` needs a guiding <!-- comment -->")
+	t.Run("0001.2.1.1.2 it fails naming the section", func(t *testing.T) {
+		t.Parallel()
+		out, code := unguided(t)
+		acceptance.Sees(t, out, code, 1, "section `## Decision` needs a guiding <!-- comment -->")
+	})
+	t.Run("0001.2.1.1.3 a GitHub PR or issue template gets only this rule", func(t *testing.T) {
+		t.Parallel()
+		out, code := unguided(t)
+		acceptance.Sees(t, out, code, 1,
+			".github/PULL_REQUEST_TEMPLATE.md: section `## Background` needs a guiding <!-- comment -->",
+			".github/ISSUE_TEMPLATE/plan.md: section `## Goal` needs a guiding <!-- comment -->")
+	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 view lacks legend or callout structure", func(t *testing.T) {
-		t.Parallel()
+	// lacking runs each way a view can lack part of its template and returns
+	// each run's output and exit code with where the error sits and what
+	// the template has.
+	type run struct {
+		out        string
+		code       int
+		wheres     []string
+		templateds []string
+	}
+	lacking := func(t *testing.T) []run {
+		var runs []run
 		files := dtCopied(t)
 		dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Example", "```mermaid\nflowchart TB\n    class Example")
 		dtEdit(t, files, acJourney, "## Journey", "## Steps")
 		out, code := docTemplate(t, files)
-		acceptance.Sees(t, out, code, 1,
-			dtViews+acCode+": the opening needs a classDiagram legend as "+dtTemplates+acCode+" has",
-			dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtTemplates+acJourney+" does")
+		runs = append(runs, run{out, code,
+			[]string{dtViews + acCode + ": the opening needs a classDiagram legend", dtViews + acJourney + ": sections must open with `## Legend`, `## Journey`"},
+			[]string{"as " + dtTemplates + acCode + " has", "as " + dtTemplates + acJourney + " does"}})
 
 		files = dtCopied(t)
 		dtEdit(t, files, acJourney, "| Type    |", "| Kind    |")
@@ -101,10 +125,9 @@ func Test0001_3(t *testing.T) {
 		journey := dtLine(t, files, acJourney, "| #   | Description          | Kind")
 		table := dtLine(t, files, acCode, "| #")
 		out, code = docTemplate(t, files)
-		acceptance.Sees(t, out, code, 1,
-			journey+": callout table columns #, Description, Kind, Why must be #, Description, Type, Why as "+dtTemplates+acJourney+" has",
-			table+`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtTemplates+acCode+" has",
-			dtViews+acContainer+": the opening needs a callout table with columns #, Description, Why as "+dtTemplates+acContainer+" has")
+		runs = append(runs, run{out, code,
+			[]string{journey + ": callout table columns #, Description, Kind, Why", table + ": callout table needs the caption", dtViews + acContainer + ": the opening needs a callout table"},
+			[]string{"must be #, Description, Type, Why as " + dtTemplates + acJourney + " has", `"Numbers on classes and letters on relationships match the callout table" above it as ` + dtTemplates + acCode + " has", "with columns #, Description, Why as " + dtTemplates + acContainer + " has"}})
 
 		files = dtShipped(t)
 		dtEdit(t, files, acContainer, "C4Container\n    title Product", "C4Context\n    title Product")
@@ -112,14 +135,24 @@ func Test0001_3(t *testing.T) {
 		dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Record", "```mermaid\nflowchart TB\n    class Record")
 		dtEdit(t, files, acJourney, "flowchart TB", "flowchart LR")
 		out, code = docTemplate(t, files)
-		acceptance.Sees(t, out, code, 1,
-			dtLine(t, files, acContainer, "```mermaid")+": diagram type C4Context must be C4Container as "+dtShippedName(acContainer)+" has",
-			dtViews+acComponent+": the opening needs a C4Component legend as "+dtShippedName(acComponent)+" has",
-			": legend type C4Container must be C4Component as "+dtShippedName(acComponent)+" has",
-			dtLine(t, files, acCode, "```mermaid")+": diagram type flowchart TB must be classDiagram as "+dtShippedName(acCode)+" has",
-			dtLine(t, files, acJourney, "```mermaid")+": legend type flowchart LR must be flowchart TB as "+dtShippedName(acJourney)+" has")
+		runs = append(runs, run{out, code,
+			[]string{dtLine(t, files, acContainer, "```mermaid") + ": diagram type C4Context", dtViews + acComponent + ": the opening needs a C4Component legend", ": legend type C4Container", dtLine(t, files, acCode, "```mermaid") + ": diagram type flowchart TB", dtLine(t, files, acJourney, "```mermaid") + ": legend type flowchart LR"},
+			[]string{"must be C4Container as " + dtShippedName(acContainer) + " has", "as " + dtShippedName(acComponent) + " has", "must be C4Component as " + dtShippedName(acComponent) + " has", "must be classDiagram as " + dtShippedName(acCode) + " has", "must be flowchart TB as " + dtShippedName(acJourney) + " has"}})
+		return runs
+	}
+	t.Run("0001.3.1.1.1 it fails naming the line", func(t *testing.T) {
+		t.Parallel()
+		for _, r := range lacking(t) {
+			acceptance.Sees(t, r.out, r.code, 1, r.wheres...)
+		}
 	})
-	t.Run("0001.3.2 views from shipped architecture templates", func(t *testing.T) {
+	t.Run("0001.3.1.1.2 it fails naming what the template has", func(t *testing.T) {
+		t.Parallel()
+		for _, r := range lacking(t) {
+			acceptance.Sees(t, r.out, r.code, 1, r.templateds...)
+		}
+	})
+	t.Run("0001.3.1.2.1 the shipped templates govern the views", func(t *testing.T) {
 		t.Parallel()
 		files := dtCopied(t)
 		files[dtViews+acContainer] += "\n## Setup\n\nHow a consumer runs the app.\n"
@@ -142,8 +175,9 @@ func Test0001_3(t *testing.T) {
 			dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtShippedName(acJourney)+" does",
 			`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtShippedName(acCode)+" has")
 	})
-	t.Run("0001.3.3 view styles differ from template naming the element and palette", func(t *testing.T) {
-		t.Parallel()
+	// styled runs the shipped views with kinds and styles the templates do
+	// not use, after a pass with styles they do.
+	styled := func(t *testing.T) (map[string]string, string, int) {
 		files := dtShipped(t)
 		dtEdit(t, files, acContext, "    UpdateElementStyle(user,",
 			"    SystemDb_Ext(db, \"4 Records\", \"Keeps records.\")\n    UpdateElementStyle(db, $fontColor=\"#FFFFFF\", $bgColor=\"#64748b\",  $borderColor=\"#475569\")\n    UpdateLayoutConfig($c4ShapeInRow=\"3\")\n    Lay_R(user, product)\n    UpdateElementStyle(user,")
@@ -157,18 +191,21 @@ func Test0001_3(t *testing.T) {
 		dtEdit(t, files, acComponent, "    Rel(user, entry, \"A\")", "    Rel(user, entry, \"A\")\n    UpdateRelStyle(user, entry, $textColor=\"red\")")
 		dtEdit(t, files, acCode, "    save --> Record : A", "    save --> Record : A\n    classDef hot fill:#ff0000")
 		out, code = docTemplate(t, files)
+		return files, out, code
+	}
+	t.Run("0001.3.1.3.1 it fails naming the element", func(t *testing.T) {
+		t.Parallel()
+		files, out, code := styled(t)
 		acceptance.Sees(t, out, code, 1,
-			"`UpdateElementStyle(product, $bgColor=\"#ff0000\", $borderColor=\"#1e3a8a\", $fontColor=\"#ffffff\")` must be `UpdateElementStyle(product, "+paletteSystem+"` as "+dtShippedName(acContext)+" styles each System",
-			"Container app needs `UpdateElementStyle(app, "+paletteContainer+"` as "+dtShippedName(acContainer)+" styles each Container",
 			dtLine(t, files, acComponent, "    System_Boundary(app,")+": System_Boundary app is a kind "+dtShippedName(acComponent)+" does not use; use Person, Container_Boundary, Component, System_Ext",
 			"`UpdateRelStyle(user, entry, $textColor=\"red\")` is a style "+dtShippedName(acComponent)+" does not use",
-			"`classDef hot fill:#ff0000` is a style "+dtShippedName(acCode)+" does not use")
-		for _, styled := range []string{"Person user", "Component entry", "class save", "class Record"} {
-			if strings.Contains(acceptance.Read(out), styled) {
-				t.Errorf("%s keeps its palette and must not fail, got:\n%s", styled, out)
+			"`classDef hot fill:#ff0000` is a style "+dtShippedName(acCode)+" does not use",
+			"Container app needs `UpdateElementStyle(app,")
+		for _, kept := range []string{"Person user", "Component entry", "class save", "class Record"} {
+			if strings.Contains(acceptance.Read(out), kept) {
+				t.Errorf("%s keeps its palette and must not fail, got:\n%s", kept, out)
 			}
 		}
-
 		files = dtShipped(t)
 		dtEdit(t, files, acContext, "C4Context\n    title Product\n", "C4Context\n")
 		dtEdit(t, files, acComponent, "C4Component\n    title Legend\n", "C4Component\n")
@@ -186,6 +223,13 @@ func Test0001_3(t *testing.T) {
 			dtLine(t, files, acComponent, "        Component(store,")+": Component store needs a technology as "+dtShippedName(acComponent)+" gives each Component",
 			dtViews+acContext+":", "legend needs a System_Ext sample, a kind the diagram uses",
 			dtViews+acContainer+":", "legend shows System_Ext, a kind the diagram does not use")
+	})
+	t.Run("0001.3.1.3.2 it fails naming the palette it needs", func(t *testing.T) {
+		t.Parallel()
+		_, out, code := styled(t)
+		acceptance.Sees(t, out, code, 1,
+			"`UpdateElementStyle(product, $bgColor=\"#ff0000\", $borderColor=\"#1e3a8a\", $fontColor=\"#ffffff\")` must be `UpdateElementStyle(product, "+paletteSystem+"` as "+dtShippedName(acContext)+" styles each System",
+			"Container app needs `UpdateElementStyle(app, "+paletteContainer+"` as "+dtShippedName(acContainer)+" styles each Container")
 	})
 }
 

@@ -22,74 +22,145 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 warning fails with position", func(t *testing.T) {
+	const warning = javaSource + ":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)"
+	t.Run("0001.1.2.1.1 it fails naming each as `file:line[:col] - message (Rule)`", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleWarning(repo)}})
-		acceptance.Sees(t, out, code, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
-		// Gradle prints a warning only when its task runs, never when it holds
-		// the task up to date, so each task must rerun.
-		repo = javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'checkstyle' }\n", checkstyleConfig: checkstyleCeiling})
-		rp, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"gradle": {checkstyleGradleWarning(repo)}})
-		acceptance.Sees(t, out, code, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
-		if !rp.Called("gradle", "checkstyleMain --rerun", "checkstyleTest --rerun") {
-			t.Errorf("gradle calls = %q, want both Checkstyle tasks forced to rerun", rp.Calls("gradle"))
+		acceptance.Sees(t, out, code, 1, warning)
+	})
+	// Gradle prints a warning only when its task runs, never when it holds
+	// the task up to date, so each task must rerun.
+	gradle := func(t *testing.T) (acceptance.Replays, string, int) {
+		repo := javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'checkstyle' }\n", checkstyleConfig: checkstyleCeiling})
+		return javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"gradle": {checkstyleGradleWarning(repo)}})
+	}
+	t.Run("0001.1.2.1.2 Gradle runs `checkstyleMain` with `--rerun`", func(t *testing.T) {
+		t.Parallel()
+		rp, out, code := gradle(t)
+		acceptance.Sees(t, out, code, 1, warning)
+		if !rp.Called("gradle", "checkstyleMain --rerun") {
+			t.Errorf("gradle calls = %q, want checkstyleMain forced to rerun", rp.Calls("gradle"))
 		}
 	})
-	t.Run("0001.1.2 clean sources pass checkstyle, counting the Java files", func(t *testing.T) {
+	t.Run("0001.1.2.1.3 Gradle runs `checkstyleTest` with `--rerun`", func(t *testing.T) {
 		t.Parallel()
+		rp, out, code := gradle(t)
+		acceptance.Sees(t, out, code, 1, warning)
+		if !rp.Called("gradle", "checkstyleTest --rerun") {
+			t.Errorf("gradle calls = %q, want checkstyleTest forced to rerun", rp.Calls("gradle"))
+		}
+	})
+	clean := func(t *testing.T) (string, int) {
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{
 			checkstyleConfig:                    checkstyleCeiling,
 			"config/checkstyle/strict.xml":      checkstyleCeiling,
 			"src/test/resources/no-ceiling.xml": checkstyleNoCeiling,
 		})
-		clean := acceptance.Response{Match: []string{"checkstyle:check", "checkstyle.config.location=", "/" + checkstyleConfig}, Stdout: checkstyleClean.Stdout}
-		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {clean}})
+		ok := acceptance.Response{Match: []string{"checkstyle:check", "checkstyle.config.location=", "/" + checkstyleConfig}, Stdout: checkstyleClean.Stdout}
+		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {ok}})
+		return out, code
+	}
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := clean(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.2.2.2 it counts the Java files", func(t *testing.T) {
+		t.Parallel()
+		out, code := clean(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "checkstyle", "1")
+	})
+	t.Run("0001.1.2.2.3 a config in a test source set's folder is left out as a test input", func(t *testing.T) {
+		t.Parallel()
+		// The saved answer matches only the main config's location, so
+		// choosing the test folder's config would leave the run unanswered.
+		out, code := clean(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 build without checkstyle plugin gets snippet", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 it fails with the plugin snippet to add", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, "", map[string]string{checkstyleConfig: checkstyleCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
 		acceptance.Sees(t, out, code, 1, "Checkstyle is not in the Maven build at .; add it:")
 		javaSeesSnippet(t, out, "<artifactId>maven-checkstyle-plugin</artifactId>")
 	})
-	t.Run("0001.2.2 build without checkstyle config fails", func(t *testing.T) {
-		t.Parallel()
+	noConfig := func(t *testing.T) (string, int) {
 		repo := checkstyleRepo(t, checkstyleMaven, nil)
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+		return out, code
+	}
+	t.Run("0001.2.2.2.1 it fails asking for `config/checkstyle/checkstyle.xml`", func(t *testing.T) {
+		t.Parallel()
+		out, code := noConfig(t)
 		acceptance.Sees(t, out, code, 1, "no Checkstyle config sets a complexity ceiling; add "+checkstyleConfig+" holding")
 	})
-	t.Run("0001.2.3 config without complexity ceiling fails naming the config", func(t *testing.T) {
+	t.Run("0001.2.2.2.2 it gives the document type line Maven needs", func(t *testing.T) {
 		t.Parallel()
-		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleNoCeiling})
-		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
-		acceptance.Sees(t, out, code, 1, checkstyleConfig+" sets no complexity ceiling; add inside TreeWalker:")
-		javaSeesSnippet(t, out, `<module name="CyclomaticComplexity">`)
-	})
-	t.Run("0001.2.4 maven build with hinted config passes", func(t *testing.T) {
-		t.Parallel()
-		_, out, _ := javaRun(t, checkstyleRepo(t, checkstyleMaven, nil), "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+		out, code := noConfig(t)
+		acceptance.Sees(t, out, code, 1)
 		hinted := checkstyleHinted(t, out)
 		if !strings.HasPrefix(hinted, "<!DOCTYPE module PUBLIC \"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\"") {
 			t.Errorf("the hinted config lacks the document type line Maven needs:\n%s", hinted)
 		}
-		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: hinted})
+	})
+	noCeiling := func(t *testing.T) (string, int) {
+		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleNoCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+		return out, code
+	}
+	t.Run("0001.2.2.3.1 it fails naming the config", func(t *testing.T) {
+		t.Parallel()
+		out, code := noCeiling(t)
+		acceptance.Sees(t, out, code, 1, checkstyleConfig+" sets no complexity ceiling; add inside TreeWalker:")
+	})
+	t.Run("0001.2.2.3.2 it fails naming the module to add", func(t *testing.T) {
+		t.Parallel()
+		out, code := noCeiling(t)
+		acceptance.Sees(t, out, code, 1, "sets no complexity ceiling")
+		javaSeesSnippet(t, out, `<module name="CyclomaticComplexity">`)
+	})
+	hinted := func(t *testing.T) (acceptance.Replays, string, int) {
+		out, _ := noConfigHint(t)
+		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleHinted(t, out)})
+		return javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+	}
+	t.Run("0001.2.2.4.1 Maven runs with it", func(t *testing.T) {
+		t.Parallel()
+		rp, out, code := hinted(t)
+		acceptance.Sees(t, out, code, 0)
+		if !rp.Called("mvn", "checkstyle:check") {
+			t.Errorf("mvn calls = %q, want the Checkstyle check to run", rp.Calls("mvn"))
+		}
+	})
+	t.Run("0001.2.2.4.2 the check passes", func(t *testing.T) {
+		t.Parallel()
+		_, out, code := hinted(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	_, out, code := javaRun(t, acceptance.Example(t, "happyRepo", nil), "checkstyle", nil)
-	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	acceptance.PassedWithNoFiles(t, out, "checkstyle")
+	t.Run("0001.3.1.1.1 it passes with no files", func(t *testing.T) {
+		t.Parallel()
+		_, out, code := javaRun(t, acceptance.Example(t, "happyRepo", nil), "checkstyle", nil)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		acceptance.PassedWithNoFiles(t, out, "checkstyle")
+	})
+}
+
+// noConfigHint runs the check on a repo with no Checkstyle config and
+// returns its output.
+func noConfigHint(t *testing.T) (string, int) {
+	t.Helper()
+	_, out, code := javaRun(t, checkstyleRepo(t, checkstyleMaven, nil), "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+	return out, code
 }
 
 // javaJDK is what `java -version` prints, on stderr, for a running JDK 21.

@@ -19,22 +19,30 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 an unknown word fails naming path line and column", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming each as `path:line:col - Unknown word (word)`", func(t *testing.T) {
 		t.Parallel()
 		out, code := cspellRun(t, map[string]string{"notes.md": "good words\nthe " + cspellTypo + " fox\n"})
 		acceptance.Sees(t, out, code, 1, "notes.md:2:5 - Unknown word ("+cspellTypo+")")
 	})
-	t.Run("0001.1.2 a file over 64 KB is checked in chunks with its directives", func(t *testing.T) {
-		t.Parallel()
-		// 2,500 filler lines are 65,000 bytes, so the block opens just before
-		// cspell's 64 KB chunk boundary and closes after it.
+	// long is a file over 64 KB: 2,500 filler lines are 65,000 bytes, so the
+	// block opens just before cspell's 64 KB chunk boundary and closes after it.
+	long := func(t *testing.T) (string, int) {
 		filler := strings.Repeat("good words in a long file\n", 2500)
-		long := "the " + cspellTypo + " fox\n" + filler +
+		text := "the " + cspellTypo + " fox\n" + filler +
 			"cspell:disable\n" + filler[:2600] + "the " + cspellBodyTypo + " fox\ncspell:enable\n" +
 			filler + "the " + cspellRepoWord + " fox\n"
-		out, code := cspellRun(t, map[string]string{"long.md": long})
-		first := "long.md:1:5 - Unknown word (" + cspellTypo + ")"
-		last := "long.md:5105:5 - Unknown word (" + cspellRepoWord + ")"
+		return cspellRun(t, map[string]string{"long.md": text})
+	}
+	const first = "long.md:1:5 - Unknown word (" + cspellTypo + ")"
+	const last = "long.md:5105:5 - Unknown word (" + cspellRepoWord + ")"
+	t.Run("0001.1.2.2.1 it is checked in line-aligned chunks", func(t *testing.T) {
+		t.Parallel()
+		out, code := long(t)
+		acceptance.Sees(t, out, code, 1, first, last)
+	})
+	t.Run("0001.1.2.2.2 its `cspell:` directives apply to the whole file", func(t *testing.T) {
+		t.Parallel()
+		out, code := long(t)
 		acceptance.Sees(t, out, code, 1, first, last)
 		if strings.Contains(out, cspellBodyTypo) || strings.Index(out, first) > strings.Index(out, last) {
 			t.Errorf("only the words outside the block may be named, in line order:\n%s", out)
@@ -44,33 +52,61 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 the repo's own word list wins and the owner names or agent names pass", func(t *testing.T) {
-		t.Parallel()
-		out, code := cspellRun(t, map[string]string{
+	listed := func(t *testing.T) (string, int) {
+		return cspellRun(t, map[string]string{
 			"cspell.json":   `{"words":["fitnessrc","` + cspellRepoWord + `"]}` + "\n",
 			cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
 			"notes.md":      cspellRepoWord + " and " + cspellSharedWord + "\n@jasonvanderslice from Vanderbot\n",
 		})
+	}
+	t.Run("0001.2.2.1.1 the repo's list wins", func(t *testing.T) {
+		t.Parallel()
+		out, code := listed(t)
 		acceptance.Sees(t, out, code, 1, "notes.md:1:11 - Unknown word ("+cspellSharedWord+")")
 		if strings.Contains(out, "Unknown word ("+cspellRepoWord+")") {
 			t.Errorf("the repo's own word must be accepted:\n%s", out)
 		}
-		if strings.Contains(out, "Unknown word (jasonvanderslice)") || strings.Contains(out, "Unknown word (Vanderbot)") {
-			t.Errorf("the owner and agent names must be accepted:\n%s", out)
+	})
+	t.Run("0001.2.2.1.2 the owner names pass", func(t *testing.T) {
+		t.Parallel()
+		out, code := listed(t)
+		acceptance.Sees(t, out, code, 1, "notes.md:1:11")
+		if strings.Contains(out, "Unknown word (jasonvanderslice)") {
+			t.Errorf("the owner name must be accepted:\n%s", out)
 		}
 	})
-	t.Run("0001.2.2 an ignorePaths setting fails before any scan telling Developer to remove it", func(t *testing.T) {
+	t.Run("0001.2.2.1.3 the agent names pass", func(t *testing.T) {
 		t.Parallel()
-		out, code := cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
-		acceptance.Sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file, so remove ignorePaths and fix the findings instead")
+		out, code := listed(t)
+		acceptance.Sees(t, out, code, 1, "notes.md:1:11")
+		if strings.Contains(out, "Unknown word (Vanderbot)") {
+			t.Errorf("the agent name must be accepted:\n%s", out)
+		}
+	})
+	ignored := func(t *testing.T) (string, int) {
+		return cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
+	}
+	t.Run("0001.2.2.2.1 it fails before any scan", func(t *testing.T) {
+		t.Parallel()
+		out, code := ignored(t)
+		acceptance.Sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file")
+	})
+	t.Run("0001.2.2.2.2 it tells Developer to remove it", func(t *testing.T) {
+		t.Parallel()
+		out, code := ignored(t)
+		acceptance.Sees(t, out, code, 1, "so remove ignorePaths")
+	})
+	t.Run("0001.2.2.2.3 it tells Developer to fix the words", func(t *testing.T) {
+		t.Parallel()
+		out, code := ignored(t)
+		acceptance.Sees(t, out, code, 1, "and fix the findings instead")
 	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 binary and generated and lock and wrapper files are left out", func(t *testing.T) {
-		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
+	skipped := func(t *testing.T, extra map[string]string) (string, int) {
+		files := map[string]string{
 			".gitattributes":       "*.gen linguist-generated\n",
 			"deps/pkg.gen":         cspellSharedWord + "\n",
 			"blob.bin":             cspellBinaryWord + "\x00" + cspellBinaryOther,
@@ -84,12 +120,25 @@ func Test0001_3(t *testing.T) {
 			"app/gradlew.bat":      "set " + cspellRepoWord + "=1\n",
 			".mvn/wrapper/MavenWrapperDownloader.java": "class Downloader { String " + cspellRepoWord + "; }\n",
 			"gradle/wrapper/gradle-wrapper.properties": "distributionUrl=" + cspellBodyTypo + "\n",
-		})
+		}
+		for name, body := range extra {
+			files[name] = body
+		}
+		repo := acceptance.Example(t, "happyRepo", files)
 		acceptance.Write(t, repo, map[string]string{"untracked.md": "the " + cspellRepoWord + " fox\n"})
-		out, code := acceptance.Fitness(t, repo, nil, "cspell")
+		return acceptance.Fitness(t, repo, nil, "cspell")
+	}
+	t.Run("0001.3.1.1.1 they are left out", func(t *testing.T) {
+		t.Parallel()
+		out, code := skipped(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.3.2 a scoped run checks only the changed paths on disk", func(t *testing.T) {
+	t.Run("0001.3.1.1.2 nothing else is", func(t *testing.T) {
+		t.Parallel()
+		out, code := skipped(t, map[string]string{"notes.md": "the " + cspellTypo + " fox\n"})
+		acceptance.Sees(t, out, code, 1, "notes.md:1:5 - Unknown word ("+cspellTypo+")")
+	})
+	t.Run("0001.3.1.2.1 only the changed paths that still exist on disk are checked", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"old.md": "the " + cspellTypo + " fox\n", "gone.md": "clean words\n"})
 		acceptance.Write(t, repo, map[string]string{"new.md": "the " + cspellRepoWord + " fox\n"})
@@ -105,50 +154,62 @@ func Test0001_3(t *testing.T) {
 
 func Test0001_4(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.4.1 no repo word list falls back to the shared and embedded words", func(t *testing.T) {
+	t.Run("0001.4.1.1.1 an installed `@mayjournal/fitness-shared` package supplies the words", func(t *testing.T) {
 		t.Parallel()
 		out, code := cspellRun(t, map[string]string{
 			cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
 			"notes.md":      cspellSharedWord + " is a shared word\n",
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = cspellRun(t, map[string]string{"notes.md": "mayjournal is a shared word, and addrinfo a language one\n"})
+	})
+	t.Run("0001.4.1.1.2 the copy embedded in the binary supplies them if none is installed", func(t *testing.T) {
+		t.Parallel()
+		out, code := cspellRun(t, map[string]string{"notes.md": "mayjournal is a shared word, and addrinfo a language one\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		out, code = cspellRun(t, map[string]string{"body.md": "sync `fastlane/Appfile`, `fastlane/Fastfile`, `fastlane/Gymfile`\n"}, "--body-file", "body.md")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		out, code = cspellRun(t, map[string]string{"static-preview.yml": "run: touch \"$PAGES/.nojekyll\"\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.4.2 a forbidden word or phrase fails except in cspell.json", func(t *testing.T) {
+	forbidden := map[string]string{
+		"cspell.json": `{"words":["fitnessrc"],"flagWords":["green apple"]}` + "\n",
+		"notes.md":    "a Green  Apple and green" + "apple\n",
+		"body.md":     "no green\napple here\n",
+	}
+	t.Run("0001.4.1.2.1 it fails as `path:line:col - Forbidden word (entry)`", func(t *testing.T) {
 		t.Parallel()
-		files := map[string]string{
-			"cspell.json": `{"words":["fitnessrc"],"flagWords":["green apple"]}` + "\n",
-			"notes.md":    "a Green  Apple and green" + "apple\n",
-			"body.md":     "no green\napple here\n",
-		}
-		out, code := cspellRun(t, files)
+		out, code := cspellRun(t, forbidden)
 		acceptance.Sees(t, out, code, 1, "notes.md:1:3 - Forbidden word (green apple)", "body.md:1:4 - Forbidden word (green apple)")
+		out, code = cspellRun(t, forbidden, "--body-file", "body.md")
+		acceptance.Sees(t, out, code, 1, "(description):1:4 - Forbidden word (green apple)")
+	})
+	t.Run("0001.4.1.2.2 a `cspell.json` file is exempt", func(t *testing.T) {
+		t.Parallel()
+		out, code := cspellRun(t, forbidden)
+		acceptance.Sees(t, out, code, 1, "notes.md:1:3 - Forbidden word (green apple)")
 		if strings.Contains(out, "cspell.json:") {
 			t.Errorf("the cspell.json listing flagWords must not be flagged:\n%s", out)
 		}
-		out, code = cspellRun(t, files, "--body-file", "body.md")
-		acceptance.Sees(t, out, code, 1, "(description):1:4 - Forbidden word (green apple)")
 	})
 }
 
 func Test0001_5(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.5.1 an issue or PR body is spelled as description", func(t *testing.T) {
+	t.Run("0001.5.1.1.1 it fails naming `(description):line:col`", func(t *testing.T) {
 		t.Parallel()
 		out, code := cspellRun(t, map[string]string{"body.md": "a " + cspellBodyTypo + " word\n"}, "--body-file", "body.md")
 		acceptance.Sees(t, out, code, 1, "(description):1:3 - Unknown word ("+cspellBodyTypo+")")
 	})
-	t.Run("0001.5.2 Renovate's hidden debug comment is skipped", func(t *testing.T) {
+	t.Run("0001.5.1.2.1 that comment is skipped", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", nil)
 		out, code := acceptance.Piped(t, repo, renovateBody, nil, "--blob", "-", "--checks=cspell")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = acceptance.Piped(t, repo, misspelledNote+renovateBody, nil, "--blob", "-", "--checks=cspell")
+	})
+	t.Run("0001.5.1.2.2 the rest is still spelled", func(t *testing.T) {
+		t.Parallel()
+		repo := acceptance.Example(t, "happyRepo", nil)
+		out, code := acceptance.Piped(t, repo, misspelledNote+renovateBody, nil, "--blob", "-", "--checks=cspell")
 		acceptance.Sees(t, out, code, 1, "Unknown word (mispeled)")
 	})
 }

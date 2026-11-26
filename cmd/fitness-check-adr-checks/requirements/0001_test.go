@@ -15,53 +15,64 @@ func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no fitness folder passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrChecks(t, acceptance.Example(t, "happyRepo", nil))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "adr-checks")
 	})
-	t.Run("0001.1.2 a check linking its ADR issue passes and runs", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", adrRepo())
-		out, code := adrChecks(t, repo)
+		out, code := adrChecks(t, acceptance.Example(t, "happyRepo", adrRepo()))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "adr-checks", "1")
-		out, code = acceptance.Fitness(t, repo, nil, "check", "adr-0001")
+	})
+	t.Run("0001.1.2.2.2 the paired check runs", func(t *testing.T) {
+		t.Parallel()
+		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", adrRepo()), nil, "check", "adr-0001")
 		acceptance.Sees(t, out, code, 0)
 		acceptance.PassedWith(t, out, "adr-0001", "1")
 	})
-	t.Run("0001.1.3 a README linking no issue fails unless allowed to wait", func(t *testing.T) {
+	unlinked := func(t *testing.T, text string) (string, int) {
+		return adrChecks(t, acceptance.Example(t, "happyRepo", acceptance.With(adrRepo(), map[string]string{adrPath: text})))
+	}
+	const noLink = adrPath + ": links no ADR issue; put the full URL of the `ADR` issue this check proves here"
+	t.Run("0001.1.2.3.1 it fails", func(t *testing.T) {
 		t.Parallel()
-		// One README has no issue URL, the other one only inside a sentence.
-		for _, text := range []string{
-			"# Small files\n\nKeeps every Markdown file small.\n\n## Check\n\nFails a long Markdown file.\n",
-			"# Small files\n\nKeeps every Markdown file small, as " + adrIssue + " plans.\n\n## Check\n\nFails a long Markdown file.\n",
-		} {
-			out, code := adrChecks(t, acceptance.Example(t, "happyRepo", acceptance.With(adrRepo(), map[string]string{adrPath: text})))
-			acceptance.Sees(t, out, code, 1, adrPath+": links no ADR issue; put the full URL of the `ADR` issue this check proves here")
-		}
+		out, code := unlinked(t, "# Small files\n\nKeeps every Markdown file small.\n\n## Check\n\nFails a long Markdown file.\n")
+		acceptance.Sees(t, out, code, 1, noLink)
+	})
+	t.Run("0001.1.2.3.2 a link only inside a sentence fails too", func(t *testing.T) {
+		t.Parallel()
+		out, code := unlinked(t, "# Small files\n\nKeeps every Markdown file small, as "+adrIssue+" plans.\n\n## Check\n\nFails a long Markdown file.\n")
+		acceptance.Sees(t, out, code, 1, noLink)
+	})
+	t.Run("0001.1.2.3.3 an `adrAsIssue` allow glob lets it wait", func(t *testing.T) {
+		t.Parallel()
 		waits := acceptance.With(acceptance.HeldCheck(), map[string]string{
 			".fitnessrc.json": acceptance.AllowADRs(`{"path": "fitness/adr-*/README.md", "reason": "the checks move with them"}`),
 		})
 		out, code := adrChecks(t, acceptance.Example(t, "happyRepo", waits))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 an ADR without a check program fails unless superseded", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 the run fails before any check starts", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", map[string]string{adrPath: adrText("")}), nil)
 		acceptance.Sees(t, out, code, 1, "fitness setup: local check fitness/adr-0001 has no program; add an executable check or a main.go")
+	})
+	t.Run("0001.1.2.4.2 a superseded ADR is exempt", func(t *testing.T) {
+		t.Parallel()
 		// Another check keeps the fitness folder from being empty.
 		retired := map[string]string{
 			adrPath:                        adrText("Status: Superseded by a later decision.\n\n"),
 			"fitness/house-rule/README.md": "# House rule\n\nKeeps the house in order.\n",
 			"fitness/house-rule/check":     acceptance.VerdictScript(acceptance.Passing),
 		}
-		out, code = adrChecks(t, acceptance.Example(t, "happyRepo", retired))
+		out, code := adrChecks(t, acceptance.Example(t, "happyRepo", retired))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "adr-checks", "1")
 	})
-	t.Run("0001.1.5 a paired check that judged no files fails", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it fails as a broken scan", func(t *testing.T) {
 		t.Parallel()
 		empty := `{"ok": true, "errors": [], "filesChecked": 0}`
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", adrCheck("0001", empty)), nil, "check", "adr-0001")
@@ -71,43 +82,53 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a README pointed at another issue alone fails naming the README and the check", func(t *testing.T) {
-		t.Parallel()
-		want := adrPath + " changed its ADR issue without its check fitness/adr-0001; change both together"
+	const want = adrPath + " changed its ADR issue without its check fitness/adr-0001; change both together"
+	staged := func(t *testing.T) (string, int) {
 		repo := acceptance.Example(t, "happyRepo", adrRepo())
 		acceptance.Write(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), adrIssue, adrIssue+"6", 1)})
 		acceptance.Git(t, repo, "add", "-A")
-		out, code := adrChecks(t, repo)
-		acceptance.Sees(t, out, code, 1, want)
-		repo = acceptance.Example(t, "happyRepo", adrRepo())
+		return adrChecks(t, repo)
+	}
+	inPullRequest := func(t *testing.T) (string, int) {
+		repo := acceptance.Example(t, "happyRepo", adrRepo())
 		acceptance.Git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
 		acceptance.Commit(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), adrIssue, adrIssue+"7", 1)}, "docs(adr): reword 0001")
-		out, code = acceptance.Fitness(t, repo, acceptance.PullRequestEnv, "adr-checks")
+		return acceptance.Fitness(t, repo, acceptance.PullRequestEnv, "adr-checks")
+	}
+	t.Run("0001.2.1.1.1 it fails naming the README", func(t *testing.T) {
+		t.Parallel()
+		out, code := staged(t)
+		acceptance.Sees(t, out, code, 1, adrPath+" changed its ADR issue")
+	})
+	t.Run("0001.2.1.1.2 it fails naming the check", func(t *testing.T) {
+		t.Parallel()
+		out, code := staged(t)
+		acceptance.Sees(t, out, code, 1, "without its check fitness/adr-0001; change both together")
+	})
+	t.Run("0001.2.1.1.3 it fails the same way staged or in a pull request", func(t *testing.T) {
+		t.Parallel()
+		out, code := staged(t)
 		acceptance.Sees(t, out, code, 1, want)
-		// The same change with the check's program passes.
-		repo = acceptance.Example(t, "happyRepo", adrRepo())
-		acceptance.Write(t, repo, map[string]string{
-			adrPath:                  strings.Replace(adrText(""), adrIssue, adrIssue+"6", 1),
-			"fitness/adr-0001/check": acceptance.VerdictScript(`{"ok": true, "errors": [], "filesChecked": 2}`),
-		})
+		out, code = inPullRequest(t)
+		acceptance.Sees(t, out, code, 1, want)
+	})
+	t.Run("0001.2.1.2.1 it passes", func(t *testing.T) {
+		t.Parallel()
+		repo := acceptance.Example(t, "happyRepo", adrRepo())
+		acceptance.Write(t, repo, map[string]string{"fitness/adr-0001/check": acceptance.VerdictScript(`{"ok": true, "errors": [], "filesChecked": 2}`)})
 		acceptance.Git(t, repo, "add", "-A")
-		out, code = adrChecks(t, repo)
+		out, code := adrChecks(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.2 the check's code or README text may change alone", func(t *testing.T) {
+	t.Run("0001.2.1.2.2 a change to only the README's own text passes too", func(t *testing.T) {
 		t.Parallel()
-		for path, text := range map[string]string{
-			"fitness/adr-0001/check": acceptance.VerdictScript(`{"ok": true, "errors": [], "filesChecked": 2}`),
-			adrPath:                  strings.Replace(adrText(""), "Small files read fast.", "Small files read fast and diff well.", 1),
-		} {
-			repo := acceptance.Example(t, "happyRepo", adrRepo())
-			acceptance.Write(t, repo, map[string]string{path: text})
-			acceptance.Git(t, repo, "add", "-A")
-			out, code := adrChecks(t, repo)
-			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		}
+		repo := acceptance.Example(t, "happyRepo", adrRepo())
+		acceptance.Write(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), "Small files read fast.", "Small files read fast and diff well.", 1)})
+		acceptance.Git(t, repo, "add", "-A")
+		out, code := adrChecks(t, repo)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.3 a README linking its first issue needs no code change", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 it passes without a code change", func(t *testing.T) {
 		t.Parallel()
 		unlinked := strings.Replace(adrText(""), adrIssue+"\n\n", "", 1)
 		repo := acceptance.Example(t, "happyRepo", acceptance.With(adrRepo(), map[string]string{
@@ -119,7 +140,7 @@ func Test0001_2(t *testing.T) {
 		out, code := adrChecks(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.4 a full scan judges no changes", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 it judges no changes", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", adrRepo())
 		acceptance.Commit(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), adrIssue, adrIssue+"6", 1)}, "docs(adr): relink 0001")

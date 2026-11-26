@@ -22,25 +22,36 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 rejects a share past the limit", func(t *testing.T) {
+	share := func(t *testing.T) (string, int) {
+		return dupRun(t, dupPair("src/a.js", "src/b.js", dupClone))
+	}
+	t.Run("0001.1.1.1.1 it fails reporting `ERROR: duplicate code is X% of scanned lines, over the Y% threshold`", func(t *testing.T) {
 		t.Parallel()
-		out, code := dupRun(t, dupPair("src/a.js", "src/b.js", dupClone))
-		acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is 7.4% of scanned lines, over the 1.0% threshold", "src/b.js: 6 duplicated lines")
+		out, code := share(t)
+		acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is 7.4% of scanned lines, over the 1.0% threshold")
+	})
+	t.Run("0001.1.1.1.2 it reports `path: N duplicated lines` for each file holding them", func(t *testing.T) {
+		t.Parallel()
+		out, code := share(t)
+		acceptance.Sees(t, out, code, 1, "src/b.js: 6 duplicated lines")
 		if strings.Contains(acceptance.Read(out), "src/a.js:") {
 			t.Errorf("the first copy holds no duplicated line, so only src/b.js is named:\n%s", out)
 		}
 	})
-	// The case commits a copied block in a script, which duplicate-code never
+	// The cases commit a copied block in a script, which duplicate-code never
 	// compares with a doc, then in a second doc.
-	t.Run("0001.1.2 judges staged files against tracked files", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 it reads the changed files", func(t *testing.T) {
 		t.Parallel()
 		acceptance.PassedWith(t, dupCommit(t, "src/copy.js"), "duplicate-code", "1")
+	})
+	t.Run("0001.1.1.2.2 it reads the tracked files sharing their endings", func(t *testing.T) {
+		t.Parallel()
 		out := dupCommit(t, "docs/copy.md")
 		if !regexp.MustCompile(`│ failed\s+│ 4\s+│`).MatchString(acceptance.Row(out, "duplicate-code")) {
 			t.Errorf("a staged doc copying a tracked doc must fail duplicate-code over the 4 docs, got row %q\n%s", acceptance.Row(out, "duplicate-code"), out)
 		}
 	})
-	t.Run("0001.1.3 compares every tracked text file including Markdown or JSON", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 they count like any other tracked text file", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{".gitignore": "conf/\n"})
 		acceptance.Write(t, repo, dupPair("docs/a.md", "conf/b.json", dupClone))
@@ -51,7 +62,7 @@ func Test0001_1(t *testing.T) {
 	// The case puts a 3-line block in one pair and an 18-token block in
 	// another, each under one minimum. Two docs share a 5-line run only because
 	// it ends in a 120-dash separator row.
-	t.Run("0001.1.4 passes short shared blocks", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		files := dupPair("src/a.js", "src/b.js", dupBlock("w", 3, 20))
 		files["src/c.js"] = dupBlock("s", 6, 3) + dupBlock("fc", 24, 3)
@@ -65,7 +76,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 skips lockfiles and generated files", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 they are left out", func(t *testing.T) {
 		t.Parallel()
 		files := dupPair("deps/a.lock", "deps/b.lock", dupClone)
 		files[".gitattributes"] = "*.lock linguist-generated\n"
@@ -80,33 +91,46 @@ func Test0001_2(t *testing.T) {
 	})
 	// The case tracks a binary pair and leaves a text pair untracked. Both
 	// pairs share the block and their tails, so only skipping both passes.
-	t.Run("0001.2.2 skips binary and untracked files", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 it is left out", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", dupPair("blob/a.dat", "blob/b.dat", "\x00\n"+dupClone))
 		acceptance.Write(t, repo, dupPair("src/a.js", "src/b.js", dupClone))
 		out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	// The case wraps the block in current markers in one pair and deprecated
-	// jscpd ones in the other, so older repos keep passing.
-	t.Run("0001.2.3 skips blocks between ignore markers including the deprecated ones", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 it never counts", func(t *testing.T) {
 		t.Parallel()
 		current := "// duplicate-code:ignore-start\n" + dupClone + "// duplicate-code:ignore-end\n"
-		deprecated := "/* jscpd:ignore-start */\n" + dupBlock("j", 6, 10) + "/* jscpd:ignore-end */\n"
 		out, code := dupRun(t, map[string]string{
 			"src/a.js": current + dupBlock("fa", 24, 3),
 			"src/b.js": current + dupBlock("fb", 24, 3),
-			"src/c.js": deprecated + dupBlock("fc", 24, 3),
-			"src/d.js": deprecated + dupBlock("fd", 24, 3),
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	// The case adds a template, matching legends and a copied untitled
+	// The cases wrap the block in deprecated jscpd markers, so older repos
+	// keep passing.
+	deprecated := func(t *testing.T) (string, int) {
+		block := "/* jscpd:ignore-start */\n" + dupBlock("j", 6, 10) + "/* jscpd:ignore-end */\n"
+		return dupRun(t, map[string]string{
+			"src/c.js": block + dupBlock("fc", 24, 3),
+			"src/d.js": block + dupBlock("fd", 24, 3),
+		})
+	}
+	t.Run("0001.2.1.3.2 the deprecated marker `jscpd:ignore-start` works the same", func(t *testing.T) {
+		t.Parallel()
+		out, code := deprecated(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.3.3 the deprecated marker `jscpd:ignore-end` works the same", func(t *testing.T) {
+		t.Parallel()
+		out, code := deprecated(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	// templated adds a template, matching legends and a copied untitled
 	// diagram to the two docs of the share past the limit case. A
 	// committed third doc scopes the run to Markdown, and the exact share
 	// proves the template is not scanned.
-	t.Run("0001.2.4 excuses docs repeating a template", func(t *testing.T) {
-		t.Parallel()
+	templated := func(t *testing.T) (string, int) {
 		files := dupPair("docs/guide.md", "docs/notes.md", dupClone)
 		files["docs/templates/guide.md"] = dupClone + dupBlock("ft", 24, 3)
 		files["docs/architecture/02-containers.md"] = dupLevelDoc("ca")
@@ -116,12 +140,24 @@ func Test0001_2(t *testing.T) {
 		repo := acceptance.Example(t, "happyRepo", files)
 		acceptance.Write(t, repo, map[string]string{"docs/new.md": "# New\n\n" + dupBlock("fn", 24, 3)})
 		acceptance.Git(t, repo, "add", "docs/new.md")
-		out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
-		if code == 0 {
-			t.Errorf("the staged doc must fail:\n%s", out)
-		}
-		dupNames(t, out, []string{"ERROR: duplicate code is 5.6% of scanned lines", "docs/notes.md: 6 duplicated lines", "docs/flow-b.md: 11 duplicated lines"},
-			[]string{"docs/architecture/02-containers.md:", "docs/architecture/03-components.md:", "docs/flow-a.md:", "docs/guide.md:", "docs/templates/guide.md:"})
+		return acceptance.Fitness(t, repo, nil, "duplicate-code")
+	}
+	t.Run("0001.2.1.4.1 the template is left out", func(t *testing.T) {
+		t.Parallel()
+		out, code := templated(t)
+		acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is 5.6% of scanned lines")
+		dupNames(t, out, nil, []string{"docs/templates/guide.md:", "docs/guide.md:"})
+	})
+	t.Run("0001.2.1.4.2 those lines are left out", func(t *testing.T) {
+		t.Parallel()
+		out, code := templated(t)
+		acceptance.Sees(t, out, code, 1)
+		dupNames(t, out, nil, []string{"docs/architecture/02-containers.md:", "docs/architecture/03-components.md:", "docs/flow-a.md:"})
+	})
+	t.Run("0001.2.1.4.3 the other docs are still compared", func(t *testing.T) {
+		t.Parallel()
+		out, code := templated(t)
+		acceptance.Sees(t, out, code, 1, "docs/notes.md: 6 duplicated lines", "docs/flow-b.md: 11 duplicated lines")
 	})
 }
 
