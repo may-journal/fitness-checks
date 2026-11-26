@@ -103,10 +103,10 @@ func Test0001_3(t *testing.T) {
 	// each run's output and exit code with where the error sits and what
 	// the template has.
 	type run struct {
-		out        string
-		code       int
-		wheres     []string
-		templateds []string
+		out     string
+		code    int
+		wheres  []string
+		flagged []string
 	}
 	lacking := func(t *testing.T) []run {
 		var runs []run
@@ -149,7 +149,7 @@ func Test0001_3(t *testing.T) {
 	t.Run("0001.3.1.1.2 it fails naming what the template has", func(t *testing.T) {
 		t.Parallel()
 		for _, r := range lacking(t) {
-			acceptance.Sees(t, r.out, r.code, 1, r.templateds...)
+			acceptance.Sees(t, r.out, r.code, 1, r.flagged...)
 		}
 	})
 	t.Run("0001.3.1.2.1 the shipped templates govern the views", func(t *testing.T) {

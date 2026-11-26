@@ -98,9 +98,9 @@ func Test0001_1(t *testing.T) {
 	})
 	t.Run("0001.1.2.7.2 a failure to start counts the same", func(t *testing.T) {
 		t.Parallel()
-		unstartable := t.TempDir()
-		acceptance.Write(t, unstartable, map[string]string{"go": "#!/nonexistent/interpreter\n"})
-		out, code := goTest(t, goTestModule("", goTestBroken), "PATH="+unstartable+string(os.PathListSeparator)+os.Getenv("PATH"))
+		brokenGo := t.TempDir()
+		acceptance.Write(t, brokenGo, map[string]string{"go": "#!/nonexistent/interpreter\n"})
+		out, code := goTest(t, goTestModule("", goTestBroken), "PATH="+brokenGo+string(os.PathListSeparator)+os.Getenv("PATH"))
 		acceptance.ShowsInfo(t, out, code, "go-test", "go test")
 	})
 	t.Run("0001.1.2.7.3 a kill counts the same", func(t *testing.T) {

@@ -25,7 +25,7 @@ var assertionName = regexp.MustCompile(`^(?:` + assertionWords + `)(?:f|now)?(?:
 
 // assertionText matches an assertion call in code other than Go: a call
 // named like assertEquals, XCTAssertTrue or expect, or a Swift Testing macro.
-var assertionText = regexp.MustCompile(`\b(?:[Aa]ssert|XCTAssert|XCTFail|[Rr]equire|[Ee]xpect|[Vv]erify|[Ff]ail)\w*\s*\(|#expect|#require`)
+var assertionText = regexp.MustCompile(`\b(?:(?i:assert)|XCTAssert|XCTFail|(?i:require|expect|verify|fail))\w*\s*\(|#expect|#require`)
 
 // plainPackages are the packages whose calls only read or shape values, so
 // strings.Contains is no assertion.

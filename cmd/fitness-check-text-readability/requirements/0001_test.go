@@ -3,6 +3,8 @@
 // copied example repo.
 package requirements
 
+// cspell:ignore Liau
+
 import (
 	"strings"
 	"testing"
