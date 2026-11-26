@@ -39,30 +39,38 @@ func finding(label string) string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a C4 relationship label with prose fails", func(t *testing.T) {
-		t.Parallel()
+	c4 := func(t *testing.T) (string, int) {
 		body := "Rel(app, api, \"6 Uses over HTTP\")\nBiRel(app, db, \"6 talks both ways\")\nRel_Back(api, app, '6 replies')\nRel(api, db,\n  \"6 wrapped prose\")\nRel(api, db, \"B reads\")"
-		out, code := prose(t, map[string]string{"docs/arch.md": paired(body)})
-		acceptance.Sees(t, out, code, 1, finding("6 Uses over HTTP"), finding("6 talks both ways"),
-			finding("6 replies"), finding("6 wrapped prose"), finding("B reads"))
+		return prose(t, map[string]string{"docs/arch.md": paired(body)})
+	}
+	t.Run("0001.1.1.1.1 it fails naming the label", func(t *testing.T) {
+		t.Parallel()
+		out, code := c4(t)
+		acceptance.Sees(t, out, code, 1, `("6 Uses over HTTP")`, `("6 talks both ways")`,
+			`("6 replies")`, `("6 wrapped prose")`, `("B reads")`)
 	})
-	t.Run("0001.1.2 a flowchart pipe label with prose fails", func(t *testing.T) {
+	t.Run("0001.1.1.1.2 it names the diagram line", func(t *testing.T) {
+		t.Parallel()
+		out, code := c4(t)
+		acceptance.Sees(t, out, code, 1, "docs/arch.md: diagram at line 3 has a relationship label with prose")
+	})
+	t.Run("0001.1.1.2.1 it fails naming each label", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, map[string]string{"docs/arch.md": paired("flowchart LR\napp -->|6 calls the api| api -->|6 reads| db -->|A calls back| app")})
 		acceptance.Sees(t, out, code, 1, finding("6 calls the api"), finding("6 reads"), finding("A calls back"))
 	})
-	t.Run("0001.1.3 a colon edge label with prose fails", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 it fails naming each label", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, map[string]string{"docs/arch.md": paired("flowchart LR\napp --> api : 6 sends data   \napi --> db : C writes")})
 		acceptance.Sees(t, out, code, 1, finding("6 sends data"), finding("C writes"))
 	})
-	t.Run("0001.1.4 bare number labels pass", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 the diagram passes", func(t *testing.T) {
 		t.Parallel()
 		body := "flowchart LR\napp -->|6| api\napi --> db : 6\ndb --> app : uses 6\n%% note : 6 something\nRel(app, api, \"6\")\nclassDef x fill:#6366f1"
 		out, code := prose(t, map[string]string{"docs/arch.md": paired(body)})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 a prose label fails without a callout table", func(t *testing.T) {
+	t.Run("0001.1.1.5.1 a prose label still fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, map[string]string{"docs/arch.md": diagram(`Rel(app, api, "6 Uses over HTTP")`)})
 		acceptance.Sees(t, out, code, 1, finding("6 Uses over HTTP"))
@@ -71,19 +79,19 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 prose in node names passes", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 the diagram passes", func(t *testing.T) {
 		t.Parallel()
 		body := "Container(app, \"6 App Shell\", \"SwiftUI\")\nRel(app, api, \"6\")\na[\"6 node\"] -->|6| b"
 		out, code := prose(t, map[string]string{"docs/arch.md": paired(body)})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.2 a PR body prose label fails naming the label", func(t *testing.T) {
+	t.Run("0001.2.2.2.1 it fails naming the label", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{"body.md": paired(`Rel(app, api, "6 Uses over HTTP")`)}
 		out, code := prose(t, files, "--body-file", "body.md")
 		acceptance.Sees(t, out, code, 1, `has a relationship label with prose ("6 Uses over HTTP")`)
 	})
-	t.Run("0001.2.3 a repo with no diagram passes with no files", func(t *testing.T) {
+	t.Run("0001.2.2.3.1 the check passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
