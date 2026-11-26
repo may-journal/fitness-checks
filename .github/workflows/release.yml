@@ -93,7 +93,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: scripts/release-index-publish.sh
       # The org's .github repo reruns the fitness suite on open pull requests, since the new check changes what they must pass.
-      # An hourly sweep there covers a dispatch this step misses.
+      # A failed dispatch turns the run red on purpose, and the hourly sweep there still reruns them.
       - name: Mint a token for the .github repo
         if: ${{ needs.publish.result == 'success' && needs.plan.outputs.tags != '[]' }}
         id: dispatch-token
@@ -103,6 +103,7 @@ jobs:
           private-key: ${{ secrets.AUTOMATION_APP_KEY }}
           owner: may-journal
           repositories: .github
+          permission-contents: write
       - name: Announce the release
         if: ${{ needs.publish.result == 'success' && needs.plan.outputs.tags != '[]' }}
         env:
