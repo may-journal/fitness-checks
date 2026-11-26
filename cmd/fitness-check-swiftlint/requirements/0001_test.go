@@ -18,6 +18,7 @@ import (
 func TestMain(m *testing.M) {
 	acceptance.ServeStandIns([]string{"swiftlint"})
 	acceptance.KeepHostGitOut()
+	acceptance.TakeTurn()
 	os.Exit(m.Run())
 }
 

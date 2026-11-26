@@ -55,6 +55,7 @@ func TestMain(m *testing.M) {
 		os.Exit(timedCheck(name, os.Args[1:]))
 	}
 	acceptance.KeepHostGitOut()
+	acceptance.TakeTurn()
 	os.Exit(m.Run())
 }
 

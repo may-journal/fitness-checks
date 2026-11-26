@@ -14,6 +14,7 @@ import (
 
 func TestMain(m *testing.M) {
 	acceptance.KeepHostGitOut()
+	acceptance.TakeTurn()
 	os.Exit(m.Run())
 }
 

@@ -39,5 +39,7 @@ export FITNESS_CACHE_DIR FITNESS_INSTALL
 # cmd/<check>/requirements, hold the requirement tests.
 folders="$(go list ./... | grep '/requirements$')"
 [ -n "$folders" ] || { echo "no requirements folder found" >&2; exit 1; }
+# internal/acceptance's TakeTurn caps how many of these tests run at once
+# across the whole machine.
 # shellcheck disable=SC2086
-exec go test $folders -count=1 -parallel 32 "$@"
+exec go test $folders -count=1 "$@"
