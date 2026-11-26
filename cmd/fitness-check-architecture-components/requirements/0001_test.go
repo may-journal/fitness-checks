@@ -54,23 +54,30 @@ var (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a product source with no component owner fails", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming the source", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, aoUnowned())
 		sees(t, out, code, 1, "src/api/api.go"+aoNoOwner, "src/api/api.config.ts"+aoNoOwner, "index.mjs"+aoNoOwner)
+	})
+	t.Run("0001.1.2.1.2 agent tooling counts as product source", func(t *testing.T) {
+		t.Parallel()
 		tooling := aoNative()
 		tooling[aoFrames] = "import Foundation\n\nlet frameRate = 30\n"
-		out, code = aoRun(t, tooling)
+		out, code := aoRun(t, tooling)
 		sees(t, out, code, 1, aoFrames+aoNoOwner)
 		tooling = aoTooling("Component(frames, \"9 Build log frames\", \"Swift\", \".claude/skills/build-log\")", "Captures build log frames.")
 		tooling[aoFrames] = "import Foundation\n\nlet frameRate = 30\n"
 		out, code = aoRun(t, tooling)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.2 tools need no owner but started files do", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it needs no owner", func(t *testing.T) {
 		t.Parallel()
-		out, _ := aoRun(t, aoUnowned())
+		out, code := aoRun(t, aoUnowned())
+		sees(t, out, code, 1)
 		aoNeedNoOwner(t, out, "rollup.config.mjs", ".eslintrc")
+	})
+	t.Run("0001.1.2.2.2 a `scripts/` file needs none", func(t *testing.T) {
+		t.Parallel()
 		product := []string{"tools/build.mjs", "scripts/server.mjs", "lib/index.js", "pub/a.mjs"}
 		files := with(aoFixture(), map[string]string{
 			"package.json":         aoScripts,
@@ -92,7 +99,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aoCheck, "1")
 	})
-	t.Run("0001.1.3 a code span or label claims a root source by bare name", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 that component owns it", func(t *testing.T) {
 		t.Parallel()
 		files := aoEdit(aoUnowned(), "\"src/store\")", "\"src/store\", \"and src/api\")")
 		files = aoEdit(files, aoEntry, "Component(entry, \"2 Entry\", \"Go\", \"Loads index.mjs, per package.json\")\n")
@@ -107,7 +114,7 @@ func Test0001_1(t *testing.T) {
 		out, code = fitness(t, example(t, "happyRepo", files), nil, acCheck)
 		sees(t, out, code, 1, aoView+":7: unresolved source path src/api")
 	})
-	t.Run("0001.1.4 one source claimed by two components fails", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails naming both claims", func(t *testing.T) {
 		t.Parallel()
 		second := "\n```mermaid\nC4Component\nContainer_Boundary(jobs, \"5 Jobs\") {\nComponent(cache, \"6 Cache\", \"Go\", \"src/store\")\n}\n```\n\n| # | Description | Why |\n| --- | --- | --- |\n| 5 | Jobs. | Later. |\n| 6 | Cache. | Later. |\n"
 		files := aoFixture()
@@ -120,7 +127,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aoCheck, "1")
 	})
-	t.Run("0001.1.5 a reference missing from the view fails naming the view", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it fails naming the view", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, aoFixture())
 		sees(t, out, code, 0)
@@ -128,8 +135,6 @@ func Test0001_1(t *testing.T) {
 		want := aoMain + ":3: entry imports src/store, owned by store" + aoNotDrawn + "entry -> store edge"
 		out, code = aoRun(t, aoEdit(aoFixture(), aoEdge, ""))
 		sees(t, out, code, 1, want)
-		out, code = aoRun(t, aoEdit(aoFixture(), aoEdge, "Rel(store, entry, \"4\")"))
-		sees(t, out, code, 1, want+"; "+aoView+":9 draws store -> entry")
 		out, code = aoRun(t, aoNative())
 		sees(t, out, code, 0)
 		out, code = aoRun(t, aoEdit(aoNative(), "Rel(ui, model, \"8\")", ""))
@@ -153,34 +158,26 @@ func Test0001_1(t *testing.T) {
 		out, code = aoRun(t, unused)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.6 only a build condition keeps a hidden reference", func(t *testing.T) {
+	t.Run("0001.1.2.5.2 it fails naming any reverse edge", func(t *testing.T) {
 		t.Parallel()
-		files := with(aoFixture(), map[string]string{
+		want := aoMain + ":3: entry imports src/store, owned by store" + aoNotDrawn + "entry -> store edge"
+		out, code := aoRun(t, aoEdit(aoFixture(), aoEdge, "Rel(store, entry, \"4\")"))
+		sees(t, out, code, 1, want+"; "+aoView+":9 draws store -> entry")
+	})
+	hiddenGo := func(t *testing.T) map[string]string {
+		return with(aoFixture(), map[string]string{
 			"src/api/api.go":           "package api\n\nfunc Ping() {}\n",
 			"src/cmd/service/linux.go": "//go:build linux\n\npackage main\n\nimport \"example.com/app/src/api\"\n\nfunc ping() { api.Ping() }\n",
 		})
-		api := "Component(api, \"5 API\", \"Go\", \"src/api\")\n"
-		files[aoView] = aoComponents(api, "", "Answers pings.")
-		out, code := aoRun(t, files)
-		sees(t, out, code, 1, "src/cmd/service/linux.go:5: entry imports src/api under go:build linux, owned by api"+aoNotDrawn+"entry -> api edge")
-		files[aoView] = aoComponents(api, "\nRel(entry, api, \"6\")", "Answers pings.", "Pings the API.")
-		out, code = aoRun(t, files)
-		sees(t, out, code, 0)
-		native := aoEdit(aoNative(), "Rel(ui, model, \"8\")", "")
-		native[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n#if DEBUG // tools\n    let store = Store()\n#endif\n}\n"
-		out, code = aoRun(t, native)
-		sees(t, out, code, 1, aoHome+":5: ui names Store under #if DEBUG, owned by model"+aoNotDrawn+"ui -> model edge")
-		native[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n#if DEBUG\n    let debug = true\n#endif // DEBUG\n    let store = Store()\n}\n"
-		out, code = aoRun(t, native)
-		sees(t, out, code, 1, aoHome+":7: ui names Store, owned by model"+aoNotDrawn+"ui -> model edge")
-		native[aoView] = aoNative()[aoView]
-		out, code = aoRun(t, native)
-		sees(t, out, code, 0)
+	}
+	const api = "Component(api, \"5 API\", \"Go\", \"src/api\")\n"
+	t.Run("0001.1.2.6.1 it does not count", func(t *testing.T) {
+		t.Parallel()
 		hidden := aoEdit(aoNative(), "Rel(ui, model, \"8\")", "")
 		hidden[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n    // let store = Store()\n    let name = \"Store()\"\n}\n"
 		hidden["App/Screens/Generated.swift"] = "let cached = Store()\n"
 		hidden[".gitattributes"] = "App/Screens/Generated.swift linguist-generated\n"
-		out, code = aoRun(t, hidden)
+		out, code := aoRun(t, hidden)
 		sees(t, out, code, 0)
 		delete(hidden, ".gitattributes")
 		out, code = aoRun(t, hidden)
@@ -189,7 +186,38 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("a comment or string made a reference:\n%s", out)
 		}
 	})
-	t.Run("0001.1.7 an unparseable product source fails", func(t *testing.T) {
+	t.Run("0001.1.2.6.2 only a build condition counts", func(t *testing.T) {
+		t.Parallel()
+		files := hiddenGo(t)
+		files[aoView] = aoComponents(api, "", "Answers pings.")
+		out, code := aoRun(t, files)
+		sees(t, out, code, 1, "src/cmd/service/linux.go:5: entry imports src/api")
+		files[aoView] = aoComponents(api, "\nRel(entry, api, \"6\")", "Answers pings.", "Pings the API.")
+		out, code = aoRun(t, files)
+		sees(t, out, code, 0)
+		native := aoEdit(aoNative(), "Rel(ui, model, \"8\")", "")
+		native[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n#if DEBUG // tools\n    let store = Store()\n#endif\n}\n"
+		out, code = aoRun(t, native)
+		sees(t, out, code, 1, aoHome+":5: ui names Store")
+		native[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n#if DEBUG\n    let debug = true\n#endif // DEBUG\n    let store = Store()\n}\n"
+		out, code = aoRun(t, native)
+		sees(t, out, code, 1, aoHome+":7: ui names Store, owned by model"+aoNotDrawn+"ui -> model edge")
+		native[aoView] = aoNative()[aoView]
+		out, code = aoRun(t, native)
+		sees(t, out, code, 0)
+	})
+	t.Run("0001.1.2.6.3 that condition is named after `under`", func(t *testing.T) {
+		t.Parallel()
+		files := hiddenGo(t)
+		files[aoView] = aoComponents(api, "", "Answers pings.")
+		out, code := aoRun(t, files)
+		sees(t, out, code, 1, "src/cmd/service/linux.go:5: entry imports src/api under go:build linux, owned by api"+aoNotDrawn+"entry -> api edge")
+		native := aoEdit(aoNative(), "Rel(ui, model, \"8\")", "")
+		native[aoHome] = "import SwiftUI\n\nstruct HomeScreen {\n#if DEBUG // tools\n    let store = Store()\n#endif\n}\n"
+		out, code = aoRun(t, native)
+		sees(t, out, code, 1, aoHome+":5: ui names Store under #if DEBUG, owned by model"+aoNotDrawn+"ui -> model edge")
+	})
+	t.Run("0001.1.2.7.1 it fails naming the source", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, with(aoFixture(), map[string]string{aoStore: "package store\n\nfunc Save( {}\n"}))
 		sees(t, out, code, 1, aoStore+":1: cannot parse "+aoStore+":3:12: expected ')', found '{'")
@@ -198,13 +226,13 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 no architecture views pass with zero files", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 it passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, map[string]string{"src/main.go": "package main\n"})
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, aoCheck)
 	})
-	t.Run("0001.2.2 swift names reach the right declaration", func(t *testing.T) {
+	t.Run("0001.2.2.2.1 it is a reference the view must draw", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, aoResolved("        if save { store.save(all: []) }\n"))
 		sees(t, out, code, 1, aoHome+":7: ui names Store.save(all:), owned by sync"+aoNotDrawn+"ui -> sync edge",
@@ -217,22 +245,25 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aoCheck, "1")
 	})
-	t.Run("0001.2.3 edge evidence must come from the first component", func(t *testing.T) {
+	row := aoView + ":17: "
+	t.Run("0001.2.2.3.1 the first component must own it", func(t *testing.T) {
 		t.Parallel()
-		row := aoView + ":17: "
-		cases := []struct{ old, new, want string }{
+		for _, c := range []struct{ old, new, want string }{
 			{"cmd/service/main.go#L3)", "store/store.go#L1)", "evidence src/store/store.go#L1 is owned by store, not entry"},
-			{"#L3)", "#L1)", "evidence src/cmd/service/main.go#L1 names nothing store owns"},
 			{"../src/cmd/service/main.go#L3)", "../tools/check.sh)", "unsupported evidence tools/check.sh; Go and Swift sources only"},
-		}
-		for _, c := range cases {
+		} {
 			out, code := aoRun(t, aoEdit(aoFixture(), c.old, c.new))
 			sees(t, out, code, 1, row+c.want)
 		}
+	})
+	t.Run("0001.2.2.3.2 its lines name the second outside comments", func(t *testing.T) {
+		t.Parallel()
+		out, code := aoRun(t, aoEdit(aoFixture(), "#L3)", "#L1)"))
+		sees(t, out, code, 1, row+"evidence src/cmd/service/main.go#L1 names nothing store owns")
 		files := aoFixture()
 		files[aoView] = aoComponents("", "\nSystem_Ext(mailer, \"5 Mailer\", \"SMTP relay\")\nRel(entry, mailer, \"6\")", "Relays mail.", "Sends through the relay, see [source](../src/cmd/service/main.go#L7).")
 		files[aoMain] = aoImports + "\nfunc send(c rune) bool { return c == '\"' } // smtp relay\n"
-		out, code := aoRun(t, files)
+		out, code = aoRun(t, files)
 		sees(t, out, code, 1, aoView+":21: evidence src/cmd/service/main.go#L7 does not name Mailer outside comments")
 		files[aoMain] = aoImports + "var body = `raw\n` // smtp relay\n"
 		out, code = aoRun(t, files)
@@ -250,14 +281,11 @@ func Test0001_2(t *testing.T) {
 		out, code = aoRun(t, renamed)
 		sees(t, out, code, 1, row+"evidence src/cmd/service/main.go#L5 names nothing store owns")
 	})
-	t.Run("0001.2.4 a component reached by another runtime fails", func(t *testing.T) {
+	t.Run("0001.2.2.4.1 it fails naming that boundary", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, aoWorker())
 		sees(t, out, code, 1, "src/cmd/worker/main.go:3: Go command worker reaches store here, but store is under container service at "+aoView+":5, not worker; a component two runtimes share belongs outside every container boundary")
 		shared := aoEdit(aoWorker(), "Component(store, \"3 Store\", \"Go\", \"src/store\")\n}", "}\nSystem_Boundary(shared, \"Shared\") {\nComponent(store, \"3 Store\", \"Go\", \"src/store\")\n}")
-		out, code = aoRun(t, shared)
-		sees(t, out, code, 0)
-		passedWith(t, out, aoCheck, "1")
 		moved := aoEdit(aoEdit(shared, aoEntry, ""), "Component(job,", aoEntry+"Component(job,")
 		out, code = aoRun(t, moved)
 		sees(t, out, code, 1, aoMain+":1: Go command service is built from entry, which is under container worker at "+aoView+":11, not service")
@@ -265,10 +293,19 @@ func Test0001_2(t *testing.T) {
 		files["Widget/Widget.swift"] = "import WidgetKit\n\nlet shared = Store()\n"
 		out, code = aoRun(t, files)
 		sees(t, out, code, 1, "Widget/Widget.swift:3: extension target Widget reaches model here, but model is under container main at "+aoView+":5, not widget")
+	})
+	t.Run("0001.2.2.4.2 components outside every container are shared", func(t *testing.T) {
+		t.Parallel()
+		shared := aoEdit(aoWorker(), "Component(store, \"3 Store\", \"Go\", \"src/store\")\n}", "}\nSystem_Boundary(shared, \"Shared\") {\nComponent(store, \"3 Store\", \"Go\", \"src/store\")\n}")
+		out, code := aoRun(t, shared)
+		sees(t, out, code, 0)
+		passedWith(t, out, aoCheck, "1")
+		files := aoEdit(aoNative(), "Rel(ui, model, \"8\")", "Rel(ui, model, \"8\")\nRel(glance, model, \"9\")")
+		files["Widget/Widget.swift"] = "import WidgetKit\n\nlet shared = Store()\n"
 		out, code = aoRun(t, aoEdit(files, aoModel+"}", "}\nSystem_Boundary(shared, \"Shared\") {\n"+aoModel+"}"))
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.2.5 a scoped run of tests, changelog or docs passes with zero files", func(t *testing.T) {
+	t.Run("0001.2.2.5.1 it passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		repo := aoScoped(t, map[string]string{
 			"src/store/store_test.go": "package store\n\nfunc helper() {}\n",
@@ -279,7 +316,7 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, aoCheck)
 	})
-	t.Run("0001.2.6 a scoped run of a view or product source reads the whole model or every source", func(t *testing.T) {
+	t.Run("0001.2.2.6.1 it reads the whole model", func(t *testing.T) {
 		t.Parallel()
 		for _, change := range []map[string]string{
 			{aoStore: "package store\n\n// Save writes one record.\nfunc Save() {}\n\n// Load reads one record.\nfunc Load() {}\n"},
@@ -288,6 +325,9 @@ func Test0001_2(t *testing.T) {
 			out, code := fitness(t, aoScoped(t, change), acceptance.PullRequestEnv, aoCheck)
 			sees(t, out, code, 1, aoMain+":3: entry imports src/store, owned by store"+aoNotDrawn+"entry -> store edge")
 		}
+	})
+	t.Run("0001.2.2.6.2 it reads every product source", func(t *testing.T) {
+		t.Parallel()
 		// A source left unowned on main stays reported when another file moves.
 		unowned := with(aoFixture(), map[string]string{"src/api/api.go": "package api\n"})
 		for _, change := range []map[string]string{
