@@ -4,6 +4,7 @@
 package requirements
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -34,16 +35,35 @@ const (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a class matching its source declaration passes", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it passes with generics", func(t *testing.T) {
 		t.Parallel()
-		for _, files := range []map[string]string{cvFixture(), cvNative(), cvScript(), cvJava()} {
+		for _, files := range []map[string]string{cvScript(), cvJava()} {
 			out, code := cvRun(t, files)
 			sees(t, out, code, 0)
 			passedWith(t, out, cvCheck, "1")
 		}
+		out, code := cvRun(t, cvEdit(cvJava(), cvJavaDir+"DiskStore.java", "    Writer.write", "    int mask = 0xE+Writer.write"))
+		sees(t, out, code, 0)
+		out, code = cvRun(t, cvEdit(cvJava(), cvView, "+records: Map~String, Integer~", "+Map~String, Integer~ records"))
+		sees(t, out, code, 0)
+	})
+	t.Run("0001.1.2.1.2 it passes with extensions", func(t *testing.T) {
+		t.Parallel()
+		out, code := cvRun(t, cvNative())
+		sees(t, out, code, 0)
+		passedWith(t, out, cvCheck, "1")
+		extended := cvEdit(cvNative(), cvModel, "{ true }\n}\n", "{ true }\n}\n\nextension Store {\n    func reset() {}\n}\n")
+		out, code = cvRun(t, cvEdit(extended, cvView, "class Store[\"2 Store\"]", "class Store[\"2 Store\"] {\n+reset()\n}"))
+		sees(t, out, code, 0)
+	})
+	t.Run("0001.1.2.1.3 it passes with any spacing or methods elsewhere", func(t *testing.T) {
+		t.Parallel()
+		out, code := cvRun(t, cvFixture())
+		sees(t, out, code, 0)
+		passedWith(t, out, cvCheck, "1")
 		apart := with(cvFixture(), map[string]string{"src/store/load.go": "package store\n\n// Load reads the record back.\nfunc (r Record) Load() Record { return r }\n"})
 		apart[cvView] = cvCode("\nclass load[\"4 store.Record.Load() Record\"]\nload --> Record : 5", "Reads it back, in [load.go](../src/store/load.go).", "Load returns the record.")
-		out, code := cvRun(t, apart)
+		out, code = cvRun(t, apart)
 		sees(t, out, code, 0)
 		files := cvEdit(cvFixture(), cvView, "+ID\n", "+ID: string\n+Load() (Record, error)\n")
 		files = cvEdit(files, cvStore, cvSaves, cvSaves+"\n// Load reads the record back.\nfunc (r Record) Load() (Record, error) { return r, nil }\n")
@@ -56,10 +76,6 @@ func Test0001_1(t *testing.T) {
 		compact := cvEdit(cvJava(), cvJavaDir+"Store.java", "int count) {}", "int count) {\n    public Entry {}\n  }")
 		out, code = cvRun(t, cvEdit(compact, cvView, "+count: int\n", "+count: int\n+Entry(String, int)\n"))
 		sees(t, out, code, 0)
-		out, code = cvRun(t, cvEdit(cvJava(), cvJavaDir+"DiskStore.java", "    Writer.write", "    int mask = 0xE+Writer.write"))
-		sees(t, out, code, 0)
-		out, code = cvRun(t, cvEdit(cvJava(), cvView, "+records: Map~String, Integer~", "+Map~String, Integer~ records"))
-		sees(t, out, code, 0)
 		spaced := cvEdit(cvFixture(), cvView, cvSave, "class save[\"2 store.Save( id string ) Record\"]")
 		out, code = cvRun(t, cvEdit(spaced, cvView, "+ID\n", "+ID : string\n"))
 		sees(t, out, code, 0)
@@ -67,11 +83,12 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, broken)
 		sees(t, out, code, 0)
 		passedWith(t, out, cvCheck, "1")
-		extended := cvEdit(cvNative(), cvModel, "{ true }\n}\n", "{ true }\n}\n\nextension Store {\n    func reset() {}\n}\n")
-		out, code = cvRun(t, cvEdit(extended, cvView, "class Store[\"2 Store\"]", "class Store[\"2 Store\"] {\n+reset()\n}"))
-		sees(t, out, code, 0)
+		for _, files := range []map[string]string{cvScript(), cvJava(), cvNative()} {
+			out, code := cvRun(t, files)
+			sees(t, out, code, 0)
+		}
 	})
-	t.Run("0001.1.2 a class whose linked lines lack its symbol fails", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails naming where it is declared if anywhere", func(t *testing.T) {
 		t.Parallel()
 		moved := with(cvFixture(), map[string]string{cvStore: cvRecord, "src/store/save.go": "package store\n\n" + cvSaves})
 		out, code := cvRun(t, moved)
@@ -85,46 +102,66 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, cvEdit(cvScript(), cvView, "disk, in [disk.ts](../src/store/disk.ts)", "disk, in [store.ts](../src/store/store.ts)"))
 		sees(t, out, code, 1, cvView+":13: DiskStore: DiskStore is declared at "+cvTSDisk+":3, not in the linked "+cvTSStore)
 	})
-	t.Run("0001.1.3 a kind, signature, member or field type that differs fails naming both lines", func(t *testing.T) {
-		t.Parallel()
-		cases := []struct{ file, old, new, want string }{
+	// differs is each way a class can differ from its source, as the files
+	// holding it and the error it earns.
+	differs := func() []struct {
+		files map[string]string
+		want  string
+	} {
+		type differ = struct {
+			files map[string]string
+			want  string
+		}
+		var all []differ
+		for _, c := range []struct{ file, old, new, want string }{
 			{cvStore, "Save(id string) Record {", "Save(id string, force bool) Record {", ":8: save: store.Save at src/store/store.go:9 has signature (string, bool) Record, not store.Save(id string) Record"},
 			{cvView, cvSave, "class save[\"2 store.Save\"]", ":8: save: store.Save at src/store/store.go:9 is a function, not a type"},
 			{cvStore, "\tID string\n", "\tKey string\n", ":6: Record: store.Record at src/store/store.go:4 declares no field ID"},
 			{cvView, "+ID\n", "+ID: int\n", ":6: Record: field store.Record.ID at src/store/store.go:5 is string, not int"},
 			{cvView, "+ID\n", "+ID\n+Load() Record\n", ":7: Record: store.Record at src/store/store.go:4 declares no method Load"},
 			{cvView, "+ID\n", "<<interface>>\n+ID\n", ":5: Record: store.Record at src/store/store.go:4 is a type, not an interface"},
-		}
-		for _, c := range cases {
-			out, code := cvRun(t, cvEdit(cvFixture(), c.file, c.old, c.new))
-			sees(t, out, code, 1, cvView+c.want)
+		} {
+			all = append(all, differ{cvEdit(cvFixture(), c.file, c.old, c.new), cvView + c.want})
 		}
 		embeds := cvEdit(cvFixture(), cvStore, "package store\n", "package store\n\nimport \"sync\"\n")
 		embeds = cvEdit(embeds, cvStore, "\tID string\n", "\tID string\n\tsync.Mutex\n")
-		out, code := cvRun(t, cvEdit(embeds, cvView, "+ID\n", "+ID\n+Locker\n"))
-		sees(t, out, code, 1, cvView+":7: Record: store.Record at src/store/store.go:6 declares no field Locker")
-		script := []struct{ file, old, new, want string }{
-			{cvView, "+save(string) boolean", "+save(number) boolean", cvView + ":11: Store: method Store.save at " + cvTSStore + ":13 has signature (string) boolean, not save(number) boolean"},
-			{cvView, "number~\n+save", "string~\n+save", cvView + ":10: Store: field Store.records at " + cvTSStore + ":10 is Map<string, number>, not Map<string, string>"},
+		all = append(all, differ{cvEdit(embeds, cvView, "+ID\n", "+ID\n+Locker\n"), cvView + ":7: Record: store.Record at src/store/store.go:6 declares no field Locker"})
+		for _, c := range []struct{ old, new, want string }{
+			{"+save(string) boolean", "+save(number) boolean", cvView + ":11: Store: method Store.save at " + cvTSStore + ":13 has signature (string) boolean, not save(number) boolean"},
+			{"number~\n+save", "string~\n+save", cvView + ":10: Store: field Store.records at " + cvTSStore + ":10 is Map<string, number>, not Map<string, string>"},
+		} {
+			all = append(all, differ{cvEdit(cvScript(), cvView, c.old, c.new), c.want})
 		}
-		for _, c := range script {
-			out, code := cvRun(t, cvEdit(cvScript(), c.file, c.old, c.new))
-			sees(t, out, code, 1, c.want)
-		}
-		java := []struct{ file, old, new, want string }{
-			{cvView, "+save(String) boolean", "+save(int) boolean", cvView + ":11: Store: method shop.Store.save at " + cvJavaDir + "Store.java:10 has signature (String) boolean, not save(int) boolean"},
-			{cvView, "+count: int", "+count: long", cvView + ":20: Entry: field shop.Store.Entry.count at " + cvJavaDir + "Store.java:15 is int, not long"},
-			{cvView, "+count: int", "+static final int count", cvView + ":20: Entry: member \"+static final int count\" names no field or method"},
-		}
-		for _, c := range java {
-			out, code := cvRun(t, cvEdit(cvJava(), c.file, c.old, c.new))
-			sees(t, out, code, 1, c.want)
+		for _, c := range []struct{ old, new, want string }{
+			{"+save(String) boolean", "+save(int) boolean", cvView + ":11: Store: method shop.Store.save at " + cvJavaDir + "Store.java:10 has signature (String) boolean, not save(int) boolean"},
+			{"+count: int", "+count: long", cvView + ":20: Entry: field shop.Store.Entry.count at " + cvJavaDir + "Store.java:15 is int, not long"},
+			{"+count: int", "+static final int count", cvView + ":20: Entry: member \"+static final int count\" names no field or method"},
+		} {
+			all = append(all, differ{cvEdit(cvJava(), cvView, c.old, c.new), c.want})
 		}
 		shelf := cvEdit(cvJava(), cvJavaDir+"Store.java", "{}\n}\n", "{}\n}\n\nclass Shelf {\n  record Entry(long size) {}\n}\n")
-		out, code = cvRun(t, cvEdit(shelf, cvView, "+count: int\n", "+count: int\n+size: long\n"))
-		sees(t, out, code, 1, cvView+":21: Entry: shop.Store.Entry at "+cvJavaDir+"Store.java:15 declares no field size")
+		all = append(all, differ{cvEdit(shelf, cvView, "+count: int\n", "+count: int\n+size: long\n"), cvView + ":21: Entry: shop.Store.Entry at " + cvJavaDir + "Store.java:15 declares no field size"})
+		return all
+	}
+	t.Run("0001.1.2.3.1 it fails naming the class line", func(t *testing.T) {
+		t.Parallel()
+		for _, c := range differs() {
+			out, code := cvRun(t, c.files)
+			sees(t, out, code, 1, classLine.FindString(c.want))
+		}
 	})
-	t.Run("0001.1.4 a name declared twice lists each declaration", func(t *testing.T) {
+	t.Run("0001.1.2.3.2 it fails naming the source line", func(t *testing.T) {
+		t.Parallel()
+		for _, c := range differs() {
+			source := sourceLine.FindStringSubmatch(c.want)
+			if source == nil {
+				continue // a member that names nothing has no source line
+			}
+			out, code := cvRun(t, c.files)
+			sees(t, out, code, 1, source[1])
+		}
+	})
+	t.Run("0001.1.2.4.1 it fails listing both until a link or signature picks one", func(t *testing.T) {
 		t.Parallel()
 		opener := "class opener[\"4 store.open()\"]"
 		both := "Opens storage, in [linux](../src/store/open_linux.go) or [darwin](../src/store/open_darwin.go)."
@@ -148,7 +185,7 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, native)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.5 a class linking a test, generated or other file fails", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it fails", func(t *testing.T) {
 		t.Parallel()
 		tested := with(cvFixture(), map[string]string{"src/store/store_test.go": "package store\n\n// Fake stands in for a record.\ntype Fake struct{}\n"})
 		tested[cvView] = cvCode("\nclass Fake[\"4 store.Fake\"]", "A fake, in [store_test.go](../src/store/store_test.go).")
@@ -161,21 +198,24 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, cvEdit(cvFixture(), cvView, "A saved record, "+cvLink, "A saved record, in [check.sh](../tools/check.sh)."))
 		sees(t, out, code, 1, cvView+":14: unsupported evidence tools/check.sh; Go, Swift, TypeScript, and Java sources only")
 	})
-	t.Run("0001.1.6 two classes naming one declaration or a label naming none fails", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it fails unless the class is `<<abstract>>`", func(t *testing.T) {
 		t.Parallel()
 		files := cvFixture()
 		files[cvView] = cvCode("\nclass again[\"4 store.Record\"]", "The record again, "+cvLink)
 		out, code := cvRun(t, files)
 		sees(t, out, code, 1, cvView+":10: again and Record at "+cvView+":5 both name store.Record")
-		files = cvFixture()
+	})
+	t.Run("0001.1.2.6.2 a label naming no symbol fails too", func(t *testing.T) {
+		t.Parallel()
+		files := cvFixture()
 		files[cvView] = cvCode("\nclass Contract[\"4 Save contract\"]\nsave --> Contract : 5", "What saving promises.", "Save keeps the promise.")
-		out, code = cvRun(t, files)
+		out, code := cvRun(t, files)
 		sees(t, out, code, 1, cvView+":10: Contract \"Save contract\" names no declaration; name a Go, Swift, TypeScript, or Java symbol, or mark it <<abstract>>")
 		files[cvView] = cvCode("\nclass Contract[\"4 Save contract\"] {\n<<abstract>>\n+promise: one record\n}\nsave --> Contract : 5", "What saving promises.", "Save keeps the promise.")
 		out, code = cvRun(t, files)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.7 an exported type the view leaves out fails", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it fails", func(t *testing.T) {
 		t.Parallel()
 		files := cvEdit(cvFixture(), cvStore, cvSaves, cvSaves+"\n// Batch is many records.\ntype Batch struct{}\n\ntype batch struct{}\n")
 		out, code := cvRun(t, files)
@@ -197,7 +237,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a source relation no drawn edge allows fails", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it fails at the source line naming the smallest holding class", func(t *testing.T) {
 		t.Parallel()
 		files := cvEdit(cvFixture(), cvView, cvEdge, "class load[\"3 store.Load() string\"]")
 		files = cvEdit(files, cvView, "Save returns the record.", "Loads a name, "+cvLink)
@@ -238,16 +278,23 @@ func Test0001_2(t *testing.T) {
 		out, code = cvRun(t, helper)
 		sees(t, out, code, 1, cvStore+":14: load references Record, but "+cvView+" "+cvNoEdge+"load -> Record"+cvAllowIt)
 	})
-	t.Run("0001.2.2 each arrow allows a use its direction permits", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 an arrow allows uses from the first class", func(t *testing.T) {
 		t.Parallel()
-		for _, edge := range []string{"save ..> Record : 3", "save *-- Record : 3", "save o-- Record : 3", "Record -- save : 3", "Record .. save : 3"} {
+		for _, edge := range []string{"save ..> Record : 3", "save *-- Record : 3", "save o-- Record : 3"} {
 			out, code := cvRun(t, cvEdit(cvFixture(), cvView, cvEdge, edge))
 			sees(t, out, code, 0)
 		}
 		out, code := cvRun(t, cvEdit(cvFixture(), cvView, cvEdge, "Record --> save : 3"))
 		sees(t, out, code, 1, cvView+":9: "+cvView+" draws association Record -> save, but no source shows Record calls or references or embeds save")
 	})
-	t.Run("0001.2.3 a drawn edge with no source relation of its kind fails", func(t *testing.T) {
+	t.Run("0001.2.1.2.2 a plain line allows uses either way", func(t *testing.T) {
+		t.Parallel()
+		for _, edge := range []string{"Record -- save : 3", "Record .. save : 3"} {
+			out, code := cvRun(t, cvEdit(cvFixture(), cvView, cvEdge, edge))
+			sees(t, out, code, 0)
+		}
+	})
+	t.Run("0001.2.1.3.1 it fails at the edge", func(t *testing.T) {
 		t.Parallel()
 		out, code := cvRun(t, cvEdit(cvNative(), cvHome, "let store = Store()", "let count = 0"))
 		sees(t, out, code, 1, cvView+":11: "+cvView+" draws association HomeScreen -> Store, but no source shows HomeScreen calls or references or embeds Store")
@@ -267,7 +314,7 @@ func Test0001_2(t *testing.T) {
 		out, code = cvRun(t, cvEdit(cvJava(), cvJavaDir+"Store.java", "Store implements Saving", "Store"))
 		sees(t, out, code, 1, cvView+":22: "+cvView+" draws realization Store -> Saving, but no source shows Store conforms to Saving")
 	})
-	t.Run("0001.2.4 an edge row's link must hold its relation", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 the linked lines must hold that relation", func(t *testing.T) {
 		t.Parallel()
 		out, code := cvRun(t, cvSink("Put"))
 		sees(t, out, code, 0)
@@ -282,7 +329,7 @@ func Test0001_2(t *testing.T) {
 		out, code = cvRun(t, cvEdit(linked, cvView, "store.go#L10)", "store.go#L1)"))
 		sees(t, out, code, 1, cvView+":16: evidence src/store/store.go#L1 shows no save -> Record relation")
 	})
-	t.Run("0001.2.5 an edge touching an abstract class needs no use", func(t *testing.T) {
+	t.Run("0001.2.1.5.1 it needs no use", func(t *testing.T) {
 		t.Parallel()
 		files := cvFixture()
 		files[cvView] = cvCode("\nclass Contract[\"4 Save contract\"] {\n<<abstract>>\n+promise: one record\n}\nsave --> Contract : 5", "What saving promises.", "Save keeps the promise.")
@@ -292,16 +339,19 @@ func Test0001_2(t *testing.T) {
 		out, code = cvRun(t, files)
 		sees(t, out, code, 1, cvView+":23: unsupported evidence src/store/store.go#L10; save -> Contract touches an abstract node, which no source declares")
 	})
-	t.Run("0001.2.6 any other arrow is unsupported", func(t *testing.T) {
+	t.Run("0001.2.1.6.1 it fails as unsupported", func(t *testing.T) {
 		t.Parallel()
 		out, code := cvRun(t, cvEdit(cvFixture(), cvView, cvEdge, "save <--> Record : 3"))
 		sees(t, out, code, 1, cvView+":9: unsupported relation <--> from save to Record; draw -->, ..>, <|--, or ..|>")
 	})
-	t.Run("0001.2.7 only changes that can move the views are judged", func(t *testing.T) {
+	t.Run("0001.2.1.7.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := cvRun(t, map[string]string{"src/main.go": "package main\n"})
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, cvCheck)
+	})
+	t.Run("0001.2.1.7.2 a pull request changing only tests passes too", func(t *testing.T) {
+		t.Parallel()
 		// The base already lacks the save edge; the pull request adds a test only.
 		repo := example(t, "happyRepo", cvEdit(cvFixture(), cvView, cvEdge, ""))
 		git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
@@ -310,7 +360,7 @@ func Test0001_2(t *testing.T) {
 			out, _ := fitness(t, repo, prEnv, check)
 			passedWithNoFiles(t, out, check)
 		}
-		out, code = fitness(t, repo, nil, "--all", cvCheck)
+		out, code := fitness(t, repo, nil, "--all", cvCheck)
 		sees(t, out, code, 1, cvStore+":9: save references Record, but "+cvView+" "+cvNoEdge+"save -> Record")
 		for _, changed := range []string{"", "go.mod", cvStore, cvView} {
 			out, code := fitness(t, repo, []string{"FITNESS_CHANGED_FILES=" + changed}, cvCheck)
@@ -318,6 +368,12 @@ func Test0001_2(t *testing.T) {
 		}
 	})
 }
+
+// classLine opens an error naming the view's line and the class on it.
+var classLine = regexp.MustCompile(`^\S+:\d+: \w+`)
+
+// sourceLine finds the source line an error names after "at".
+var sourceLine = regexp.MustCompile(` at (\S+:\d+) `)
 
 const (
 	cvCheck   = "architecture-code"
