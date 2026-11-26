@@ -39,15 +39,28 @@ func repeat(file, text string, level int) string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a level repeating its parent description fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := bleed(t, map[string]string{
+	parent := func(t *testing.T) (string, int) {
+		return bleed(t, map[string]string{
 			"docs/architecture/01-context.md":    doc("User reads the timeline"),
 			"docs/architecture/02-containers.md": doc("User reads the timeline", "New detail"),
 		})
+	}
+	t.Run("0001.1.2.1.1 it fails naming the file", func(t *testing.T) {
+		t.Parallel()
+		out, code := parent(t)
+		acceptance.Sees(t, out, code, 1, "docs/architecture/02-containers.md: description")
+	})
+	t.Run("0001.1.2.1.2 it names the text", func(t *testing.T) {
+		t.Parallel()
+		out, code := parent(t)
+		acceptance.Sees(t, out, code, 1, `description "user reads the timeline" repeats`)
+	})
+	t.Run("0001.1.2.1.3 it names the level", func(t *testing.T) {
+		t.Parallel()
+		out, code := parent(t)
 		acceptance.Sees(t, out, code, 1, repeat("docs/architecture/02-containers.md", "user reads the timeline", 1))
 	})
-	t.Run("0001.1.2 a case or spacing repeat is reported once", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it is reported once", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md": doc("The app"),
@@ -59,7 +72,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("the repeat must be reported once, got %d:\n%s", n, out)
 		}
 	})
-	t.Run("0001.1.3 distinct or blank descriptions pass", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 the levels pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md":    doc("The whole system", ""),
@@ -67,7 +80,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 level one sharing text with level three passes", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 they pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md":    doc("Shared line"),
@@ -76,19 +89,27 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 level two sharing text with level ten compares as adjacent", func(t *testing.T) {
-		t.Parallel()
-		out, code := bleed(t, map[string]string{
+	deep := func(t *testing.T) (string, int) {
+		return bleed(t, map[string]string{
 			"architecture/2-app.md":   doc("The engine"),
 			"architecture/10-deep.md": doc("The engine"),
 		})
+	}
+	t.Run("0001.1.2.5.1 they compare as adjacent", func(t *testing.T) {
+		t.Parallel()
+		out, code := deep(t)
+		acceptance.Sees(t, out, code, 1, "repeats level 2 verbatim")
+	})
+	t.Run("0001.1.2.5.2 the repeat fails", func(t *testing.T) {
+		t.Parallel()
+		out, code := deep(t)
 		acceptance.Sees(t, out, code, 1, repeat("architecture/10-deep.md", "the engine", 2))
 	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 Markdown outside numbered level files passes with no files", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 the check passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/overview.md":    doc("Anything"),
@@ -101,7 +122,7 @@ func Test0001_2(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "mermaid-level-bleed")
 	})
-	t.Run("0001.2.2 the Description header column is compared", func(t *testing.T) {
+	t.Run("0001.2.2.2.1 only that column is compared", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md": "| # | Label | DESCRIPTION |\n| --- | --- | --- |\n| 1 | Same label | The system |\n",
@@ -112,7 +133,7 @@ func Test0001_2(t *testing.T) {
 			t.Errorf("only the Description column may be compared:\n%s", out)
 		}
 	})
-	t.Run("0001.2.3 a missing Description header uses the second column", func(t *testing.T) {
+	t.Run("0001.2.2.3.1 only its second column is compared", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md": "| # | Text | Notes |\n| --- | --- | --- |\n| 1 | Same | x |\n",
