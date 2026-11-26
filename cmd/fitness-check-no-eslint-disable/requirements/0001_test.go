@@ -32,25 +32,48 @@ func check(t *testing.T, files map[string]string) (string, int) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 every directive form is listed with its file line and directive", func(t *testing.T) {
-		t.Parallel()
-		legacy := "export const x = 1;\n" + next + "console.log(x);\n" +
+	legacy := func(t *testing.T) (string, int) {
+		source := "export const x = 1;\n" + next + "console.log(x);\n" +
 			"const y = 2; // eslint-disable-line\n/* eslint-disable */\n"
-		out, code := check(t, map[string]string{"src/legacy.ts": legacy})
-		acceptance.Sees(t, out, code, 1,
-			"src/legacy.ts:2: eslint-disable-next-line",
-			"src/legacy.ts:4: eslint-disable-line",
-			"src/legacy.ts:5: eslint-disable")
-	})
-	t.Run("0001.1.2 files without directives pass and count", func(t *testing.T) {
+		return check(t, map[string]string{"src/legacy.ts": source})
+	}
+	t.Run("0001.1.2.1.1 it fails once per hit", func(t *testing.T) {
 		t.Parallel()
-		out, code := check(t, map[string]string{
+		out, code := legacy(t)
+		acceptance.Sees(t, out, code, 1, "src/legacy.ts:2:", "src/legacy.ts:4:", "src/legacy.ts:5:")
+	})
+	t.Run("0001.1.2.1.2 each hit names its `file:line`", func(t *testing.T) {
+		t.Parallel()
+		out, code := legacy(t)
+		acceptance.Sees(t, out, code, 1, "src/legacy.ts:2: ", "src/legacy.ts:4: ", "src/legacy.ts:5: ")
+	})
+	t.Run("0001.1.2.1.3 each hit names its directive", func(t *testing.T) {
+		t.Parallel()
+		out, code := legacy(t)
+		acceptance.Sees(t, out, code, 1, ": eslint-disable-next-line", ": eslint-disable-line", ": eslint-disable")
+	})
+	t.Run("0001.1.2.1.4 `eslint-disable-line` or `eslint-disable-next-line` counts as a hit", func(t *testing.T) {
+		t.Parallel()
+		out, code := legacy(t)
+		acceptance.Sees(t, out, code, 1, "src/legacy.ts:2: eslint-disable-next-line", "src/legacy.ts:4: eslint-disable-line")
+	})
+	clean := func(t *testing.T) (string, int) {
+		return check(t, map[string]string{
 			"src/a.ts": "export const a = 1;\n",
 			"src/b.js": "export const b = 2;\n",
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
+	}
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := clean(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 directive text in strings fails in every extension", func(t *testing.T) {
+	t.Run("0001.1.2.2.2 it counts the files scanned", func(t *testing.T) {
+		t.Parallel()
+		out, code := clean(t)
+		acceptance.Sees(t, out, code, 0, "2 files scanned")
+	})
+	t.Run("0001.1.2.3.1 it fails like any other hit", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{}
 		var want []string
@@ -61,7 +84,7 @@ func Test0001_1(t *testing.T) {
 		out, code := check(t, files)
 		acceptance.Sees(t, out, code, 1, append(want, "7 files scanned")...)
 	})
-	t.Run("0001.1.4 directive text in Markdown passes", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 the file passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := check(t, map[string]string{
 			"docs/lint.md": "Never write " + next,
@@ -69,13 +92,13 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 	})
-	t.Run("0001.1.5 a repo with no source passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 the check passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := check(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "no-eslint-disable")
 	})
-	t.Run("0001.1.6 node_modules and dist are scanned", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it fails like any other folder", func(t *testing.T) {
 		t.Parallel()
 		out, code := check(t, map[string]string{
 			"node_modules/pkg/index.js": "/* eslint-disable */\n",
@@ -91,14 +114,14 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a directive file that is untracked passes", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"src/a.ts": "export const a = 1;\n"})
 		acceptance.Write(t, repo, map[string]string{"src/scratch.ts": next})
 		out, code := run(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
 	})
-	t.Run("0001.2.2 a scan of staged files reads only the staged file", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 only that file is scanned", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"src/old.ts": next})
 		acceptance.Write(t, repo, map[string]string{"src/new.ts": "export const a = 1;\n"})

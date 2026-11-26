@@ -27,7 +27,7 @@ func docsRepo(files map[string]string) map[string]string {
 	return repo
 }
 
-// docs runs `fitness-install -- markdown-filename-camel-case` on happyRepo with files written
+// docs runs `fitness-install -- markdown-filename-camelCase` on happyRepo with files written
 // over it.
 func docs(t *testing.T, files map[string]string) (string, int) {
 	t.Helper()
@@ -44,12 +44,12 @@ var exempt = map[string]string{
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a hyphenated name fails naming the case", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it fails as `path: filename must be camelCase`", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(map[string]string{"docs/api-design.md": "# API\n"}))
 		acceptance.Sees(t, out, code, 1, "docs/api-design.md: filename must be camelCase")
 	})
-	t.Run("0001.1.2 snake case and PascalCase names fail", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 each fails as `path: filename must be camelCase`", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(map[string]string{
 			"docs/api_design.md": "# API\n",
@@ -57,17 +57,17 @@ func Test0001_1(t *testing.T) {
 		}))
 		acceptance.Sees(t, out, code, 1, "docs/api_design.md: filename must be camelCase", "docs/ApiDesign.md: filename must be camelCase")
 	})
-	t.Run("0001.1.3 camelCase names pass", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(nil))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 a camelCase doc in a capitalized folder passes", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it passes since only the basename is judged", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(map[string]string{"Guides/Api_Docs/apiDesign.md": "# API\n"}))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 a staged hyphenated doc fails alone", func(t *testing.T) {
+	t.Run("0001.1.1.5.1 it fails that doc alone", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", docsRepo(map[string]string{
 			"docs/old-notes.md": "# Old\n",
@@ -81,16 +81,21 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("only the staged file may be judged:\n%s", out)
 		}
 	})
-	t.Run("0001.1.6 standard and GitHub named docs pass", func(t *testing.T) {
+	t.Run("0001.1.1.6.1 it passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := docs(t, docsRepo(exempt))
+		out, code := docs(t, docsRepo(map[string]string{"CODE_OF_CONDUCT.md": exempt["CODE_OF_CONDUCT.md"], "docs/AGENTS.md": exempt["docs/AGENTS.md"]}))
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.1.6.2 a GitHub template name passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := docs(t, docsRepo(map[string]string{".github/pull_request_template.md": exempt[".github/pull_request_template.md"], "docs/issue_template.md": exempt["docs/issue_template.md"]}))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a mostly hyphenated repo passes with no files", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, map[string]string{
 			"docs/api-design.md":   "# API\n",
@@ -100,12 +105,20 @@ func Test0001_2(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, check)
 	})
-	t.Run("0001.2.2 a tie between hyphens or capitals goes to kebab-case then passes with no files", func(t *testing.T) {
-		t.Parallel()
-		out, code := docs(t, map[string]string{
+	tie := func(t *testing.T) (string, int) {
+		return docs(t, map[string]string{
 			"docs/api-design.md":   "# API\n",
 			"docs/releaseNotes.md": "# Release notes\n",
 		})
+	}
+	t.Run("0001.2.1.2.1 kebab-case wins", func(t *testing.T) {
+		t.Parallel()
+		out, code := tie(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.2.2 it passes with no files", func(t *testing.T) {
+		t.Parallel()
+		out, code := tie(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, check)
 	})

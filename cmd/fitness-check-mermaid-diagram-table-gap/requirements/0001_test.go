@@ -42,17 +42,17 @@ func finding(file, line string) string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a paragraph in the gap from diagram to table fails", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming the line", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, prose, table)})
 		acceptance.Sees(t, out, code, 1, finding("doc.md", "8"))
 	})
-	t.Run("0001.1.2 a paragraph in the gap from legend to table fails", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails naming the line", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, legend, prose, table)})
 		acceptance.Sees(t, out, code, 1, finding("doc.md", "13"))
 	})
-	t.Run("0001.1.3 a caption starting with Numbers then matching the table passes", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 the diagram passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{
 			"a.md": doc(diagram, legend, caption, table),
@@ -61,15 +61,20 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 a paragraph after the caption fails but not the caption", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails naming that line", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, legend, caption, prose, table)})
 		acceptance.Sees(t, out, code, 1, finding("doc.md", "15"))
+	})
+	t.Run("0001.1.2.4.2 the caption is not named", func(t *testing.T) {
+		t.Parallel()
+		out, code := gap(t, map[string]string{"doc.md": doc(diagram, legend, caption, prose, table)})
+		acceptance.Sees(t, out, code, 1)
 		if strings.Contains(acceptance.Read(out), acceptance.Read(finding("doc.md", "13"))) {
 			t.Errorf("the caption at line 13 must not be flagged:\n%s", out)
 		}
 	})
-	t.Run("0001.1.5 prose outside the gap passes", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 the diagram passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{
 			"a.md": doc("Intro prose before the diagram.", diagram, caption, table, "Trailing prose after the table."),
@@ -77,13 +82,20 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.6 a file with no diagram is skipped", func(t *testing.T) {
+	noDiagram := func(t *testing.T) (string, int) {
+		return gap(t, map[string]string{"doc.md": doc("Just prose, nothing to see here.")})
+	}
+	t.Run("0001.1.2.6.1 it is skipped", func(t *testing.T) {
 		t.Parallel()
-		out, code := gap(t, map[string]string{"doc.md": doc("Just prose, nothing to see here.")})
+		out, code := noDiagram(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.2.6.2 it is not counted", func(t *testing.T) {
+		t.Parallel()
+		out, _ := noDiagram(t)
 		acceptance.PassedWithNoFiles(t, out, "mermaid-diagram-table-gap")
 	})
-	t.Run("0001.1.7 a PR body paragraph in the gap fails naming the description", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it fails naming `(description)`", func(t *testing.T) {
 		t.Parallel()
 		body := strings.Join([]string{diagram, prose, table}, "\n\n") + "\n"
 		out, code := gap(t, map[string]string{"body.md": body}, "--body-file", "body.md")

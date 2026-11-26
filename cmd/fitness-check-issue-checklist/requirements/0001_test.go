@@ -15,25 +15,28 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 unchecked items fail, each quoted", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails with one error per item quoting its text", func(t *testing.T) {
 		t.Parallel()
 		out, code := checklist(t, "- [x] Write the doc.\n- [ ] Write the tests.\n- [ ] Ship it.\n")
 		acceptance.Sees(t, out, code, 1, `unchecked item: "Write the tests."`, `unchecked item: "Ship it."`)
 	})
-	t.Run("0001.1.2 ticked items and no list pass", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := checklist(t, "- [x] Write the doc.\n- [x] Write the tests.\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "issue-checklist", "1")
-		out, code = checklist(t, "Just a description.\n")
+	})
+	t.Run("0001.1.2.2.2 a body with no task list passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := checklist(t, "Just a description.\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 items inside fenced code never count", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it never counts since it is an example", func(t *testing.T) {
 		t.Parallel()
 		out, code := checklist(t, "- [x] Write the doc.\n\n```\n- [ ] An example item.\n```\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 no input passes with zero files checked", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it passes with zero files checked", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "issue-checklist")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")

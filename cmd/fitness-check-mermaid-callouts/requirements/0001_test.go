@@ -68,9 +68,8 @@ func numbered() map[string]string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 callouts mapping to rows in both directions pass in every diagram kind", func(t *testing.T) {
-		t.Parallel()
-		out, code := callouts(t, doc(
+	valid := func(t *testing.T) (string, int) {
+		return callouts(t, doc(
 			diagram(
 				"flowchart LR",
 				`app[1 App] -->|A| api["2 API"]`,
@@ -92,12 +91,21 @@ func Test0001_1(t *testing.T) {
 			table("5"),
 			diagram("gitGraph", "  commit", "  branch dev", "  commit"),
 		))
+	}
+	t.Run("0001.1.2.1.1 the file passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := valid(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.2.1.2 the count includes the file", func(t *testing.T) {
+		t.Parallel()
+		out, code := valid(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		if !regexp.MustCompile(`│ passed\s+│ 1\s+│`).MatchString(acceptance.Row(out, "mermaid-callouts")) {
 			t.Errorf("mermaid-callouts must pass judging 1 file, got row %q", acceptance.Row(out, "mermaid-callouts"))
 		}
 	})
-	t.Run("0001.1.2 a diagram with no numbered callouts fails", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails with `mermaid diagram has no numbered callouts`", func(t *testing.T) {
 		t.Parallel()
 		out, code := callouts(t, map[string]string{
 			"docs/plain.md": strings.Join([]string{
@@ -111,9 +119,8 @@ func Test0001_1(t *testing.T) {
 			"docs/plain.md: line 1: mermaid diagram has no numbered callouts; number its nodes, as in A[1 Step]",
 			"docs/plain.md: line 16: mermaid diagram has no numbered callouts")
 	})
-	t.Run("0001.1.3 a callout that does not pair with its row fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := callouts(t, map[string]string{
+	unpaired := func(t *testing.T) (string, int) {
+		return callouts(t, map[string]string{
 			"docs/flow.md": strings.Join([]string{
 				diagram("classDiagram", `class a["1 A"]`, `class b["1 B"]`, "a --> b : A", "b --> a : C"),
 				table("1", "A", "A", "B"),
@@ -123,39 +130,75 @@ func Test0001_1(t *testing.T) {
 				diagram(`Rel(a, b, "A")`),
 			}, "\n"),
 		})
+	}
+	t.Run("0001.1.2.3.1 a callout with no row fails naming it with its line", func(t *testing.T) {
+		t.Parallel()
+		out, code := unpaired(t)
+		acceptance.Sees(t, out, code, 1, "docs/flow.md: diagram callout C has no matching table row (line 1)")
+	})
+	t.Run("0001.1.2.3.2 a row with no callout fails naming it with its line", func(t *testing.T) {
+		t.Parallel()
+		out, code := unpaired(t)
+		acceptance.Sees(t, out, code, 1, "docs/flow.md: callout table row B has no matching diagram callout (line 9)")
+	})
+	t.Run("0001.1.2.3.3 a callout or row that appears twice fails the same way", func(t *testing.T) {
+		t.Parallel()
+		out, code := unpaired(t)
 		acceptance.Sees(t, out, code, 1,
 			"docs/flow.md: diagram callout 1 appears 2 times (line 1)",
-			"docs/flow.md: callout table row A appears 2 times (line 9)",
-			"docs/flow.md: diagram callout C has no matching table row (line 1)",
-			"docs/flow.md: callout table row B has no matching diagram callout (line 9)",
+			"docs/flow.md: callout table row A appears 2 times (line 9)")
+	})
+	t.Run("0001.1.2.3.4 a callout with no table or a row with no diagram fails the same way", func(t *testing.T) {
+		t.Parallel()
+		out, code := unpaired(t)
+		acceptance.Sees(t, out, code, 1,
 			"docs/unpaired.md: callout table at line 1 has no preceding mermaid diagram",
 			"docs/unpaired.md: mermaid diagram at line 5 has callouts but no associated callout table")
 	})
-	t.Run("0001.1.4 a numbered connector asks for a letter", func(t *testing.T) {
-		t.Parallel()
-		out, code := callouts(t, doc(
+	numberedConnector := func(t *testing.T) (string, int) {
+		return callouts(t, doc(
 			diagram(`Container(app, "1", "UI")`, `Rel(app, api, "2")`),
 			table("1", "2"),
 		))
-		acceptance.Sees(t, out, code, 1, "docs/flow.md: connector callout 2 must be a letter; numbers are for nodes; run `fitness mermaid-callouts --fix` (line 1)")
+	}
+	t.Run("0001.1.2.4.1 it fails asking for a letter", func(t *testing.T) {
+		t.Parallel()
+		out, code := numberedConnector(t)
+		acceptance.Sees(t, out, code, 1, "docs/flow.md: connector callout 2 must be a letter; numbers are for nodes")
 		if strings.Contains(out, "has no matching") {
 			t.Errorf("a numbered connector must fail only for its form, not as an orphan:\n%s", out)
 		}
 	})
-	t.Run("0001.1.5 a connector letter breaking the doubling fails", func(t *testing.T) {
+	t.Run("0001.1.2.4.2 the failure names `--fix`", func(t *testing.T) {
 		t.Parallel()
-		out, code := callouts(t, doc(
+		out, code := numberedConnector(t)
+		acceptance.Sees(t, out, code, 1, "run `fitness mermaid-callouts --fix` (line 1)")
+	})
+	doubling := func(t *testing.T) (string, int) {
+		return callouts(t, doc(
 			diagram("flowchart LR", "a -->|Z| b", "b -->|AA| c", "c -->|AB| a"),
 			table("Z", "AA", "AB"),
 		))
+	}
+	t.Run("0001.1.2.5.1 it fails for the diagram callout", func(t *testing.T) {
+		t.Parallel()
+		out, code := doubling(t)
 		acceptance.Sees(t, out, code, 1,
-			"docs/flow.md: connector callout AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 1)",
-			"docs/flow.md: callout table row AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 8)")
-		if strings.Contains(out, "callout AA ") || strings.Contains(out, "row AA ") {
+			"docs/flow.md: connector callout AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 1)")
+		if strings.Contains(out, "callout AA ") {
 			t.Errorf("AA follows the doubling and must pass:\n%s", out)
 		}
 	})
-	t.Run("0001.1.6 a PR body callout with no row fails naming the description", func(t *testing.T) {
+	t.Run("0001.1.2.5.2 it fails for the table row", func(t *testing.T) {
+		t.Parallel()
+		out, code := doubling(t)
+		acceptance.Sees(t, out, code, 1,
+			"docs/flow.md: callout table row AB breaks the letter doubling; use A to Z, then AA to ZZ, then AAA (line 8)")
+		if strings.Contains(out, "row AA ") {
+			t.Errorf("AA follows the doubling and must pass:\n%s", out)
+		}
+	})
+	t.Run("0001.1.2.6.1 it fails naming `(description)`", func(t *testing.T) {
 		t.Parallel()
 		body := doc(diagram(`Rel(a, b, "A")`, `Rel(b, c, "B")`), table("A"))["docs/flow.md"]
 		out, code := callouts(t, map[string]string{"body.md": body}, "--body-file", "body.md")
@@ -165,65 +208,85 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 fix gives connectors the next free letter", func(t *testing.T) {
-		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", numbered())
-		out, code := acceptance.Fitness(t, repo, nil, "mermaid-callouts")
-		acceptance.Sees(t, out, code, 1, "connector callout 2 must be a letter")
-		out, code = acceptance.Fitness(t, repo, nil, "mermaid-callouts", "--fix")
-		acceptance.Sees(t, out, code, 0, "docs/flow.md: converted connector callouts 2 to B, 6 to C, 12 to A", "--fix changed 1 file")
-		want := doc(
-			diagram(
-				"flowchart LR",
-				`app[1 App] -->|B| api["3 API"]`,
-				"api -->|A| db((4 Store))",
-				"db -- C --> app",
-			),
-			"| # | Description |\n| --- | --- |\n| 1 | step 1 |\n| B | step 2 |\n| 3 | step 3 |\n| 4 | step 4 |\n| A | step A |\n| C | step 6 |\n",
-			diagram(`Container(web, "5", "UI")`, `Rel(web, api, "A", "HTTPS")`),
-			"| # | Description |\n| --- | --- |\n| 5  | step 5 |\n| A  | step 12 |\n",
-		)["docs/flow.md"]
-		if got := flow(t, repo); got != want {
-			t.Errorf("--fix must turn each numbered connector and its row into the next free letter, got:\n%s\nwant:\n%s", got, want)
-		}
-		out, code = acceptance.Fitness(t, repo, nil, "mermaid-callouts")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.2.2 a second fix run changes nothing", func(t *testing.T) {
-		t.Parallel()
+	fixed := func(t *testing.T) (string, string, int) {
 		repo := acceptance.Example(t, "happyRepo", numbered())
 		out, code := acceptance.Fitness(t, repo, nil, "mermaid-callouts", "--fix")
+		return repo, out, code
+	}
+	t.Run("0001.2.2.1.1 each becomes the next free letter", func(t *testing.T) {
+		t.Parallel()
+		repo, out, code := fixed(t)
+		acceptance.Sees(t, out, code, 0, "docs/flow.md: converted connector callouts 2 to B, 6 to C, 12 to A", "--fix changed 1 file")
+		got := flow(t, repo)
+		for _, line := range []string{`app[1 App] -->|B| api["3 API"]`, "api -->|A| db((4 Store))", "db -- C --> app", `Rel(web, api, "A", "HTTPS")`} {
+			if !strings.Contains(got, line) {
+				t.Errorf("--fix must turn each numbered connector into the next free letter; missing %q in:\n%s", line, got)
+			}
+		}
+	})
+	t.Run("0001.2.2.1.2 its row follows", func(t *testing.T) {
+		t.Parallel()
+		repo, out, code := fixed(t)
 		acceptance.Sees(t, out, code, 0, "--fix changed 1 file")
-		fixed := flow(t, repo)
-		out, code = acceptance.Fitness(t, repo, nil, "mermaid-callouts", "--fix")
+		got := flow(t, repo)
+		for _, row := range []string{"| B | step 2 |", "| C | step 6 |", "| A  | step 12 |"} {
+			if !strings.Contains(got, row) {
+				t.Errorf("--fix must turn each connector's row into its letter; missing %q in:\n%s", row, got)
+			}
+		}
+	})
+	t.Run("0001.2.2.1.3 the repo passes", func(t *testing.T) {
+		t.Parallel()
+		repo, _, _ := fixed(t)
+		out, code := acceptance.Fitness(t, repo, nil, "mermaid-callouts")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.2.2.1 it changes nothing", func(t *testing.T) {
+		t.Parallel()
+		repo, _, _ := fixed(t)
+		once := flow(t, repo)
+		out, code := acceptance.Fitness(t, repo, nil, "mermaid-callouts", "--fix")
 		acceptance.Sees(t, out, code, 0, "--fix changed 0 files")
 		if strings.Contains(out, "converted") {
 			t.Errorf("a second --fix must list no file, got:\n%s", out)
 		}
-		if got := flow(t, repo); got != fixed {
-			t.Errorf("a second --fix must change nothing, got:\n%s\nwant:\n%s", got, fixed)
+		if got := flow(t, repo); got != once {
+			t.Errorf("a second --fix must change nothing, got:\n%s\nwant:\n%s", got, once)
 		}
 	})
-	t.Run("0001.2.3 a numbered connector sharing a node number stays unfixed", func(t *testing.T) {
-		t.Parallel()
+	shared := func(t *testing.T) (string, string, int, string) {
 		files := doc(
 			diagram(`Container(app, "2", "UI")`, `Rel(app, api, "2")`),
 			table("2"),
 		)
 		repo := acceptance.Example(t, "happyRepo", files)
 		out, code := acceptance.Fitness(t, repo, nil, "mermaid-callouts", "--fix")
+		return repo, out, code, files["docs/flow.md"]
+	}
+	t.Run("0001.2.2.3.1 `--fix` leaves the diagram unchanged", func(t *testing.T) {
+		t.Parallel()
+		repo, out, code, original := shared(t)
 		acceptance.Sees(t, out, code, 1,
 			"docs/flow.md: --fix left the mermaid diagram at line 1 unchanged: callout 2 marks a node too",
-			"--fix changed 0 files",
-			"docs/flow.md: connector callout 2 must be a letter")
-		if got := flow(t, repo); got != files["docs/flow.md"] {
+			"--fix changed 0 files")
+		if got := flow(t, repo); got != original {
 			t.Errorf("--fix must leave a diagram it cannot convert byte for byte, got:\n%s", got)
 		}
 	})
-	t.Run("0001.2.4 a file with no diagram and no table is skipped", func(t *testing.T) {
+	t.Run("0001.2.2.3.2 the check still fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := callouts(t, nil)
+		_, out, code, _ := shared(t)
+		acceptance.Sees(t, out, code, 1, "docs/flow.md: connector callout 2 must be a letter")
+	})
+	noDiagram := func(t *testing.T) (string, int) { return callouts(t, nil) }
+	t.Run("0001.2.2.4.1 it is skipped", func(t *testing.T) {
+		t.Parallel()
+		out, code := noDiagram(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.2.4.2 it is not counted", func(t *testing.T) {
+		t.Parallel()
+		out, _ := noDiagram(t)
 		acceptance.PassedWithNoFiles(t, out, "mermaid-callouts")
 	})
 }

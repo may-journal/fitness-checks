@@ -4,6 +4,7 @@
 package requirements
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
@@ -30,52 +31,104 @@ func readmeWith(body string) map[string]string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a link to a missing file fails naming file and line", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it fails as `path:line: broken relative link: target`", func(t *testing.T) {
 		t.Parallel()
 		out, code := markdownLinks(t, readmeWith(`See [the guide](gone.md "Guide") and [home](README.md).`+"\n"))
 		acceptance.Sees(t, out, code, 1, "README.md:9: broken relative link: gone.md")
 	})
-	t.Run("0001.1.2 a missing sibling is resolved from its folder", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 it fails resolving the target from that subfolder", func(t *testing.T) {
 		t.Parallel()
 		out, code := markdownLinks(t, map[string]string{"docs/guide.md": "# Guide\n\nSee [setup](setup.md#install).\n"})
 		acceptance.Sees(t, out, code, 1, "docs/guide.md:3: broken relative link: setup.md#install")
 	})
-	t.Run("0001.1.3 an image and a reference definition to a missing file fail", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 it fails naming the image", func(t *testing.T) {
 		t.Parallel()
-		out, code := markdownLinks(t, readmeWith("![Logo](logo.png)\n\n[spec]: spec.md\n"))
-		acceptance.Sees(t, out, code, 1, "README.md:9: broken relative link: logo.png", "README.md:11: broken relative link: spec.md")
+		out, code := markdownLinks(t, readmeWith("![Logo](logo.png)\n"))
+		acceptance.Sees(t, out, code, 1, "README.md:9: broken relative link: logo.png")
 	})
-	t.Run("0001.1.4 markdown and mdx endings count", func(t *testing.T) {
+	t.Run("0001.1.1.3.2 a reference definition fails alike", func(t *testing.T) {
 		t.Parallel()
-		out, code := markdownLinks(t, map[string]string{
-			"docs/guide.markdown": "# Guide\n\nSee [setup](setup.md).\n",
-			"docs/intro.mdx":      "# Intro\n\nSee [the guide](gone.mdx).\n",
-		})
-		acceptance.Sees(t, out, code, 1, "docs/guide.markdown:3: broken relative link: setup.md", "docs/intro.mdx:3: broken relative link: gone.mdx")
+		out, code := markdownLinks(t, readmeWith("[spec]: spec.md\n"))
+		acceptance.Sees(t, out, code, 1, "README.md:9: broken relative link: spec.md")
+	})
+	t.Run("0001.1.1.4.1 it fails", func(t *testing.T) {
+		t.Parallel()
+		out, code := markdownLinks(t, map[string]string{"docs/guide.markdown": "# Guide\n\nSee [setup](setup.md).\n"})
+		acceptance.Sees(t, out, code, 1, "docs/guide.markdown:3: broken relative link: setup.md")
+	})
+	t.Run("0001.1.1.4.2 an `.mdx` file fails alike", func(t *testing.T) {
+		t.Parallel()
+		out, code := markdownLinks(t, map[string]string{"docs/intro.mdx": "# Intro\n\nSee [the guide](gone.mdx).\n"})
+		acceptance.Sees(t, out, code, 1, "docs/intro.mdx:3: broken relative link: gone.mdx")
 	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 links to a file or a folder or a heading pass with the fragment stripped", func(t *testing.T) {
-		t.Parallel()
-		files := readmeWith("See [guide](./docs/guide.md#setup), [docs](docs/), and [home](docs/../README.md).\n")
+	exists := func(t *testing.T, body string) (string, int) {
+		files := readmeWith(body)
 		files["docs/guide.md"] = "# Guide\n\n## Setup\n\nBack to [the readme](../README.md).\n"
-		out, code := markdownLinks(t, files)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.2.2 web and mail and same-page links are never touched", func(t *testing.T) {
+		return markdownLinks(t, files)
+	}
+	t.Run("0001.2.1.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := markdownLinks(t, readmeWith(
-			"See [site](https://example.com/gone), [mail](mailto:a@example.com), [cdn](//example.com/x), and [top](#app).\n"))
+		out, code := exists(t, "See [guide](./docs/guide.md) and [home](docs/../README.md).\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.3 a broken link inside code is ignored", func(t *testing.T) {
+	t.Run("0001.2.1.1.2 a folder passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := exists(t, "See [docs](docs/).\n")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.1.3 a heading passes since a `#fragment` is stripped", func(t *testing.T) {
+		t.Parallel()
+		out, code := exists(t, "See [setup](./docs/guide.md#setup).\n")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.1.4 a `#fragment` is never validated", func(t *testing.T) {
+		t.Parallel()
+		out, code := exists(t, "See [nothing](docs/guide.md#no-such-heading).\n")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	web := func(t *testing.T, link string) (string, int) {
+		return markdownLinks(t, readmeWith("See "+link+".\n"))
+	}
+	t.Run("0001.2.1.2.1 it passes untouched", func(t *testing.T) {
+		t.Parallel()
+		out, code := web(t, "[site](https://example.com/gone)")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.2.2 a mail link passes alike", func(t *testing.T) {
+		t.Parallel()
+		out, code := web(t, "[mail](mailto:a@example.com)")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.2.3 a protocol-relative link passes alike", func(t *testing.T) {
+		t.Parallel()
+		out, code := web(t, "[cdn](//example.com/x)")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.2.4 a same-page link passes alike", func(t *testing.T) {
+		t.Parallel()
+		out, code := web(t, "[top](#app)")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.2.1.3.1 it is ignored", func(t *testing.T) {
 		t.Parallel()
 		out, code := markdownLinks(t, readmeWith("Write `[text](gone.md)` like this.\n\n```\n[text](gone.md)\n```\n"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.4 a percent-encoded space is decoded then resolves", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 it is decoded", func(t *testing.T) {
+		t.Parallel()
+		files := readmeWith("See [notes](docs/release%20notes.md).\n")
+		files["docs/release notes.md"] = "# Release Notes\n"
+		out, code := markdownLinks(t, files)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		if strings.Contains(out, "%20") {
+			t.Errorf("the encoded space must be decoded before the link is looked up:\n%s", out)
+		}
+	})
+	t.Run("0001.2.1.4.2 it resolves", func(t *testing.T) {
 		t.Parallel()
 		files := readmeWith("See [notes](docs/release%20notes.md).\n")
 		files["docs/release notes.md"] = "# Release Notes\n"
