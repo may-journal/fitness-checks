@@ -36,7 +36,7 @@ func Test0009_1(t *testing.T) {
 	}
 	calls, err := os.ReadFile(log)
 	mustDo(t, err)
-	for _, want := range []string{"api -X POST repos/acme/.github/dispatches", "event_type=fitness-check-released"} {
+	for _, want := range []string{"api -X POST repos/acme/.github/dispatches", "event_type=fitness-check-released", "client_payload[released_at]="} {
 		if !strings.Contains(string(calls), want) {
 			t.Errorf("gh was called with %q, want %q", calls, want)
 		}
