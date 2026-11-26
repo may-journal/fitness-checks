@@ -9,16 +9,14 @@ import (
 
 func Test0007_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0007.1.1 a test declared the way its language runs it owns its acceptance", func(t *testing.T) {
+	t.Run("0007.1.1.1.1 it owns its acceptance", func(t *testing.T) {
 		t.Parallel()
 		out, _ := swiftJudged(t, nil)
 		acceptance.PassedWith(t, out, "requirements", "2")
 		out, _ = swiftJudged(t, map[string]string{
-			"Tests/AdderTests/AdderTests.swift": "import Testing\n\nstruct AdderSpec {\n  @Test(\"adds\") func test0001_1() {}\n}\n",
+			"Tests/AdderTests/AdderTests.swift": "import Testing\n\nstruct AdderSpec {\n  @Test(\"adds\") func test0001_1() {\n    XCTContext.runActivity(named: \"0001.1.1.1.1 I get their sum\") { _ in #expect(1 + 1 == 2) }\n  }\n}\n",
 		})
 		acceptance.PassedWith(t, out, "requirements", "2")
-		swiftOwnsNothing(t, xcTestFile()+"// func test0001_1() {}\n/* nested /* func test0001_1() {} */ */\nlet note = \"\\(\"func test0001_1() {}\")\"\nlet raw = #\"\"\"\n\" func test0001_1() {}\n\"\"\"#\n")
-		swiftOwnsNothing(t, xcTestFile()+"\nstruct Helper {\n  func test0001_1() {}\n}\n")
 		for _, owner := range []string{
 			`test("0001.1 adds two numbers", () => {});`,
 			`describe("adder", () => { it.each([1, 2])("0001.1 adds %i", (n) => { expect(n).toBeTruthy(); }); });`,
@@ -33,9 +31,15 @@ func Test0007_1(t *testing.T) {
 		out, code := checked(t, acceptance.With(scriptRepo(), jestFolder))
 		acceptance.Sees(t, out, code, 0)
 		acceptance.PassedWith(t, out, "requirements", "2")
-		out, code = scriptChecked(t, notTests...)
+		junitOwns(t)
+	})
+	t.Run("0007.1.1.1.2 a name in a comment or a string or a helper owns nothing", func(t *testing.T) {
+		t.Parallel()
+		swiftOwnsNothing(t, xcTestFile()+"// func test0001_1() {}\n/* nested /* func test0001_1() {} */ */\nlet note = \"\\(\"func test0001_1() {}\")\"\nlet raw = #\"\"\"\n\" func test0001_1() {}\n\"\"\"#\n")
+		swiftOwnsNothing(t, xcTestFile()+"\nstruct Helper {\n  func test0001_1() {}\n}\n")
+		out, code := scriptChecked(t, notTests...)
 		acceptance.Sees(t, out, code, 1, `0001.1 has no test; name exactly one test test("0001.1 …")`)
-		junitOwnership(t)
+		junitOwnsNothing(t)
 	})
 	t.Run("0007.1.1.2.1 it fails naming the test form to write", func(t *testing.T) {
 		t.Parallel()
@@ -45,12 +49,10 @@ func Test0007_1(t *testing.T) {
 		out, code = checked(t, acceptance.With(junitRepo(), map[string]string{"src/test/java/AdderTest.java": junitFile("AdderTest")}))
 		acceptance.Sees(t, out, code, 1, "0001.1 has no test; name exactly one test test0001_1")
 	})
-	t.Run("0007.1.3 a chain of steps in Node or Swift needs only its test", func(t *testing.T) {
+	t.Run("0007.1.1.3.1 it needs only its own test until the Node switch is on", func(t *testing.T) {
 		t.Parallel()
-		for _, repo := range []map[string]string{scriptRepo(), swiftRepo()} {
-			out, code := checked(t, acceptance.With(repo, map[string]string{acceptance.PairedDoc: acceptance.DocWith(acceptance.Chain("0001.1", 2))}))
-			acceptance.Sees(t, out, code, 0)
-		}
+		out, code := checked(t, acceptance.With(scriptRepo(), map[string]string{acceptance.PairedDoc: acceptance.DocWith(acceptance.Chain("0001.1", 2))}))
+		acceptance.Sees(t, out, code, 0)
 	})
 	t.Run("0007.1.1.4.1 it fails naming the form to rename it to", func(t *testing.T) {
 		t.Parallel()
@@ -69,6 +71,13 @@ func Test0007_1(t *testing.T) {
 		unchangedTestFails(t, files, `it("adds again") proves no requirement`)
 		files = acceptance.With(junitRepo(), map[string]string{"src/test/java/ExtraTest.java": junitFile("ExtraTest", "addsAgain")})
 		unchangedTestFails(t, files, "addsAgain proves no requirement")
+	})
+	t.Run("0007.1.1.5.1 it fails naming the THEN", func(t *testing.T) {
+		t.Parallel()
+		out, code := swiftJudged(t, map[string]string{swiftTest: "import Testing\n\n@MainActor @Suite struct AdderSpec {\n  @Test func test0001_1() async throws {}\n}\n"})
+		acceptance.Sees(t, out, code, 1, "THEN 0001.1.1.1.1 has no test case; add a case to test0001_1 named \"0001.1.1.1.1 I get their sum\"")
+		out, code = checked(t, acceptance.With(junitRepo(), map[string]string{"src/test/java/AdderTest.java": "import org.junit.jupiter.api.Test;\n\nclass AdderTest {\n  @Test\n  void test0001_1() {}\n}\n"}))
+		acceptance.Sees(t, out, code, 1, "THEN 0001.1.1.1.1 has no test case; add a case to test0001_1 named \"0001.1.1.1.1 I get their sum\"")
 	})
 }
 
@@ -95,35 +104,46 @@ func Test0007_2(t *testing.T) {
 
 func Test0007_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0007.3.1 a Swift test on another framework fails naming the line then the library", func(t *testing.T) {
-		t.Parallel()
-		out, code := swiftChecked(t, map[string]string{swiftTest: xcTestFile("test0001_1")})
-		acceptance.Sees(t, out, code, 1, swiftTest+":1: imports XCTest; only an end-to-end test that imports UITestingLibrarySystem may use it, so "+libraryHint, swiftTest+":3: subclasses XCTestCase; "+libraryHint)
-		out, code = swiftChecked(t, map[string]string{swiftTest: "import Testing\n@testable import XCTest\n\n@Test func test0001_1() {}\n"})
-		acceptance.Sees(t, out, code, 1, swiftTest+":2: imports XCTest")
+	findings := []struct {
+		files map[string]string
+		line  string
+	}{
+		{map[string]string{swiftTest: xcTestFile("test0001_1")}, swiftTest + ":1: imports XCTest; only an end-to-end test that imports UITestingLibrarySystem may use it, so "},
+		{map[string]string{swiftTest: xcTestFile("test0001_1")}, swiftTest + ":3: subclasses XCTestCase; "},
+		{map[string]string{swiftTest: "import Testing\n@testable import XCTest\n\n@Test func test0001_1() {}\n"}, swiftTest + ":2: imports XCTest"},
 		// An end-to-end test drives the app through SystemSession, never XCUIApplication itself.
-		out, code = swiftChecked(t, map[string]string{swiftTest: strings.Replace(systemSuite, "try session.taps", "XCUIApplication().launch()\n    try session.taps", 1)})
-		acceptance.Sees(t, out, code, 1, "drives Xcode UI tests through XCUIApplication")
-		out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("", "  let app = XCUIApplication()\n  app.launch()\n")})
-		acceptance.Sees(t, out, code, 1, swiftTest+":5: drives Xcode UI tests through XCUIApplication, which launches the app in a separate process; "+libraryHint)
-		boot := "  let shell = Process()\n  shell.arguments = [\"xcrun\", \"simctl\", \"boot\", \"booted\"]\n"
-		out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("import Foundation\n", boot)})
-		acceptance.Sees(t, out, code, 1, swiftTest+":7: boots a simulator through simctl outside the end-to-end mode; "+libraryHint)
-		for _, framework := range []string{"ViewInspector", "SnapshotTesting", "KIF", "EarlGrey", "Hammer"} {
-			out, code = swiftChecked(t, map[string]string{swiftTest: librarySuite("import "+framework+"\n", "")})
-			acceptance.Sees(t, out, code, 1, swiftTest+":3: imports "+framework+", a UI test framework requirement tests may not use; "+libraryHint)
-		}
-		out, code = swiftChecked(t, map[string]string{swiftScreens: ""})
-		acceptance.Sees(t, out, code, 1, swiftTest+": nothing in Tests/AdderTests/ imports UITestingLibrary; "+libraryHint)
+		{map[string]string{swiftTest: strings.Replace(systemSuite, "try session.taps", "XCUIApplication().launch()\n    try session.taps", 1)}, "drives Xcode UI tests through XCUIApplication"},
+		{map[string]string{swiftTest: librarySuite("", "  let app = XCUIApplication()\n  app.launch()\n")}, swiftTest + ":5: drives Xcode UI tests through XCUIApplication, which launches the app in a separate process; "},
+		{map[string]string{swiftTest: librarySuite("import Foundation\n", "  let shell = Process()\n  shell.arguments = [\"xcrun\", \"simctl\", \"boot\", \"booted\"]\n")}, swiftTest + ":7: boots a simulator through simctl outside the end-to-end mode; "},
+		{map[string]string{swiftScreens: ""}, swiftTest + ": nothing in Tests/AdderTests/ imports UITestingLibrary; "},
 		// A library import in a sibling folder does not reach the test.
-		out, code = swiftChecked(t, map[string]string{swiftScreens: "", "Tests/OtherTests/Screens.swift": "import UITestingLibrary\n"})
-		acceptance.Sees(t, out, code, 1, "nothing in Tests/AdderTests/ imports UITestingLibrary")
+		{map[string]string{swiftScreens: "", "Tests/OtherTests/Screens.swift": "import UITestingLibrary\n"}, "nothing in Tests/AdderTests/ imports UITestingLibrary"},
+	}
+	for _, framework := range []string{"ViewInspector", "SnapshotTesting", "KIF", "EarlGrey", "Hammer"} {
+		findings = append(findings, struct {
+			files map[string]string
+			line  string
+		}{map[string]string{swiftTest: librarySuite("import "+framework+"\n", "")}, swiftTest + ":3: imports " + framework + ", a UI test framework requirement tests may not use; "})
+	}
+	t.Run("0007.3.1.1.1 it fails naming the line", func(t *testing.T) {
+		t.Parallel()
+		for _, f := range findings {
+			out, code := swiftChecked(t, f.files)
+			acceptance.Sees(t, out, code, 1, f.line)
+		}
+	})
+	t.Run("0007.3.1.1.2 it fails naming the library to use", func(t *testing.T) {
+		t.Parallel()
+		for _, f := range findings {
+			out, code := swiftChecked(t, f.files)
+			acceptance.Sees(t, out, code, 1, libraryHint)
+		}
 	})
 	t.Run("0007.3.1.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		// Words in comments and strings are no import or call.
-		quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n}\n"
-		for _, body := range []string{swiftTestingFile("test0001_1"), librarySuite("", ""), quiet} {
+		quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n  XCTContext.runActivity(named: \"0001.1.1.1.1 I get their sum\") { _ in #expect(note.isEmpty == false) }\n}\n"
+		for _, body := range []string{swiftTestingFile("test0001_1"), librarySuite("", "  XCTContext.runActivity(named: \"0001.1.1.1.1 I get their sum\") { _ in #expect(1 + 1 == 2) }\n"), quiet} {
 			out, code := swiftChecked(t, map[string]string{swiftTest: body})
 			acceptance.Sees(t, out, code, 0)
 			acceptance.PassedWith(t, out, "requirements", "2")

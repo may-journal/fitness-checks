@@ -115,6 +115,7 @@ func Test0002_3(t *testing.T) {
 	given := func(rootDoc, packageDoc string) map[string]string {
 		return acceptance.With(acceptance.With(acceptance.Monorepo(true), owning("fitness-check-semantic-commit", "0001.1")), map[string]string{
 			acceptance.PairedDoc: acceptance.DocWith(rootDoc),
+			"adder_test.go":      acceptance.CaseFile("adder", "Test0001_1", "0001.1.1.1.1 it gets their sum"),
 			"pkgs/fitness-check-semantic-commit/docs/requirements/0001-adds-numbers.md": acceptance.DocWith(packageDoc),
 			"pkgs/fitness-check-semantic-commit/requirements/0001_test.go":              acceptance.CaseFile("requirements", "Test0001_1", "0001.1.1.1.1 it gets their sum"),
 		})
