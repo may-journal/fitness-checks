@@ -276,3 +276,20 @@ func Test0003_7(t *testing.T) {
 	out, code := judged(t, repo, "--up", "0003.2-gherkin")
 	acceptance.Sees(t, out, code, 1, "unknown flag --up; the only flag is --fix")
 }
+
+// onlyFirst is twoAcceptances without 0001.2, the last.
+var onlyFirst = twoAcceptances[:strings.Index(twoAcceptances, "2. Doubles")]
+
+func Test0003_8(t *testing.T) {
+	t.Parallel()
+	t.Run("0003.8.1 the last acceptance as a Removed line passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst+"2. Removed in 2026.11.25.1230: folded into 0001.1\n")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0003.8.2 the last acceptance deleted outright fails naming the Removed line to add", func(t *testing.T) {
+		t.Parallel()
+		out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst)
+		acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was an acceptance and this doc no longer holds it; a removed acceptance keeps its number, so add `2. Removed in YYYY.MM.DD.HHMM: <reason>` to Requirements")
+	})
+}
