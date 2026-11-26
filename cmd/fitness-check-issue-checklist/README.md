@@ -6,4 +6,14 @@ It reads the body from a `--body-file` path, `-` meaning stdin, or from the runn
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-closed-issues-have-no-open-tasks.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-closed-issues-have-no-open-tasks.md)
+
+## Example
+
+```
+fitness issue-checklist
+fitness issue-checklist --body "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

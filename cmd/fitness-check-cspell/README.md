@@ -4,4 +4,14 @@ Fails unknown words in the checked files. It spell-checks with a native Go engin
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-unknown-words-fail.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-unknown-words-fail.md)
+
+## Example
+
+```
+fitness cspell
+fitness cspell --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

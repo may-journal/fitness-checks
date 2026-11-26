@@ -4,8 +4,17 @@ Judges the `changelog/` entry files, the only changelog source. Each must hold o
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-changelog-entry-files-are-dated.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-changelog-entry-files-are-dated.md)
 
 ## Entry files
 
 A pull request adds its entry as its own `changelog/<yyyy-mm-dd-HHMM>-<change>.md` file, with the change in kebab-case. Two open pull requests never edit the same lines that way. It holds one `### yyyy.mm.dd.HHMM` heading and its bullets. The name's date is that heading's, dots read as hyphens, so the folder lists in release order.
+
+## Example
+
+```
+fitness changelog
+```
+
+It reads no `.fitnessrc.json` key.
+

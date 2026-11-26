@@ -6,5 +6,14 @@ Epics live as GitHub Issues, so this check reads its target from stdin (or a `--
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-epics-follow-the-epic-template.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-epics-follow-the-epic-template.md)
+
+## Example
+
+```
+fitness epic-structure
+fitness epic-structure --body "text"
+```
+
+It reads no `.fitnessrc.json` key.
 

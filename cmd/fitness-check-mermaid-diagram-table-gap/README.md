@@ -4,4 +4,14 @@ Flags loose markdown prose wedged between a numbered mermaid diagram (or its leg
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-no-prose-between-diagram-and-table.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-no-prose-between-diagram-and-table.md)
+
+## Example
+
+```
+fitness mermaid-diagram-table-gap
+fitness mermaid-diagram-table-gap --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

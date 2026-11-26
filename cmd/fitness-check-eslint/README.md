@@ -8,10 +8,19 @@ The shared config imports its plugins (typescript-eslint, jsdoc, perfectionist, 
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-javascript-and-typescript-pass-eslint.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-javascript-and-typescript-pass-eslint.md)
 
 ## Notes
 
 - It enforces `sort-keys` (natural ascending) and the other rules from `eslint.config.mjs`.
 - It lints `.ts`, `.tsx`, `.cjs`, `.js` and `.mjs` files, declarations and tests included.
 - A repo that chose [Biome](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0006/README.md) resolves its binary like eslint, and a missing binary fails with an install hint.
+
+## Example
+
+```
+fitness eslint
+```
+
+It reads no `.fitnessrc.json` key.
+

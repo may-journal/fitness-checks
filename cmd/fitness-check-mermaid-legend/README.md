@@ -4,4 +4,14 @@ Requires numbered flowchart callout nodes to carry a style class, and diagrams w
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-numbered-callouts-carry-a-style-class.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-numbered-callouts-carry-a-style-class.md)
+
+## Example
+
+```
+fitness mermaid-legend
+fitness mermaid-legend --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

@@ -8,14 +8,7 @@ Lower scores are not better. Readability formulas reward chatty filler and punis
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-hard-to-read-prose-fails.md) states what this check does, and a test case named for each step proves it.
-
-- Frozen masking spec before scoring: front matter and HTML comments dropped; fenced code, headings, tables, and dash-only lines skipped.
-- Inline code spans become a placeholder word; link text kept, URLs and version tokens dropped.
-- Every block end (heading, list item, blank line) counts as a sentence boundary.
-- The formulas use only letter, word, and sentence counts — no syllable guessing, no word lists — so the check is deterministic.
-- Scores are implementation-defined; the thresholds are calibrated against this implementation, not the literature.
-- Alarm requires 2 of 3: Coleman-Liau >= 18, ARI >= 18, LIX >= 60 (defaults).
+[Requirement 0001](docs/requirements/0001-hard-to-read-prose-fails.md)
 
 ## Errors
 
@@ -39,6 +32,25 @@ A repo can set the bands in `.fitnessrc.json`. Run `fitness explain text-readabi
 ```
 {
   "textReadability": { "maxGrade": 18, "maxLix": 60, "minWords": 100 }
+}
+```
+
+## Example
+
+```
+fitness text-readability
+fitness text-readability --body-file body.md
+```
+
+Run `fitness explain text-readability` for what each key does. This sets each key to its default:
+
+```json
+{
+  "textReadability": {
+    "maxGrade": 18,
+    "maxLix": 60,
+    "minWords": 100
+  }
 }
 ```
 

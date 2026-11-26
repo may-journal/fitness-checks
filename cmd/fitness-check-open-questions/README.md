@@ -4,6 +4,18 @@ Fails a list of open questions in a doc, page, PR or issue body. [AGENTS.md](htt
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-questions-are-asked-in-chat.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-questions-are-asked-in-chat.md)
+
+## Notes
 
 Run `fitness explain open-questions` for the files it reads. The [plan-structure](../fitness-check-plan-structure/README.md) check shares this definition of the name. The Claude Code hook judges an Artifact page with it before the page publishes.
+
+## Example
+
+```
+fitness open-questions
+fitness open-questions --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

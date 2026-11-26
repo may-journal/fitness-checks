@@ -4,4 +4,13 @@ Checks that each staged commit writes a changelog entry about its change. It run
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-commits-describe-their-change-in-an-entry-file.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-commits-describe-their-change-in-an-entry-file.md)
+
+## Example
+
+```
+fitness changelog-updated
+```
+
+It reads no `.fitnessrc.json` key.
+

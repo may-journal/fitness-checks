@@ -25,7 +25,7 @@ Checks
    2. GIVEN no checks are chosen
       1. WHEN the installed checks run in that repo
          1. THEN each passes with zero files
-         2. THEN every check is listed once
+         2. THEN every check is listed once in catalog order
 3. Unreadable inputs are skipped
    1. GIVEN Developer has files a check cannot read
    2. GIVEN it has unreadable history

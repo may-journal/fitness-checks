@@ -4,7 +4,9 @@ Keeps each Issue's timeline readable ([#153](https://github.com/may-journal/fitn
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-each-issue-is-linked-once.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-each-issue-is-linked-once.md)
+
+## Notes
 
 A link is `#NN`, `owner/repo#NN`, or an Issue or PR URL on github.com. A bare `#NN` belongs to origin's repo. An earlier commit counts only when no other pushed branch holds it. A branch stacked on a pushed epic branch starts where that branch ends.
 
@@ -17,3 +19,13 @@ The `commit-msg` hook judges the proposed message, which it passes as the contex
 The org `fitness-suite` workflow judges every branch commit, oldest first, in every repo ([#157](https://github.com/may-journal/fitness-runner/issues/157)). The one link written before the PR opened passes, judged by author date, which a rebase keeps. A failure stays red until you rewrite that commit without the link and force-push with `--force-with-lease`.
 
 Anywhere else, such as a local suite run or a push to `main`, it passes inert.
+
+## Example
+
+```
+fitness issue-link-once
+fitness issue-link-once --message "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

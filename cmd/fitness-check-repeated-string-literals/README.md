@@ -26,10 +26,7 @@ It fails with:
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-a-repeated-string-becomes-a-shared-constant.md) states what this check does, and a test case named for each step proves it.
-
-- Run `fitness explain repeated-string-literals` for the files it reads.
-- A hand lexer reads each file's code view for single- and double-quoted literals.
+[Requirement 0001](docs/requirements/0001-a-repeated-string-becomes-a-shared-constant.md)
 
 ## Allow list
 
@@ -47,3 +44,20 @@ Keep the list a shrinking baseline; the fix is to centralize the constant. A `.f
 
 - Template literals are out of scope — only plain `'…'` and `"…"` literals count.
 - Thresholds and the idiomatic-token set are fixed in the binary; there is no inline marker and no enum-candidate detection yet (tracked in #44).
+
+## Example
+
+```
+fitness repeated-string-literals
+```
+
+Run `fitness explain repeated-string-literals` for what each key does. This sets each key to its default:
+
+```json
+{
+  "repeatedStringLiterals": {
+    "allow": []
+  }
+}
+```
+

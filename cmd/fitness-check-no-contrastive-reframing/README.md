@@ -4,4 +4,13 @@ Flags the "not X, it's Y" reframing in markdown prose. Such a sentence rejects a
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-prose-states-the-point-directly.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-prose-states-the-point-directly.md)
+
+## Example
+
+```
+fitness no-contrastive-reframing
+```
+
+It reads no `.fitnessrc.json` key.
+

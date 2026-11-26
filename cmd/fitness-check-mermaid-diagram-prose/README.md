@@ -4,4 +4,14 @@ Fails edge labels that carry prose beyond a callout, number or letter, in any me
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-diagram-labels-hold-callouts-only.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-diagram-labels-hold-callouts-only.md)
+
+## Example
+
+```
+fitness mermaid-diagram-prose
+fitness mermaid-diagram-prose --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

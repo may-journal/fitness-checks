@@ -53,4 +53,4 @@ A version may also hold `files`, `exclude`, `needs` and `requires`, copied from 
 
 `go test ./...` builds every package and runs the tests that need no installed engine. [tests/requirements.sh](tests/requirements.sh) runs the requirement tests in `requirements/` as a user meets each check. It installs the fitness-runner engine `go.mod` pins, with this repo's check programs beside it. On a pull request, CI builds and tests only the checks [scripts/changed-checks.sh](scripts/changed-checks.sh) names, then runs that suite.
 
-Each check's full docs are its `README.md`, which GitHub renders and `fitness-check-<name> --describe` summarizes.
+Each check's full docs are its `README.md`, which GitHub renders and `fitness-check-<name> --describe` summarizes. Its Behavior section links the check's requirement doc in `docs/requirements` and holds no list.

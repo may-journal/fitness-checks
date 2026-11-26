@@ -4,6 +4,25 @@ Keeps architecture decisions in `ADR` issues, never in files. An issue can be di
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-decisions-live-in-adr-issues.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-decisions-live-in-adr-issues.md)
+
+## Notes
 
 Run `fitness explain adr-as-issue` for the allow key that lets an ADR file wait.
+
+## Example
+
+```
+fitness adr-as-issue
+```
+
+Run `fitness explain adr-as-issue` for what each key does. This sets each key to its default:
+
+```json
+{
+  "adrAsIssue": {
+    "allow": []
+  }
+}
+```
+

@@ -4,4 +4,13 @@ Keeps plans and temporary design work out of the repo. Plans live as `Plan`-labe
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-plans-and-design-work-stay-out-of-the-repo.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-plans-and-design-work-stay-out-of-the-repo.md)
+
+## Example
+
+```
+fitness no-plans-dir
+```
+
+It reads no `.fitnessrc.json` key.
+

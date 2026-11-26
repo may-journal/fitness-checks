@@ -8,6 +8,17 @@ Run `fitness prettier` from your app root to check formatting. Pass through args
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-files-are-formatted-with-the-repos-formatter.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-files-are-formatted-with-the-repos-formatter.md)
+
+## Notes
 
 Errors list file paths that need formatting.
+
+## Example
+
+```
+fitness prettier
+```
+
+It reads no `.fitnessrc.json` key.
+

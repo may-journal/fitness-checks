@@ -4,4 +4,13 @@ Resolves each class of the code view to a declaration a language module's reader
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-code-view-matches-the-source.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-code-view-matches-the-source.md)
+
+## Example
+
+```
+fitness architecture-code
+```
+
+It reads no `.fitnessrc.json` key.
+

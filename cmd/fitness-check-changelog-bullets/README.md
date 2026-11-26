@@ -4,4 +4,13 @@ Keeps changelog entries tight: every [entry file](https://github.com/may-journal
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-changelog-bullets-are-few-short-and-typed.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-changelog-bullets-are-few-short-and-typed.md)
+
+## Example
+
+```
+fitness changelog-bullets
+```
+
+It reads no `.fitnessrc.json` key.
+

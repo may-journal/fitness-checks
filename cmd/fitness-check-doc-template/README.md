@@ -54,4 +54,13 @@ Fitness ships the five architecture view templates inside the binary. A view und
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-docs-match-their-templates.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-docs-match-their-templates.md)
+
+## Example
+
+```
+fitness doc-template
+```
+
+It reads no `.fitnessrc.json` key.
+

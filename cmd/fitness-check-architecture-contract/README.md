@@ -4,4 +4,13 @@ Validates declarations beside all five architecture views before more specific c
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-architecture-views-form-one-valid-model.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-architecture-views-form-one-valid-model.md)
+
+## Example
+
+```
+fitness architecture-contract
+```
+
+It reads no `.fitnessrc.json` key.
+

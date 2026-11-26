@@ -4,7 +4,11 @@ Fails a `run:` step in a workflow or action that holds more than a trivial comma
 
 ## Behavior
 
-Run `fitness explain workflow-scripts` for the files it reads. [Requirement 0001](docs/requirements/0001-run-steps-call-checked-in-scripts.md) states what passes and fails, and a test case named for each step proves it. A trivial step is one line with no control flow, heredoc, pipe, `;`, `&&` or `||`, such as `run: scripts/release.sh`.
+[Requirement 0001](docs/requirements/0001-run-steps-call-checked-in-scripts.md)
+
+## Notes
+
+A trivial step is one line with no control flow, heredoc, pipe, `;`, `&&` or `||`, such as `run: scripts/release.sh`.
 
 In a pull request, or a staged commit, it reads only the changed files, and it never runs a step.
 
@@ -24,3 +28,12 @@ env:
   TAG: ${{ steps.release.outputs.tag }}
 run: scripts/move-major-tag.sh
 ```
+
+## Example
+
+```
+fitness workflow-scripts
+```
+
+It reads no `.fitnessrc.json` key.
+

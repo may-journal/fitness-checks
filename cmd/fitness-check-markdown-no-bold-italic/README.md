@@ -4,4 +4,14 @@ Fails bold and italic emphasis in markdown files: `**bold**`, `__bold__`, `*ital
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-markdown-holds-no-bold-or-italic.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-markdown-holds-no-bold-or-italic.md)
+
+## Example
+
+```
+fitness markdown-no-bold-italic
+fitness markdown-no-bold-italic --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

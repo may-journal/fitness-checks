@@ -4,7 +4,7 @@ Enforces a cyclomatic complexity ceiling on Go functions, the Go-native counterp
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-go-functions-stay-simple.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-go-functions-stay-simple.md)
 
 ## Ceiling
 
@@ -22,3 +22,20 @@ A native Go engine (`go/ast` and `go/parser` from the standard library) scores t
 
 - A file it cannot read is skipped and named as info, and the other files are still judged.
 - `filesChecked` counts every Go file scanned, tests included.
+
+## Example
+
+```
+fitness go-complexity
+```
+
+Run `fitness explain go-complexity` for what each key does. This sets each key to its default:
+
+```json
+{
+  "goComplexity": {
+    "max": 5
+  }
+}
+```
+

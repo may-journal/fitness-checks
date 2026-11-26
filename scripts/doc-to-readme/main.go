@@ -57,7 +57,7 @@ func move(dir string) error {
 		return err
 	}
 	name := strings.TrimPrefix(filepath.Base(filepath.Clean(dir)), "fitness-check-")
-	readme, err := render(name, text, words)
+	readme, err := render(name, text, words, dir)
 	if err != nil {
 		return err
 	}
@@ -91,9 +91,9 @@ func commentOf(head string) (text, words string, err error) {
 	return strings.TrimSpace(cspellLine.ReplaceAllString(text, "")), strings.Join(found, " "), nil
 }
 
-// render is the README.md for the check name. It holds the title, the comment
-// as Markdown and the spell checker words.
-func render(name, text, words string) (string, error) {
+// render is the README.md for the check name, with the comment as Markdown.
+// A Behavior heading keeps one link to the requirements in dir.
+func render(name, text, words, dir string) (string, error) {
 	rest, ok := strings.CutPrefix(text, "Command fitness-check-"+name+" ")
 	if !ok {
 		return "", fmt.Errorf("the comment does not open with %q", "Command fitness-check-"+name+" ")
@@ -101,14 +101,51 @@ func render(name, text, words string) (string, error) {
 	first, size := utf8.DecodeRuneInString(rest)
 	d := new(comment.Parser).Parse(string(unicode.ToUpper(first)) + rest[size:])
 	parts := []string{"# " + name}
-	for _, b := range d.Content {
-		parts = append(parts, block(b))
-	}
+	parts = append(parts, blocks(d.Content, requirementLink(dir))...)
 	out := strings.Join(parts, "\n\n") + "\n"
 	if words != "" {
 		out += "\n<!-- cspell:ignore " + words + " -->\n"
 	}
 	return out, nil
+}
+
+// blocks is each comment block as Markdown. The Behavior heading is followed by
+// link alone, and the blocks under it go.
+func blocks(content []comment.Block, link string) []string {
+	var parts []string
+	behavior := false
+	for _, b := range content {
+		if h, isHeading := b.(*comment.Heading); isHeading {
+			behavior = inline(h.Text) == "Behavior"
+			parts = append(parts, block(b))
+			parts = append(parts, linkIf(behavior, link)...)
+		} else if !behavior {
+			parts = append(parts, block(b))
+		}
+	}
+	return parts
+}
+
+// linkIf is link alone when want is true, else nothing.
+func linkIf(want bool, link string) []string {
+	if want && link != "" {
+		return []string{link}
+	}
+	return nil
+}
+
+// requirementLink is the link a README keeps in Behavior. It names the one doc
+// in dir's docs/requirements, or the folder for several, or "" for none.
+func requirementLink(dir string) string {
+	docs, _ := filepath.Glob(filepath.Join(dir, "docs", "requirements", "[0-9][0-9][0-9][0-9]-*.md"))
+	switch len(docs) {
+	case 0:
+		return ""
+	case 1:
+		file := filepath.Base(docs[0])
+		return "[Requirement " + file[:4] + "](docs/requirements/" + file + ")"
+	}
+	return "[Requirements](docs/requirements)"
 }
 
 // block is one comment block as Markdown.

@@ -22,8 +22,18 @@ A toolchain that sets `vendor` or J9 needs an installed JDK from it, else the ch
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-java-builds-pin-a-jdk-the-machine-has.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-java-builds-pin-a-jdk-the-machine-has.md)
+
+## Notes
 
 The running JDK is `JAVA_HOME`'s, as the build tools pick it, else `java` on `PATH`.
+
+## Example
+
+```
+fitness java-version
+```
+
+It reads no `.fitnessrc.json` key.
 
 <!-- cspell:ignore sdkmanrc jdks sdkman jabba libexec foojay -->

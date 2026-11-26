@@ -4,4 +4,14 @@ Requires each numbered callout table to carry a "Why" column, and flags numbered
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-callout-rows-say-why.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-callout-rows-say-why.md)
+
+## Example
+
+```
+fitness mermaid-callout-why
+fitness mermaid-callout-why --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+

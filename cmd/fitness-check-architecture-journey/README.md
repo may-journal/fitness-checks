@@ -4,4 +4,14 @@ Keeps the user journey diagram and the requirement docs covering each other. Eve
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-journey-and-requirement-docs-cover-each-other.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-journey-and-requirement-docs-cover-each-other.md)
+
+## Example
+
+```
+fitness architecture-journey
+fitness architecture-journey --fix
+```
+
+It reads no `.fitnessrc.json` key.
+

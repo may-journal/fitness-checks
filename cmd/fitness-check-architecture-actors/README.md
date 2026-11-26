@@ -4,4 +4,13 @@ Requires each requirement's Given to start with an actor the system context decl
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-givens-start-with-declared-actors.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-givens-start-with-declared-actors.md)
+
+## Example
+
+```
+fitness architecture-actors
+```
+
+It reads no `.fitnessrc.json` key.
+

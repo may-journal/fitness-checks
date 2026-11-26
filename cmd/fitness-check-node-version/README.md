@@ -4,4 +4,13 @@ Requires the machine's active Node version to satisfy the repo's `.nvmrc`. It on
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-node-matches-the-repo-pin.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-node-matches-the-repo-pin.md)
+
+## Example
+
+```
+fitness node-version
+```
+
+It reads no `.fitnessrc.json` key.
+

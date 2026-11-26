@@ -4,4 +4,14 @@ Fails a mermaid diagram that would not render, so a broken diagram never reaches
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-diagrams-render.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-diagrams-render.md)
+
+## Example
+
+```
+fitness mermaid-syntax
+fitness mermaid-syntax --body-file body.md
+```
+
+It reads no `.fitnessrc.json` key.
+
