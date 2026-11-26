@@ -36,22 +36,29 @@ func RequirementDoc(ids ...string) string {
 	return DocWith(Acceptances(ids...))
 }
 
-// Acceptances renders one well-formed chain per ID, nested two spaces deeper
-// at each level as Biome formats it.
+// Acceptances renders one numbered acceptance per ID at the place it numbers.
+// Each level nests three spaces deeper, as Biome formats it.
 func Acceptances(ids ...string) string {
 	body := ""
 	for _, id := range ids {
-		body += "- " + id + "\n  - Given two numbers\n    - When I add them\n      - Then I get their sum\n"
+		body += named(id) + "      1. WHEN I add them\n         1. THEN I get their sum\n"
 	}
 	return body
 }
 
-// Chain renders id as one Given and a numbered chain of steps, nested as
-// Biome formats it. Step N's When sits on line 2N+17 of DocWith.
+// named is acceptance id's numbered name, which its place sets, and its one
+// GIVEN.
+func named(id string) string {
+	_, n, _ := strings.Cut(id, ".")
+	return n + ". Adds pair " + n + "\n   1. GIVEN two numbers\n"
+}
+
+// Chain renders id as one GIVEN and a numbered chain of steps, nested as
+// Biome formats it. Step N's WHEN sits on line 2N+17 of DocWith.
 func Chain(id string, steps int) string {
-	body := "- " + id + "\n  - Given two numbers\n"
+	body := named(id)
 	for n, step := range chainSteps[:steps] {
-		body += "    " + strconv.Itoa(n+1) + ". When " + step[0] + "\n       - Then " + step[1] + "\n"
+		body += "      " + strconv.Itoa(n+1) + ". WHEN " + step[0] + "\n         1. THEN " + step[1] + "\n"
 	}
 	return body
 }

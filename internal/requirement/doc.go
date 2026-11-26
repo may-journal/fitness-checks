@@ -41,7 +41,8 @@ type Document struct {
 	Title       string
 	Acceptances []IDLine
 	// Gherkin reports whether the Requirements section states its
-	// acceptances as numbered GIVEN, WHEN and THEN items read as Gherkin.
+	// acceptances as numbered GIVEN, WHEN and THEN items read as Gherkin. A
+	// doc without them holds the retired bullet form, which already fails.
 	Gherkin bool
 	// SourceLine is the line of the `Source:` line older docs end their
 	// Measurement with, or 0. The check fails it, and the fix deletes it.

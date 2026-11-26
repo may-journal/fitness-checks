@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/may-journal/fitness-checks/internal/acceptance"
 	"github.com/may-journal/fitness-runner/go/pkg/checkkit"
 )
 
@@ -617,4 +618,33 @@ func patternsExit(t *testing.T, program, line string) (string, int) {
 		cmd.Stdin = strings.NewReader(line)
 		return cmd
 	})
+}
+
+func Test0002_8(t *testing.T) {
+	t.Parallel()
+	files := architectedRepo()
+	head, _, found := strings.Cut(files[acDoc], "1. Starts")
+	if !found {
+		t.Fatalf("the fixture doc no longer opens its acceptance with 1. Starts:\n%s", files[acDoc])
+	}
+	// A chained bullet acceptance whose second step the journey cites.
+	files[acDoc] = head + "- 0001.1\n  - Given User opens the app\n    1. When it starts\n       - Then it opens\n    2. When it opens\n       - Then it shows the record\n"
+	files["src/store/store_test.go"] = acceptance.CaseFile("store", "Test0001_1", "0001.1.1 starts", "0001.1.2 opens")
+	files[acJourney] = strings.Replace(files[acJourney], "Opens it, `0001.1`.", "Opens it, `0001.1.2`.", 1)
+	out, code := fitness(t, example(t, "happyRepo", files), nil)
+	sees(t, out, code, 1, acDoc+":15: this is the bullet acceptance form")
+	if failed := failedChecks(out); !slices.Equal(failed, []string{"requirements"}) {
+		t.Errorf("only requirements may fail a bullet doc, got %v:\n%s", failed, out)
+	}
+}
+
+// failedChecks returns the check cell of each failed results-table row.
+func failedChecks(out string) []string {
+	var failed []string
+	for _, line := range strings.Split(out, "\n") {
+		if m := resultRow.FindStringSubmatch(line); m != nil && m[2] == "failed" {
+			failed = append(failed, m[1])
+		}
+	}
+	return failed
 }

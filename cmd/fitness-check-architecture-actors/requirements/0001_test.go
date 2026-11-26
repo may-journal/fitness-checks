@@ -53,23 +53,6 @@ func Test0001_1(t *testing.T) {
 			sees(t, out, code, 1, aaNoActor(given, " starts with no actor", "User"))
 		}
 	})
-	t.Run("a numbered Given reads like a bullet Given", func(t *testing.T) {
-		t.Parallel()
-		gherkinDoc := func(given string) string {
-			return strings.Replace(acDocWith(given), "- 0001.1\n    - Given "+given+"\n        - When it starts\n            - Then it opens\n",
-				"1. Starts\n   1. GIVEN "+given+"\n      1. WHEN it starts\n         1. THEN it opens\n", 1)
-		}
-		if !strings.Contains(gherkinDoc("User"+aaOpens), "1. GIVEN") {
-			t.Fatal("the fixture doc no longer holds the bullets this case numbers")
-		}
-		files := aaFixture("")
-		files[acDoc] = gherkinDoc("User" + aaOpens)
-		out, code := aaRun(t, files)
-		sees(t, out, code, 0)
-		files[acDoc] = gherkinDoc("Admin" + aaOpens)
-		out, code = aaRun(t, files)
-		sees(t, out, code, 1, acDoc+":16: Given \"Admin"+aaOpens+"\" starts with no actor")
-	})
 	t.Run("0001.1.3 actors joined by and pass until one names none", func(t *testing.T) {
 		t.Parallel()
 		out, code := aaRun(t, aaWith("User and Host open the app", aaRel, aaHost))
@@ -111,16 +94,27 @@ func Test0001_1(t *testing.T) {
 	t.Run("0001.1.7 doc shape and missing views are left to other checks", func(t *testing.T) {
 		t.Parallel()
 		files := aaFixture("User" + aaOpens)
-		files[acDoc] = strings.Replace(files[acDoc], "        - When it starts\n", "", 1)
-		out, code := aaRun(t, files)
-		sees(t, out, code, 0)
-		passedWith(t, out, aaCheck, "1")
-		if strings.Contains(out, acDoc) {
-			t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
+		// A bullet acceptance is read for no GIVEN, so even its unknown actor is left to requirements.
+		bullets := "- 0001.1\n  - Given Admin" + aaOpens + "\n    - When it starts\n      - Then it opens\n"
+		head, _, found := strings.Cut(files[acDoc], "1. Starts")
+		if !found {
+			t.Fatalf("the fixture doc no longer opens its acceptance with 1. Starts:\n%s", files[acDoc])
+		}
+		for _, doc := range []string{
+			strings.Replace(files[acDoc], "      1. WHEN it starts\n", "", 1),
+			head + bullets,
+		} {
+			files[acDoc] = doc
+			out, code := aaRun(t, files)
+			sees(t, out, code, 0)
+			passedWith(t, out, aaCheck, "1")
+			if strings.Contains(out, acDoc) {
+				t.Errorf("doc shape belongs to the requirements check, got:\n%s", out)
+			}
 		}
 		files = aaFixture("User" + aaOpens)
 		delete(files, acRoot+acContainer)
-		out, code = aaRun(t, files)
+		out, code := aaRun(t, files)
 		sees(t, out, code, 0)
 	})
 }

@@ -38,9 +38,9 @@ var unformatted = strings.NewReplacer(
 	"two numbers without", "two numbers\nwithout",
 	`['../../.fitnessrc.json']`, `["../../.fitnessrc.json"]`,
 	"\n\n-\n\n", "\n-\n",
-	"\n  - Given", "\n    - Given",
-	"\n    - When", "\n        - When",
-	"\n      - Then", "\n            - Then",
+	"\n   1. GIVEN", "\n    1. GIVEN",
+	"\n      1. WHEN", "\n        1. WHEN",
+	"\n         1. THEN", "\n            1. THEN",
 )
 
 // hooked is files over happyRepo with the installer's pre-commit hook alone.
@@ -129,7 +129,7 @@ func mergedBase(t *testing.T) string {
 // twoRepo is pairedRepo whose one test file proves requirements 0001 and 0002.
 // Requirement 0002 covers its own area, so the two docs never overlap.
 func twoRepo() map[string]string {
-	doubles := "- 0002.1\n  - Given one number\n    - When I double it\n      - Then I get twice that number\n"
+	doubles := "1. Doubles\n   1. GIVEN one number\n      1. WHEN I double it\n         1. THEN I get twice that number\n"
 	return acceptance.With(acceptance.PairedRepo(), map[string]string{
 		"reqs/0001_test.go":                    "",
 		twoTest:                                acceptance.TestFile("reqs", "Test0001_1", "Test0002_1"),
@@ -249,6 +249,9 @@ func Test0006_1(t *testing.T) {
 	t.Run("0006.1.7 a comment or format change needs no partner", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: unformatted.Replace(acceptance.RequirementDoc("0001.1"))})
+		if !strings.Contains(given[acceptance.PairedDoc], "\n    1. GIVEN") {
+			t.Fatalf("the unformatted doc must nest its numbered items apart from the formatted one:\n%s", given[acceptance.PairedDoc])
+		}
 		formatted := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
 		out, code := stagedRun(t, given, formatted)
 		acceptance.Sees(t, out, code, 0)
@@ -256,6 +259,13 @@ func Test0006_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0)
 		out, code = stagedRun(t, given, acceptance.With(formatted, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))}))
 		acceptance.Sees(t, out, code, 0)
+		// A rename in place changes no wording, but a changed GIVEN does.
+		renamed := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "Adds pair 1", "Sums a pair", 1)}
+		out, code = stagedRun(t, acceptance.PairedRepo(), renamed)
+		acceptance.Sees(t, out, code, 0)
+		changedGiven := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "GIVEN two numbers", "GIVEN three numbers", 1)}
+		out, code = stagedRun(t, acceptance.PairedRepo(), changedGiven)
+		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
 		sourced := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: acceptance.WithSource(acceptance.RequirementDoc("0001.1"), "`adder.go:5`")})
 		dropped := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
 		out, code = stagedRun(t, sourced, dropped)

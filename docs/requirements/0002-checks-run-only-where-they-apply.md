@@ -40,3 +40,8 @@ Checks
       1. WHEN the repo checks judge it
          1. THEN each gives its verdict with only a few git calls in all
 7. Removed in 2026.11.26.0400: moved to the requirements and requirements-changed checks' own requirements
+8. Bullet docs fail once
+   1. GIVEN Developer has a requirement doc in the retired bullet form
+      1. WHEN every check runs
+         1. THEN exactly one check fails at the doc line
+         2. THEN the others pass

@@ -41,9 +41,8 @@ func reformats(root string, roots []string, base string, changed []string) (map[
 	return found, err
 }
 
-// sameWording reports whether text holds both versions of doc f, with the
-// same wording in each. A doc of numbered GIVEN, WHEN and THEN items reads
-// as its bullets.
+// sameWording reports whether text holds both versions of doc f with the same
+// wording. Only a move from bullets reads numbered items as bullets.
 func sameWording(text map[string]string, f, before, after string) bool {
 	was, ok := text[before]
 	if !ok {
@@ -53,10 +52,32 @@ func sameWording(text map[string]string, f, before, after string) bool {
 	if !ok {
 		return false
 	}
-	was, wasGherkin := asBullets(f, was)
-	is, isGherkin := asBullets(f, is)
+	wasBullets, wasGherkin := asBullets(f, was)
+	isBullets, isGherkin := asBullets(f, is)
 	moved := wasGherkin != isGherkin
+	if moved {
+		was, is = wasBullets, isBullets
+	} else {
+		was, is = unnamed(was), unnamed(is)
+	}
 	return wording(was, true, moved) == wording(is, false, moved)
+}
+
+// acceptanceName is a top-level numbered item: an acceptance's number and name.
+var acceptanceName = regexp.MustCompile(`^(\d+)\. .*`)
+
+// unnamed is doc with each acceptance name in its Requirements section cut to
+// its number, so a rename in place changes no wording.
+func unnamed(doc string) string {
+	lines := strings.SplitAfter(doc, "\n")
+	from, to := span(lines)
+	if from < 0 {
+		return doc
+	}
+	for i := from + 1; i < to; i++ {
+		lines[i] = acceptanceName.ReplaceAllString(lines[i], "$1.")
+	}
+	return strings.Join(lines, "")
 }
 
 // docsAtBase maps each of docs to its path at base, read from one listing
