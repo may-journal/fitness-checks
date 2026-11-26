@@ -4,17 +4,4 @@ Keeps changelog entries tight: every [entry file](https://github.com/may-journal
 
 ## Behavior
 
-- Every entry file is judged, and errors name that file.
-- A pull request adds one dated entry, and later commits amend it, so its 3 to 5 bullets cover the whole PR.
-- Bullet count must be 3 to 5, counting only `- ` bullets; continuation lines join their bullet for the length count.
-- Every bullet must start with one of: `Feat:`, `Fix:`, `Docs:`, `Style:`, `Refactor:`, `Perf:`, `Test:`, `Build:`, `Ci:`, `Chore:`, `Revert:`.
-- A semantic commit subject works too: a lowercase type with an optional scope and `!`, such as `feat(release): ` or `fix!: `.
-- `CHANGELOG.md` is not judged, so a repo with no entry files passes with zero files checked.
-
-## Errors
-
-```
-changelog/2026-05-01-0000-readme.md section "2026.05.01.0000" has 1 bullets; keep entries to 3-5 bullets
-changelog/2026-05-01-0000-readme.md:7: bullet is 1230 characters; keep each under 365
-changelog/2026-05-01-0000-readme.md:8: bullet must start with a semantic type (Feat:, Fix:, ...)
-```
+[Requirement 0001](docs/requirements/0001-changelog-bullets-are-few-short-and-typed.md) states what this check does, and a test case named for each step proves it.

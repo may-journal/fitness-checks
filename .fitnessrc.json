@@ -3,6 +3,18 @@
     "*": "v1"
   },
   "packages": [
+    "cmd/fitness-check-adr-as-issue",
+    "cmd/fitness-check-adr-checks",
+    "cmd/fitness-check-architecture-actors",
+    "cmd/fitness-check-architecture-code",
+    "cmd/fitness-check-architecture-components",
+    "cmd/fitness-check-architecture-containers",
+    "cmd/fitness-check-architecture-contract",
+    "cmd/fitness-check-architecture-journey",
+    "cmd/fitness-check-build-output-untracked",
+    "cmd/fitness-check-changelog",
+    "cmd/fitness-check-changelog-bullets",
+    "cmd/fitness-check-changelog-updated",
     "cmd/fitness-check-checkstyle",
     "cmd/fitness-check-comment-structure",
     "cmd/fitness-check-commit-attribution",

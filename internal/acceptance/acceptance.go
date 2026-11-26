@@ -258,11 +258,18 @@ func moduleRoot(t *testing.T) string {
 var repoGitConfig = [][2]string{{"tag.gpgSign", "false"}, {"maintenance.auto", "false"}, {"gc.auto", "0"}}
 
 // KeepHostGitOut puts repoGitConfig in the environment, so every git the
-// tests or fitness start reads it. Each folder's TestMain calls it first.
+// tests or fitness start reads it.
 func KeepHostGitOut() {
 	for i, kv := range repoGitConfig {
 		_ = os.Setenv(fmt.Sprintf("GIT_CONFIG_KEY_%d", i), kv[0])
 		_ = os.Setenv(fmt.Sprintf("GIT_CONFIG_VALUE_%d", i), kv[1])
 	}
 	_ = os.Setenv("GIT_CONFIG_COUNT", fmt.Sprint(len(repoGitConfig)))
+}
+
+// Main runs a requirements package's tests with the host's git config kept
+// out. Each folder's TestMain calls it, so none repeats its body.
+func Main(m *testing.M) {
+	KeepHostGitOut()
+	os.Exit(m.Run())
 }

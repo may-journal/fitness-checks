@@ -35,11 +35,7 @@ docs, bodies and comments the writing checks judge
       1. WHEN the file name and link checks read the repo
          1. THEN each fails naming the file
          2. THEN real links pass
-5. Docs follow templates
-   1. GIVEN Developer has ADR files in folders or kept as issues
-      1. WHEN the ADR checks read the repo
-         1. THEN each ADR file in a folder fails
-         2. THEN ADRs kept as issues pass
+5. Removed in 2026.11.26.0100: moved to the `doc-template` and `adr-as-issue` docs
 6. Issues are ticked
    1. GIVEN Developer has an issue body with unchecked items
       1. WHEN the issue checklist check reads the body
