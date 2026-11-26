@@ -29,7 +29,7 @@ requirement docs
    1. GIVEN Developer has a repo with requirement docs
       1. WHEN a section is extra or missing or empty
          1. THEN it fails naming the sections
-      2. WHEN the Measurement is not numerator then dash then denominator
+      2. WHEN the Measurement is not numerator over dash over denominator
          1. THEN it fails naming the three lines
       3. WHEN a doc keeps a `Source:` line
          1. THEN it fails naming the line

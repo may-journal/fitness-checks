@@ -46,5 +46,5 @@ checks
    1. GIVEN Developer has each check's README
       1. WHEN the README test reads it against the check's `--describe`
          1. THEN the README names only config keys its check declares besides check names
-         2. THEN it says to run `fitness explain` when it declares keys
+         2. THEN it says to run `fitness explain` if it declares keys
 7. Removed in 2026.11.26.0500: moved to the readme-behavior check's own requirement

@@ -30,7 +30,7 @@ Markdown files with a diagram or a callout table
       4. WHEN a connector callout is a number
          1. THEN it fails asking for a letter
          2. THEN the failure names `--fix`
-      5. WHEN a connector letter breaks the doubling from `A` to `Z` then `AA` to `ZZ`
+      5. WHEN a connector letter breaks the doubling from `A` to `Z` or from `AA` to `ZZ`
          1. THEN it fails for the diagram callout
          2. THEN it fails for the table row
       6. WHEN a PR body diagram has a callout with no row

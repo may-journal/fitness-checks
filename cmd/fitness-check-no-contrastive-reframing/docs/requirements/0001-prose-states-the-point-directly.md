@@ -20,7 +20,7 @@ Markdown files and code comment blocks
       1. WHEN a negation is followed by a restating sentence
          1. THEN it fails once per match
          2. THEN it quotes the snippet
-      2. WHEN one sentence negates then pivots with a contrast
+      2. WHEN one sentence negates plus pivots with a contrast
          1. THEN it fails quoting the snippet
       3. WHEN a negation has no restatement
          1. THEN it passes

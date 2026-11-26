@@ -50,9 +50,9 @@ const joinedError = "write no AND or BUT; an extra condition is the next GIVEN a
 // commaError is what a step holding a comma outside code fails with.
 const commaError = "split this item at its comma; an extra condition is the next GIVEN and an extra result the next THEN"
 
-// joinsClauses matches a lowercase "and" or "but" that can join two clauses.
-// A step states one condition or result, so each one splits at the word.
-var joinsClauses = regexp.MustCompile(`(?:^|\s)(and|but)(?:\s|$)`)
+// gherkinWord matches a Gherkin word between spaces in any casing. A step reads
+// as one condition or result, so a word not in caps hides a second clause.
+var gherkinWord = regexp.MustCompile(`(?i)(?:^|\s)(given|when|then|and|but)(?:\s|$)`)
 
 // quoted matches text in straight or curly double quotes, which a step
 // repeats as written.
@@ -249,14 +249,15 @@ func hasComma(text string) bool {
 	return strings.Contains(codeSpan.ReplaceAllString(text, ""), ",")
 }
 
-// joinWord is the lowercase "and" or "but" of text outside code and quotes,
-// or "" when it holds none.
+// joinWord is the first Gherkin word of text, outside code and quotes, that
+// is not in caps, or "" when it holds none.
 func joinWord(text string) string {
-	m := joinsClauses.FindStringSubmatch(quoted.ReplaceAllString(codeSpan.ReplaceAllString(text, ""), ""))
-	if m == nil {
-		return ""
+	for _, m := range gherkinWord.FindAllStringSubmatch(quoted.ReplaceAllString(codeSpan.ReplaceAllString(text, ""), ""), -1) {
+		if m[1] != strings.ToUpper(m[1]) {
+			return m[1]
+		}
 	}
-	return m[1]
+	return ""
 }
 
 // gherkinText is the acceptances as the Cucumber parser reads them, each on
@@ -316,7 +317,7 @@ func itemWording(p *problems, n int, word, rest string) {
 		p.add(n, commaError)
 	}
 	if w := joinWord(rest); w != "" {
-		p.add(n, "split this item at its \""+w+"\"; an extra condition is the next GIVEN and an extra result the next THEN")
+		p.add(n, "write the Gherkin word "+strings.ToUpper(w)+" in caps, or split it into its own GIVEN, WHEN or THEN")
 	}
 }
 

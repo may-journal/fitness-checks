@@ -44,7 +44,7 @@ repos with checked files
    1. GIVEN Developer has a repo with tracked files
       1. WHEN the repo has no `cspell.json`
          1. THEN an installed `@mayjournal/fitness-shared` package supplies the words
-         2. THEN the copy embedded in the binary supplies them when none is installed
+         2. THEN the copy embedded in the binary supplies them if none is installed
       2. WHEN a `flagWords` word or phrase appears whole in any case
          1. THEN it fails as `path:line:col - Forbidden word (entry)`
          2. THEN a `cspell.json` file is exempt

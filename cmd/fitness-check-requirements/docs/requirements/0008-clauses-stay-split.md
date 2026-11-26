@@ -16,9 +16,9 @@ steps in numbered acceptances
 
 1. Clauses stay split
    1. GIVEN Developer has numbered acceptances `requirements` reads
-      1. WHEN a step holds a lowercase "and" or "but" outside code or quotes
-         1. THEN it asks to split at the word
-      2. WHEN the word sits in code or in quotes
+      1. WHEN a step holds a word of `given when then and but` not in caps outside code or quotes
+         1. THEN it asks for caps or a split into its own step
+      2. WHEN the word sits in code or in quotes or in caps
          1. THEN it passes
 2. Block keywords stay in caps
    1. GIVEN Developer has numbered acceptances `requirements` reads

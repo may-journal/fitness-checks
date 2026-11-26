@@ -28,8 +28,8 @@ changes to product code
          1. THEN it is not judged again
          2. THEN its pull request diff still is
       5. WHEN product code is deleted
-         1. THEN it passes when no doc names it
-         2. THEN it fails naming the file with the doc when a doc names it
+         1. THEN it passes if no doc names it
+         2. THEN it fails naming the file with the doc if a doc names it
          3. THEN it names the tests of that doc
       6. WHEN the repo has no requirement doc yet
          1. THEN it passes

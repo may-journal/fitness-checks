@@ -9,14 +9,23 @@ import (
 
 func Test0008_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0008.1.1 a lowercase and or but outside code or quotes asks to split", func(t *testing.T) {
+	t.Run("0008.1.1 a Gherkin word not in caps asks for caps or a split", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "THEN each part stands alone and code spans drop out"), `20: split this item at its "and"`)
-		gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "THEN it is a sum but not a product"), `20: split this item at its "but"`)
+		for word, then := range map[string]string{
+			"and":   "THEN each part stands alone and code spans drop out",
+			"but":   "THEN it is a sum but not a product",
+			"when":  "THEN it passes when no doc names it",
+			"then":  "THEN it adds them then doubles the sum",
+			"given": "THEN a Given starts it",
+			"AND":   "THEN an And starts it",
+		} {
+			want := strings.ToUpper(strings.TrimSpace(strings.Fields(word)[0]))
+			gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", then), "20: write the Gherkin word "+want+" in caps, or split it into its own GIVEN, WHEN or THEN")
+		}
 	})
-	t.Run("0008.1.2 the word in code or in quotes passes", func(t *testing.T) {
+	t.Run("0008.1.2 the word in code or in quotes or in caps passes", func(t *testing.T) {
 		t.Parallel()
-		reqs := oneAcceptance("GIVEN two numbers such as `1 and 2`", "WHEN I add them", `THEN I get the word "and" or “but” from read-and-write input`)
+		reqs := oneAcceptance("GIVEN two numbers such as `1 and 2`", "WHEN I add a GIVEN or an AND", `THEN I get the word "and" or “but” from read-and-write input`)
 		out, code := judged(t, gherkinRepo(t, reqs, acceptance.TestFile("adder", "Test0001_1")))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})

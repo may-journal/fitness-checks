@@ -51,7 +51,7 @@ Numbered acceptances
          1. THEN it fails
       4. WHEN it is restored
          1. THEN it fails as reused
-      5. WHEN one commit removes one then appends it
+      5. WHEN one commit removes one plus appends it
          1. THEN it passes
 6. Removed lines uncapped
    1. GIVEN Developer has a capped doc with `Removed` lines

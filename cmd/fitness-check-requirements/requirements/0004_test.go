@@ -81,7 +81,7 @@ func Test0004_2(t *testing.T) {
 		out, code := suite(t, acceptance.DocOf("docs/requirements/0001-adds-numbers.md", acceptance.RequirementDoc("0001.1")+"\n## Out of scope\n\n- Subtraction.\n"))
 		acceptance.Sees(t, out, code, 1, "sections must be exactly ## Why, ## Measurement, ## Requirements")
 	})
-	t.Run("0004.2.2 a Measurement that is not numerator then dash then denominator fails", func(t *testing.T) {
+	t.Run("0004.2.2 a Measurement that is not numerator over dash over denominator fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.DocOf("docs/requirements/0001-adds-numbers.md", strings.Replace(acceptance.RequirementDoc("0001.1"), "\n-\n", "\nover\n", 1)))
 		acceptance.Sees(t, out, code, 1, "Measurement needs three lines: numerator, `-`, denominator")

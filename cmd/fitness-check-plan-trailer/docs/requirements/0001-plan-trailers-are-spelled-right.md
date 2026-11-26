@@ -25,7 +25,7 @@ commit messages
          2. THEN its fix names all three spellings
       4. WHEN body prose starts with the word Plan
          1. THEN it passes because prose is never a trailer
-      5. WHEN no message is given
+      5. WHEN no message is supplied
          1. THEN it reads the HEAD commit
       6. WHEN it names a Plan of another repo as `Plan <owner>/<repo>#<number>` or as an issue URL
          1. THEN it passes
