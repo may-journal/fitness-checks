@@ -43,6 +43,8 @@ users who have lost connection
 
 [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance IDs and their cap, sections, measurement, acceptance order, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 
+[Requirement 0006](docs/requirements/0006-changes-come-paired.md) states that a test and its doc change together. [Requirement 0007](docs/requirements/0007-tests-fit-their-language.md) states how each language finds its tests.
+
 The error for a missing test names the one it expects, and deleting an ID deletes its test. Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
 
 ## Steps
@@ -103,6 +105,8 @@ cmd/fitness-check-gofmt/docs/requirements/0001-go-files-are-formatted.md
 cmd/fitness-check-gofmt/requirements/0001_test.go
 ```
 
+- Rules: [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) states how packages own their docs and tests.
+- Scope: an acceptance in the repo root of a monorepo that names a check fails, since that check's own doc holds it.
 - Numbers: a number is unique within its package, so each package starts at 0001.
 - Tests: a package's requirement tests sit in its own folder and prove only its docs.
 - Missing docs: a package root with code and no docs fails. The repo root may leave its behavior to its packages.

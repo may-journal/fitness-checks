@@ -15,10 +15,8 @@ var (
 	git               = acceptance.Git
 	mustDo            = acceptance.MustDo
 	fitness           = acceptance.Fitness
-	piped             = acceptance.Piped
 	execute           = acceptance.Execute
 	started           = acceptance.Started
-	placeRunner       = acceptance.PlaceRunner
 	userEnv           = acceptance.UserEnv
 	installer         = acceptance.Installer
 	read              = acceptance.Read
@@ -26,32 +24,16 @@ var (
 	row               = acceptance.Row
 	passedWithNoFiles = acceptance.PassedWithNoFiles
 	showsInfo         = acceptance.ShowsInfo
-	passedWith        = acceptance.PassedWith
-	pathWithout       = acceptance.PathWithout
 	prEnv             = acceptance.PullRequestEnv
 	ansi              = acceptance.ANSI
 	names             = acceptance.Names
 	resultRow         = acceptance.ResultRow
 	goRepo            = acceptance.GoRepo
 	testFile          = acceptance.TestFile
-	requirementDoc    = acceptance.RequirementDoc
-	acceptances       = acceptance.Acceptances
-	chain             = acceptance.Chain
-	pairedRepo        = acceptance.PairedRepo
-	docOf             = acceptance.DocOf
-	reqs              = acceptance.Reqs
-	withSource        = acceptance.WithSource
-	caseFile          = acceptance.CaseFile
-	stepCases         = acceptance.StepCases
-	inComments        = acceptance.InComments
-	atEachFile        = acceptance.AtEachFile
-	longSentence      = acceptance.LongSentence
-	docWith           = acceptance.DocWith
 	with              = acceptance.With
 	loggedGit         = acceptance.LoggedGit
 	occurrences       = acceptance.Occurrences
 	verdictScript     = acceptance.VerdictScript
-	entryFileText     = acceptance.EntryFileText
 	bareEntryText     = acceptance.BareEntryText
 )
 

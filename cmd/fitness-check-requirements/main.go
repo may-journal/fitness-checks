@@ -64,6 +64,8 @@ type pkg struct {
 	alone bool
 	// code is true when the root holds a file in a language the repo uses.
 	code bool
+	// checks names the checks beside the repo root of a repo that names packages.
+	checks map[string]bool
 }
 
 // split gives each package root the docs, tests, checks and code it owns.
@@ -71,6 +73,7 @@ func split(roots, paths, code []string, tests []reqTest, proven map[string]map[s
 	var out []pkg
 	for _, r := range roots {
 		p := pkg{root: r, paths: packages.Owned(roots, r, paths), proven: proven[r], alone: len(roots) == 1}
+		p.checks = checkNames(roots, r)
 		p.code = len(packages.Owned(roots, r, code)) > 0
 		for _, t := range tests {
 			if packages.Of(roots, t.File) == r {
@@ -117,6 +120,7 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	errs = append(errs, idErrors(docs, hist)...)
 	errs = append(errs, droppedErrors(root, docs, hist)...)
 	errs = append(errs, capErrors(docs, limit)...)
+	errs = append(errs, scopeErrors(docs, p.checks)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
 	errs = append(errs, stepCaseErrors(docs, p.tests)...)

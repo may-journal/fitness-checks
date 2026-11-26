@@ -46,18 +46,13 @@ flowchart TB
         %% journey-nodes:end
     end
 
-    subgraph judge["Judge a change"]
-        %% journey-nodes:start 0003 0004 0005 0006 0007 0008
-        req0003[(4 History Stays Clean<br/>Req 0003)]:::system
-        req0004[(5 Writing Stays Clear<br/>Req 0004)]:::system
-        req0005[(6 Diagrams Match The Code<br/>Req 0005)]:::system
-        req0006[(7 Code Is Tested By Its Own Tools<br/>Req 0006)]:::system
-        req0007[(8 The Repo Holds Only Working Source<br/>Req 0007)]:::system
-        req0008[(9 Check Docs Are Markdown<br/>Req 0008)]:::system
+    subgraph judge["Keep the docs"]
+        %% journey-nodes:start 0008
+        req0008[(4 Check Docs Are Markdown<br/>Req 0008)]:::system
         %% journey-nodes:end
     end
 
-    red[10 Finding names the file, the line and the fix<br/>Req 0003, 0004, 0005, 0006, 0007, 0008]:::blocked
+    red[5 Finding names the file, the line and the fix<br/>Req 0002, 0008]:::blocked
 
     dev -->|A| req0001
     req0001 --> req0002
@@ -83,13 +78,8 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 1   | Developer or AI agent.                             | Persona   | Agents run the same command as a person.                               |
 | 2   | Each check builds, tests, releases and installs.   | System    | A person takes one check's fix without the others.                     |
 | 3   | Each check judges only the files it fits.          | System    | Any repo runs every check with nothing to configure, fast at any size. |
-| 4   | Commit and changelog checks.                       | System    | Each change shows what it was, who helped and which issue it served.   |
-| 5   | Prose, spelling, comment and body checks.          | System    | Any doc, issue or PR reads in a minute.                                |
-| 6   | Mermaid and architecture view checks.              | System    | Every diagram renders and matches the code it draws.                   |
-| 7   | Paired change, tooling and coverage checks.        | System    | Each language's own tools judge the code with the repo's config.       |
-| 8   | Build output, duplicate, pin and workflow checks.  | System    | Reviewers see real source only.                                        |
-| 9   | Check docs and their move to Markdown.             | System    | People edit each rule as Markdown that GitHub renders.                 |
-| 10  | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
+| 4   | Check docs and their move to Markdown.             | System    | People edit each rule as Markdown that GitHub renders.                 |
+| 5   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
 | A   | Run `fitness`, a hook or one check in any repo.    | Connector | The engine installs the latest release first.                          |
 | B   | Every check that fits the change runs.             | Connector | A check that does not fit passes with zero files.                      |
 | C   | Fix the code, not the check, and rerun.            | Connector | The check measures the real code, so the code changes.                 |
