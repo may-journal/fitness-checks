@@ -35,7 +35,7 @@ diagrams checked
     - When the architecture checks read the contract and its levels
       - Then repeated level text, duplicate claims and unreadable evidence fail naming their lines
 - 0005.6
-  - Given Developer has a journey and a context diagram beside requirement docs and Givens
+  - Given Developer has journey and context diagrams beside bullet or Gherkin docs
     - When the architecture checks compare requirements with steps and actors
       - Then each unnamed doc, unfulfilled step, crossed label, undeclared actor and stale region fails naming its line
 - 0005.7

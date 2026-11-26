@@ -234,11 +234,12 @@ func nestingErrors(rel string, bl block, top, maxSteps int) []string {
 	var errs []string
 	counts, flagged := map[int]int{}, map[int]bool{}
 	steps := chainsSteps(rel, bl)
-	for i, d := range bl.depths {
+	for _, i := range counted(bl, steps) {
+		d := bl.depths[i]
 		resetDeeper(counts, d)
 		resetDeeper(flagged, d)
 		counts[d]++
-		limit := levelLimit(steps && bl.ordered[i], top>>d, maxSteps)
+		limit := levelLimit(steps && bl.ordered[i], d, top, maxSteps)
 		if counts[d] > limit && !flagged[d] {
 			flagged[d] = true
 			errs = append(errs, fmt.Sprintf("%s: a list has more than %d items at level %d: %q", rel, limit, d+1, snippet(bl.items[i])))
@@ -247,19 +248,40 @@ func nestingErrors(rel string, bl block, top, maxSteps int) []string {
 	return errs
 }
 
+// counted is the index of each item of bl that counts toward a limit. Under
+// a requirement doc's Requirements heading, a Removed line counts toward none.
+func counted(bl block, steps bool) []int {
+	var out []int
+	for i, d := range bl.depths {
+		if !steps || !removedLine(d, bl.items[i]) {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+// removedLine reports whether an item at depth d is a deleted acceptance's
+// Removed line, which counts toward no limit.
+func removedLine(d int, text string) bool {
+	return d == 0 && requirement.IsRemoved(strings.TrimSpace(text))
+}
+
 // chainsSteps reports whether bl sits under a requirement doc's Requirements
 // heading, where numbered steps chain.
 func chainsSteps(rel string, bl block) bool {
 	return bl.sectionName == "Requirements" && requirement.InDocs(packages.Roots(), rel)
 }
 
-// levelLimit is the cap at an item's level, half the level above. A step, numbered under a requirement doc's
-// Requirements heading, may chain up to maxSteps, the most one acceptance holds.
-func levelLimit(step bool, half, maxSteps int) int {
-	if step {
-		return max(half, maxSteps)
+// levelLimit is the cap at depth d, half the level above. In a requirement
+// doc a numbered step may chain maxSteps; a numbered THEN holds half the list.
+func levelLimit(step bool, d, top, maxSteps int) int {
+	switch {
+	case step && d == 2:
+		return max(top>>d, maxSteps)
+	case step && d == 3:
+		return top >> 1
 	}
-	return half
+	return top >> d
 }
 
 // resetDeeper resets the sibling counts of every level deeper than d, since an

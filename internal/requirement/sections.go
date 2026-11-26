@@ -23,7 +23,7 @@ const stepShape = "each step is a numbered When nested under the Given, with one
 
 // sourceError is what a line starting "Source:" fails with. A line
 // number in a doc goes stale as soon as the code moves, so docs cite none.
-const sourceError = "delete this `Source:` line, or run `fitness requirements --fix`; a Measurement is a numerator, `-` and a denominator"
+const sourceError = "delete this `Source:` line, or run `fitness requirements --fix`, which also moves bullet acceptances to numbered GIVEN, WHEN and THEN items; a Measurement is a numerator, `-` and a denominator"
 
 // checkMeasurement requires a numerator, a "-" line, and a denominator, and
 // fails a line starting "Source:", which older docs carry. It
@@ -92,9 +92,12 @@ func parseRequirements(p *problems, docID string, s section) []IDLine {
 	if len(s.lines) == 0 {
 		return nil
 	}
+	if hasGherkin(s) {
+		return parseGherkin(p, docID, s)
+	}
 	var out []IDLine
 	seen := map[string]bool{}
-	for _, g := range groupItems(p, docID, s.lines) {
+	for _, g := range groupItems(p, s.lines, idMessage(docID)) {
 		a := checkAcceptance(p, docID, g)
 		if seen[a.ID] {
 			p.add(a.Line, a.ID+" appears twice; each acceptance needs its own ID")
@@ -106,12 +109,13 @@ func parseRequirements(p *problems, docID string, s section) []IDLine {
 }
 
 // groupItems splits list items into groups, each a top-level item and the
-// items nested under it.
-func groupItems(p *problems, docID string, lines []line) [][]item {
+// items nested under it. A line that is no list item fails with msg.
+func groupItems(p *problems, lines []line, msg string) [][]item {
 	var groups [][]item
 	for _, l := range lines {
-		it, ok := toItem(p, docID, l)
+		it, ok := listItem(l)
 		if !ok {
+			p.add(l.n, msg)
 			continue
 		}
 		if it.indent == 0 || len(groups) == 0 {
@@ -122,9 +126,8 @@ func groupItems(p *problems, docID string, lines []line) [][]item {
 	return groups
 }
 
-// toItem parses a "- text" or "N. text" line. Any other line is not an
-// acceptance.
-func toItem(p *problems, docID string, l line) (item, bool) {
+// listItem parses a "- text" or "N. text" line, and reports whether it is one.
+func listItem(l line) (item, bool) {
 	trimmed := strings.TrimLeft(l.text, " \t")
 	indent := len(strings.ReplaceAll(l.text[:len(l.text)-len(trimmed)], "\t", "    "))
 	if text, ok := strings.CutPrefix(trimmed, "- "); ok {
@@ -134,7 +137,6 @@ func toItem(p *problems, docID string, l line) (item, bool) {
 		n, _ := strconv.Atoi(m[1])
 		return item{line: line{l.n, strings.TrimSpace(m[2])}, indent: indent, numbered: true, num: n}, true
 	}
-	p.add(l.n, idMessage(docID))
 	return item{}, false
 }
 
@@ -162,7 +164,7 @@ func checkSingle(p *problems, g []item) IDLine {
 	}
 	a := withGiven(g)
 	if ordered {
-		a.Steps = []Step{{Line: g[2].n, When: strings.TrimPrefix(g[2].text, "When ")}}
+		a.Steps = []Step{{Line: g[2].n, When: strings.TrimPrefix(g[2].text, "When "), Then: strings.TrimPrefix(g[3].text, "Then ")}}
 	}
 	return a
 }
@@ -216,7 +218,7 @@ func chainSteps(p *problems, id string, given item, rest []item) ([]Step, bool) 
 		if !checkStep(p, n, given, rest) {
 			return steps, false
 		}
-		steps = append(steps, Step{ID: fmt.Sprintf("%s.%d", id, n), Line: rest[0].n, When: strings.TrimPrefix(rest[0].text, "When ")})
+		steps = append(steps, Step{ID: fmt.Sprintf("%s.%d", id, n), Line: rest[0].n, When: strings.TrimPrefix(rest[0].text, "When "), Then: strings.TrimPrefix(rest[1].text, "Then ")})
 	}
 	return steps, true
 }

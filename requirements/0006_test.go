@@ -102,7 +102,7 @@ func Test0006_1(t *testing.T) {
 		}},
 		{"stale source line fails then fixes", func(t *testing.T) {
 			t.Parallel()
-			doc := requirementDoc("0001.1")
+			doc := docWith("1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n")
 			sourced := withSource(doc, "`gone.go:99`")
 			repo := example(t, "happyRepo", with(pairedRepo(), map[string]string{pairedDoc: sourced}))
 			out, code := fitness(t, repo, nil, "requirements")

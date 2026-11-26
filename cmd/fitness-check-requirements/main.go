@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"slices"
 	"sort"
 	"strings"
 
@@ -31,15 +29,16 @@ func main() {
 // docsDir holds the requirement docs, one per file.
 const docsDir = "docs/requirements/"
 
-// fixFlag makes the check delete every leftover Source line before it
-// judges, so `fitness requirements --fix` converts a repo's docs.
+// fixFlag makes the check delete every leftover Source line and run every
+// migration up before it judges, so `fitness requirements --fix` converts a
+// repo's docs.
 const fixFlag = "--fix"
 
 func run(root string, args []string) (checkkit.Result, error) {
 	roots := packages.Roots()
 	paths := docPaths(root, roots)
-	if err := dropSources(root, paths, args); err != nil {
-		return checkkit.Result{}, err
+	if err := migrate(root, paths, args); err != nil {
+		return migrateResult(err)
 	}
 	tests, files, written, err := collectTests(root, langs.All)
 	if err != nil || len(written) == 0 {
@@ -125,20 +124,6 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
 }
 
-// dropSources deletes the leftover Source line from each doc at paths when
-// args ask for the fix.
-func dropSources(root string, paths, args []string) error {
-	if !slices.Contains(args, fixFlag) {
-		return nil
-	}
-	docs, _, _ := requirement.Load(root, paths)
-	var err error
-	for _, d := range docs {
-		err = errors.Join(err, requirement.DropSource(root, d))
-	}
-	return err
-}
-
 // result passes with no errors and fails with any.
 func result(files int, errs []string) checkkit.Result {
 	if len(errs) > 0 {
@@ -222,12 +207,25 @@ func idErrors(docs []requirement.Document, hist history) []string {
 	return errs
 }
 
-// reusedErrors flags the doc's IDs that a past commit deleted.
+// reusedErrors flags the doc's IDs that a past commit deleted, and each
+// numbered acceptance away from the ID it was added at.
 func reusedErrors(d requirement.Document, hist history) []string {
 	var errs []string
 	for _, id := range d.IDs() {
 		if hist.removed[id.ID] {
 			errs = append(errs, requirement.At(d.Path, id.Line, id.ID+" was deleted before; IDs are never reused, so "+reuseFix(id.ID)))
+		}
+	}
+	return append(errs, movedErrors(d, hist)...)
+}
+
+// movedErrors flags each numbered acceptance away from the ID it was added
+// at.
+func movedErrors(d requirement.Document, hist history) []string {
+	var errs []string
+	for _, a := range d.Acceptances {
+		if home := hist.homes[homeKey(d.ID, a.Name)]; a.Name != "" && home != "" && home != a.ID {
+			errs = append(errs, requirement.At(d.Path, a.Line, a.ID+" holds the acceptance "+home+" held before; a numbered acceptance keeps its place, so number a new one after the last"))
 		}
 	}
 	return errs
@@ -239,7 +237,7 @@ func reuseFix(id string) string {
 	if strings.Count(id, ".") == 2 {
 		return "chain the step under a new acceptance ID"
 	}
-	return "take the next free number"
+	return "take the next free number; a numbered doc keeps it as a `Removed` line"
 }
 
 // sortedKeys returns m's keys in order, for stable output.
