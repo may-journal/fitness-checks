@@ -22,19 +22,55 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// sharedConfigRun runs a repo with no Prettier config of its own, which the
+// shared config judges, and returns what Prettier was given.
+func sharedConfigRun(t *testing.T) (string, int, acceptance.Replays) {
+	t.Helper()
+	files := prettierJS(acceptance.With(map[string]string{".prettierrc.json": "", "app.js": prettierShared}, prettierSynced))
+	shared := prettierAnswers(prettierClean, "--config", "prettier.config.cjs", "--check", "app.js", ".github/ISSUE_TEMPLATE/plan.md", ".github/fitness-setup.md")
+	return prettierRun(t, files, []acceptance.Response{shared, prettierWarn})
+}
+
+// sharedConfig is the shared config file text fitness handed Prettier.
+func sharedConfig(t *testing.T, rp acceptance.Replays) string {
+	t.Helper()
+	calls := rp.Calls("prettier")
+	if len(calls) != 1 {
+		t.Fatalf("want one prettier call, got %q", calls)
+	}
+	return configFrom(t, calls[0])
+}
+
+// stagedRun stages a messy file and a symbolic link beside it, leaves app.js
+// unstaged, and runs the check.
+func stagedRun(t *testing.T) (string, int, acceptance.Replays) {
+	t.Helper()
+	repo := acceptance.Example(t, "happyRepo", prettierJS(nil))
+	acceptance.Write(t, repo, map[string]string{"app.js": prettierMessy, "ci_scripts/run.sh": "#!/bin/sh\necho ready\n"})
+	acceptance.MustDo(t, os.Symlink("run.sh", filepath.Join(repo, "ci_scripts", "ci_post_clone.sh")))
+	rp := acceptance.StandIn(t, map[string][]acceptance.Response{"prettier": {prettierLinkRefused, prettierAnswers(prettierWarn, "app.js"), prettierClean}})
+	acceptance.Git(t, repo, "add", "ci_scripts")
+	out, code := acceptance.Fitness(t, repo, rp.Env, "prettier")
+	return out, code, rp
+}
+
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 the repo's own config judges", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 `prettier` judges every tracked file with it", func(t *testing.T) {
 		t.Parallel()
-		out, code, rp := prettierRun(t, prettierJS(map[string]string{".prettierrc.json": `{ "singleQuote": true, "semi": false }` + "\n"}), []acceptance.Response{prettierWarnColored})
-		acceptance.Sees(t, out, code, 1, "✖ app.js")
-		prettierCalledWith(t, rp, []string{"--check", "app.js"}, "--config")
 		files := prettierJS(map[string]string{".prettierrc.json": "", "package.json": prettierPackageField})
-		out, code, rp = prettierRun(t, files, []acceptance.Response{prettierAnswers(prettierWarn, "--config"), prettierClean})
+		out, code, rp := prettierRun(t, files, []acceptance.Response{prettierAnswers(prettierWarn, "--config"), prettierClean})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		prettierCalledWith(t, rp, []string{"--check", "package.json"}, "--config")
+		_, _, rp = prettierRun(t, prettierJS(map[string]string{".prettierrc.json": `{ "singleQuote": true, "semi": false }` + "\n"}), []acceptance.Response{prettierWarnColored})
+		prettierCalledWith(t, rp, []string{"--check", "app.js"}, "--config")
 	})
-	t.Run("0001.1.2 a repo with no package json passes", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 a file it would reformat fails by name", func(t *testing.T) {
+		t.Parallel()
+		out, code, _ := prettierRun(t, prettierJS(map[string]string{".prettierrc.json": `{ "singleQuote": true, "semi": false }` + "\n"}), []acceptance.Response{prettierWarnColored})
+		acceptance.Sees(t, out, code, 1, "✖ app.js")
+	})
+	t.Run("0001.1.2.2.1 it passes without running Prettier", func(t *testing.T) {
 		t.Parallel()
 		out, code, rp := prettierRun(t, map[string]string{"app.js": prettierMessy}, []acceptance.Response{prettierWarn})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -42,36 +78,39 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("prettier was called without a package.json: %q", calls)
 		}
 	})
-	t.Run("0001.1.3 the shared config judges a repo with none", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 the shared config judges with single quotes", func(t *testing.T) {
 		t.Parallel()
-		files := prettierJS(acceptance.With(map[string]string{".prettierrc.json": "", "app.js": prettierShared}, prettierSynced))
-		shared := prettierAnswers(prettierClean, "--config", "prettier.config.cjs", "--check", "app.js", ".github/ISSUE_TEMPLATE/plan.md", ".github/fitness-setup.md")
-		out, code, rp := prettierRun(t, files, []acceptance.Response{shared, prettierWarn})
+		out, code, rp := sharedConfigRun(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		prettierCalledWith(t, rp, []string{"--config", "prettier.config.cjs", "--ignore-unknown", "--ignore-path", "--with-node-modules", "--check", "app.js"})
-		calls := rp.Calls("prettier")
-		if len(calls) != 1 {
-			t.Fatalf("want one prettier call, got %q", calls)
+		if config := sharedConfig(t, rp); !strings.Contains(config, "singleQuote: true") {
+			t.Errorf("the shared config must use single quotes; missing %q in:\n%s", "singleQuote: true", config)
 		}
-		config := configFrom(t, calls[0])
-		for _, want := range []string{"singleQuote: true", "'.github/ISSUE_TEMPLATE/**/*.md', '.github/fitness-setup.md'", "singleQuote: false", "fromRepoRoot"} {
+	})
+	t.Run("0001.1.2.3.2 the synced `.github` templates keep Prettier defaults", func(t *testing.T) {
+		t.Parallel()
+		out, code, rp := sharedConfigRun(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		config := sharedConfig(t, rp)
+		for _, want := range []string{"'.github/ISSUE_TEMPLATE/**/*.md', '.github/fitness-setup.md'", "singleQuote: false", "fromRepoRoot"} {
 			if !strings.Contains(config, want) {
-				t.Errorf("the shared config must use single quotes and keep the synced files at Prettier defaults; missing %q in:\n%s", want, config)
+				t.Errorf("the shared config must keep the synced files at Prettier defaults; missing %q in:\n%s", want, config)
 			}
 		}
 	})
-	t.Run("0001.1.4 staged files are checked and a symbolic link is left out", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 only the staged files are checked", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", prettierJS(nil))
-		acceptance.Write(t, repo, map[string]string{"app.js": prettierMessy, "ci_scripts/run.sh": "#!/bin/sh\necho ready\n"})
-		acceptance.MustDo(t, os.Symlink("run.sh", filepath.Join(repo, "ci_scripts", "ci_post_clone.sh")))
-		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"prettier": {prettierLinkRefused, prettierAnswers(prettierWarn, "app.js"), prettierClean}})
-		acceptance.Git(t, repo, "add", "ci_scripts")
-		out, code := acceptance.Fitness(t, repo, rp.Env, "prettier")
+		out, code, rp := stagedRun(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		prettierCalledWith(t, rp, []string{"--check", "ci_scripts/run.sh"}, "app.js", "ci_scripts/ci_post_clone.sh")
+		prettierCalledWith(t, rp, []string{"--check", "ci_scripts/run.sh"}, "app.js")
 	})
-	t.Run("0001.1.5 a write argument replaces the check", func(t *testing.T) {
+	t.Run("0001.1.2.4.2 a symbolic link is left out", func(t *testing.T) {
+		t.Parallel()
+		out, code, rp := stagedRun(t)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		prettierCalledWith(t, rp, []string{"--check", "ci_scripts/run.sh"}, "ci_scripts/ci_post_clone.sh")
+	})
+	t.Run("0001.1.2.5.1 Prettier writes in place instead of checking", func(t *testing.T) {
 		t.Parallel()
 		out, code, rp := prettierRun(t, prettierJS(map[string]string{"app.js": prettierMessy}), []acceptance.Response{prettierAnswers(prettierWritten, "--write ."), prettierWarn}, "--write", ".")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -81,23 +120,31 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a prettierignore file fails telling to delete it and fix the findings", func(t *testing.T) {
+	ignored := func(t *testing.T) (string, int) {
+		return acceptance.Fitness(t, acceptance.Example(t, "happyRepo", map[string]string{".prettierignore": "README.md\n"}), nil, "prettier")
+	}
+	t.Run("0001.2.1.1.1 it fails telling to delete it", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", map[string]string{".prettierignore": "README.md\n"}), nil, "prettier")
-		acceptance.Sees(t, out, code, 1, ".prettierignore exists; Prettier checks every tracked file, so delete it and fix the findings instead")
+		out, code := ignored(t)
+		acceptance.Sees(t, out, code, 1, ".prettierignore exists; Prettier checks every tracked file, so delete it")
 	})
-	t.Run("0001.2.2 a missing Prettier reports info with an install hint", func(t *testing.T) {
+	t.Run("0001.2.1.1.2 it tells to fix the findings", func(t *testing.T) {
+		t.Parallel()
+		out, code := ignored(t)
+		acceptance.Sees(t, out, code, 1, "and fix the findings instead")
+	})
+	t.Run("0001.2.1.2.1 it reports info with an install hint", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", prettierJS(nil)), []string{acceptance.PathWithout(t, "prettier")}, "prettier")
 		acceptance.ShowsInfo(t, out, code, "prettier", "Prettier not installed: npm install --save-dev prettier")
 	})
-	t.Run("0001.2.3 a missing plugin reports info quoting Prettier", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 it reports info quoting Prettier's error", func(t *testing.T) {
 		t.Parallel()
 		noPlugin := acceptance.Response{Stderr: "[error] Cannot find package 'prettier-plugin-packagejson' imported from /shared/prettier.config.cjs\n", Exit: 2}
 		out, code, _ := prettierRun(t, prettierJS(nil), []acceptance.Response{noPlugin})
 		acceptance.ShowsInfo(t, out, code, "prettier", "prettier exited 2 without a finding: [error] Cannot find package 'prettier-plugin-packagejson'")
 	})
-	t.Run("0001.2.4 a file Prettier cannot parse fails", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 it fails naming the file", func(t *testing.T) {
 		t.Parallel()
 		unparsable := acceptance.Response{Stderr: "Checking formatting...\n[error] app.js: SyntaxError: Unexpected token (1:7)\n", Exit: 2}
 		out, code, _ := prettierRun(t, prettierJS(nil), []acceptance.Response{unparsable})
@@ -105,63 +152,105 @@ func Test0001_2(t *testing.T) {
 	})
 }
 
+// biomeFormat runs the check in a repo with a Biome config and the Biome
+// package at declared version major[0], where Biome has many files to
+// reformat, and returns what Biome was given.
+func biomeFormat(t *testing.T, major [3]string) (string, int, acceptance.Replays) {
+	t.Helper()
+	files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n"}
+	var report strings.Builder
+	for i := 1; i <= biomeMany; i++ {
+		name := fmt.Sprintf("app%d.js", i)
+		files[name] = prettierMessy
+		fmt.Fprintf(&report, biomeReformat, name)
+	}
+	files["package.json"] = fmt.Sprintf(biomePackage, major[0])
+	repo := acceptance.Example(t, "happyRepo", files)
+	reformat := acceptance.Response{
+		Match:  []string{"format " + fmt.Sprintf(biomeFlags, major[2]), "app1.js"},
+		Stdout: report.String(),
+		Stderr: "format ━━━━━━━━━━\n\n  × Some errors were emitted while running checks.\n",
+		Exit:   1,
+	}
+	rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion(major[1]), reformat}})
+	out, code := acceptance.Fitness(t, repo, rp.Env, "prettier")
+	return out, code, rp
+}
+
+// biomeTooOldRun runs the check with Biome older than 1.8 installed.
+func biomeTooOldRun(t *testing.T) (string, int, acceptance.Replays) {
+	t.Helper()
+	files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n", "app.js": prettierMessy}
+	files["package.json"] = fmt.Sprintf(biomePackage, "latest")
+	rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion(biomeTooOld)}})
+	out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), rp.Env, "prettier")
+	return out, code, rp
+}
+
+// biomeWriteRun runs the check with Biome and args, as a --write argument
+// with or without a Prettier-only flag.
+func biomeWriteRun(t *testing.T, args ...string) (string, int, acceptance.Replays) {
+	t.Helper()
+	files := prettierJS(map[string]string{".prettierrc.json": "", "biome.jsonc": "{}\n", "package.json": fmt.Sprintf(biomePackage, "2.4.15")})
+	written := acceptance.Response{Match: []string{"format " + fmt.Sprintf(biomeFlags, "none") + " --write app.js"}, Stdout: "Formatted 1 file in 2ms. Fixed 1 file.\n"}
+	rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion("2.4.15"), written}})
+	out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), rp.Env, append([]string{"prettier"}, args...)...)
+	return out, code, rp
+}
+
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 Biome checks every tracked file in a repo with a biome config and the Biome package", func(t *testing.T) {
+	t.Run("0001.3.2.1.1 `prettier` fails naming the file", func(t *testing.T) {
 		t.Parallel()
-		files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n"}
-		var report strings.Builder
-		for i := 1; i <= biomeMany; i++ {
-			name := fmt.Sprintf("app%d.js", i)
-			files[name] = prettierMessy
-			fmt.Fprintf(&report, biomeReformat, name)
-		}
 		for _, major := range biomeMajors {
-			files["package.json"] = fmt.Sprintf(biomePackage, major[0])
-			repo := acceptance.Example(t, "happyRepo", files)
-			reformat := acceptance.Response{
-				Match:  []string{"format " + fmt.Sprintf(biomeFlags, major[2]), "app1.js"},
-				Stdout: report.String(),
-				Stderr: "format ━━━━━━━━━━\n\n  × Some errors were emitted while running checks.\n",
-				Exit:   1,
-			}
-			rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion(major[1]), reformat}})
-			out, code := acceptance.Fitness(t, repo, rp.Env, "prettier")
+			out, code, _ := biomeFormat(t, major)
 			acceptance.Sees(t, out, code, 1, "✖ app1.js", "✖ app25.js")
+		}
+	})
+	t.Run("0001.3.2.1.2 it needs no Prettier", func(t *testing.T) {
+		t.Parallel()
+		for _, major := range biomeMajors {
+			out, code, rp := biomeFormat(t, major)
+			acceptance.Sees(t, out, code, 1)
 			if !rp.Called("biome", "format", "README.md") || strings.Contains(out, "Prettier not installed") {
 				t.Errorf("Biome must check every tracked file in place of Prettier; calls %q:\n%s", rp.Calls("biome"), out)
 			}
 		}
 	})
-	t.Run("0001.3.2 a Biome before 1.8 fails naming its version", func(t *testing.T) {
+	t.Run("0001.3.2.2.1 it fails naming the version", func(t *testing.T) {
 		t.Parallel()
-		files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n", "app.js": prettierMessy}
-		files["package.json"] = fmt.Sprintf(biomePackage, "latest")
-		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion(biomeTooOld)}})
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), rp.Env, "prettier")
+		out, code, _ := biomeTooOldRun(t)
 		acceptance.Sees(t, out, code, 1, "Biome "+biomeTooOld+" found; Biome 1.8 or later is required")
+	})
+	t.Run("0001.3.2.2.2 it never runs Biome", func(t *testing.T) {
+		t.Parallel()
+		out, code, rp := biomeTooOldRun(t)
+		acceptance.Sees(t, out, code, 1)
 		if rp.Called("biome", "--reporter=github") {
 			t.Errorf("Biome %s cannot take --reporter=github, yet it ran: %q", biomeTooOld, rp.Calls("biome"))
 		}
 	})
-	t.Run("0001.3.3 a write argument formats in place", func(t *testing.T) {
+	t.Run("0001.3.2.3.1 Biome writes in place", func(t *testing.T) {
 		t.Parallel()
-		files := prettierJS(map[string]string{".prettierrc.json": "", "biome.jsonc": "{}\n", "package.json": fmt.Sprintf(biomePackage, "2.4.15")})
-		written := acceptance.Response{Match: []string{"format " + fmt.Sprintf(biomeFlags, "none") + " --write app.js"}, Stdout: "Formatted 1 file in 2ms. Fixed 1 file.\n"}
-		biomeRun := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion("2.4.15"), written}})
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), biomeRun.Env, "prettier", "--write", "--ignore-unknown", "app.js")
+		out, code, rp := biomeWriteRun(t, "--write", "--ignore-unknown", "app.js")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		for _, call := range biomeRun.Calls("biome") {
+		if !rp.Called("biome", "--write", "app.js") {
+			t.Errorf("Biome must format in place; calls %q", rp.Calls("biome"))
+		}
+	})
+	t.Run("0001.3.2.3.2 it gets only its own flags", func(t *testing.T) {
+		t.Parallel()
+		out, code, rp := biomeWriteRun(t, "--write", "--ignore-unknown", "app.js")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		for _, call := range rp.Calls("biome") {
 			if strings.Contains(call, "--ignore-unknown") || strings.Contains(call, "README.md") {
 				t.Errorf("Biome must get only its own flags and the given path; got %q", call)
 			}
 		}
 	})
-	t.Run("0001.3.4 a Prettier only flag fails by name", func(t *testing.T) {
+	t.Run("0001.3.2.4.1 it fails naming the flag", func(t *testing.T) {
 		t.Parallel()
-		files := prettierJS(map[string]string{".prettierrc.json": "", "biome.jsonc": "{}\n", "package.json": fmt.Sprintf(biomePackage, "2.4.15")})
-		biomeRun := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion("2.4.15")}})
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), biomeRun.Env, "prettier", "--write", "--print-width", "100", "app.js")
+		out, code, _ := biomeWriteRun(t, "--write", "--print-width", "100", "app.js")
 		acceptance.Sees(t, out, code, 1, "Biome formats this repo and has no counterpart for Prettier's --print-width")
 	})
 }
