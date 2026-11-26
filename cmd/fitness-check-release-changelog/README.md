@@ -4,9 +4,6 @@ Binds Release Please's manifest to the version file a reviewer can inspect. The 
 
 ## Behavior
 
-- Use an explicit availability gate and pass with zero files when the repository has no Release Please manifest.
-- Pass during bootstrap when the manifest is an empty JSON object.
-- Require the root manifest value and `version.txt` to contain the same numeric `major.minor.patch` version.
-- Reject malformed JSON, unsupported manifests without the root `.` package, a missing `version.txt`, and mismatched versions.
+[Requirement 0001](docs/requirements/0001-release-versions-agree.md) states what this check does, and a test case named for each step proves it.
 
 Release notes come from [entry files](../fitness-check-changelog/README.md#entry-files), not `CHANGELOG.md`, so this check asks nothing of `CHANGELOG.md`. Set `"skip-changelog": true` in `release-please-config.json` so Release Please stops writing it.

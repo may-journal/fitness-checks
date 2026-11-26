@@ -38,7 +38,7 @@ repos with code or requirement docs
          1. THEN each fails naming the file and line
          2. THEN clean code passes
 5. Node code is tidy
-   1. GIVEN Developer has JavaScript files with a lint or format problem
+   1. GIVEN Developer has JavaScript files with a lint problem
       1. WHEN the Node tooling checks run on them
          1. THEN each fails naming the file and line
          2. THEN clean code passes
@@ -49,8 +49,7 @@ repos with code or requirement docs
          2. THEN clean code passes
 7. Tests pass and cover
    1. GIVEN Developer has tests that fail or cover less than all code
-   2. GIVEN some tests need a runtime version the repo pins
-      1. WHEN the test and coverage checks run on the pinned runtime
+      1. WHEN the test and coverage checks run
          1. THEN each shortfall fails naming its cause
 8. Swift views follow rules
    1. GIVEN Developer has Swift views whose names or localized text break the rules

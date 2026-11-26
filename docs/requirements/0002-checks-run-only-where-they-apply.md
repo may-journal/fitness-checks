@@ -34,11 +34,7 @@ Checks
       1. WHEN fitness runs that check
          1. THEN it skips them and names them as info
          2. THEN it judges the rest
-4. The reminder lists checks
-   1. GIVEN Developer has a run that enables some checks
-      1. WHEN fitness runs `read-repo-first`
-         1. THEN it passes with zero files
-         2. THEN it shows the reminder and a table of the enabled checks
+4. Removed in 2026.11.26.0000: moved to the read-repo-first check's own requirement
 5. Front matter stays out
    1. GIVEN Developer has docs with and without fitness front matter
       1. WHEN fitness runs `no-fitness-front-matter`

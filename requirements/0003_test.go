@@ -97,56 +97,6 @@ func Test0003_1(t *testing.T) {
 	})
 }
 
-func Test0003_2(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"plan-trailer passes a message with no plan reference", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"plan-trailer passes a correct trailer", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n\nPlan #63\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"plan-trailer rejects each misspelled plan line", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan 63\nplan #63\nPlan: 63\n")
-			sees(t, out, code, 1,
-				`plan trailer "Plan 63" `+planTrailerFix,
-				`plan trailer "plan #63" `+planTrailerFix,
-				`plan trailer "Plan: 63" `+planTrailerFix)
-		}},
-		{"plan-trailer passes body prose starting with Plan", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan the rollout in 3 steps.\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"plan-trailer reads HEAD when no message is given", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", nil)
-			commit(t, repo, nil, "feat(app): add a feature\n\nPlan: 63")
-			out, code := fitness(t, repo, nil, "plan-trailer")
-			sees(t, out, code, 1, `plan trailer "Plan: 63" `+planTrailerFix)
-		}},
-		{"plan-trailer passes a plan of another repo", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github#144\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-			out, code = planTrailer(t, "feat(app): add a feature\n\nPlan https://github.com/may-journal/.github/issues/144\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"plan-trailer rejects misspelled other repo plan lines", func(t *testing.T) {
-			t.Parallel()
-			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github 144\nPlan: may-journal/.github#144\n")
-			sees(t, out, code, 1,
-				`plan trailer "Plan may-journal/.github 144" `+planTrailerFix,
-				`plan trailer "Plan: may-journal/.github#144" `+planTrailerFix)
-		}},
-	})
-}
-
 func Test0003_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -467,54 +417,6 @@ func Test0003_7(t *testing.T) {
 	})
 }
 
-func Test0003_8(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"release-changelog passes a repo with no manifest", func(t *testing.T) {
-			t.Parallel()
-			out, code := releaseChangelog(t, nil)
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "release-changelog")
-		}},
-		{"release-changelog passes an empty bootstrap manifest", func(t *testing.T) {
-			t.Parallel()
-			out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": "{}\n"})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"release-changelog rejects a manifest without a root version", func(t *testing.T) {
-			t.Parallel()
-			releaseChangelogFails(t, []releaseChangelogCase{
-				{map[string]string{".release-please-manifest.json": "{\n"}, ".release-please-manifest.json is invalid JSON"},
-				{map[string]string{".release-please-manifest.json": "null\n"}, ".release-please-manifest.json must be a JSON object"},
-				{map[string]string{".release-please-manifest.json": `{"go":"1.2.3"}`}, `.release-please-manifest.json must contain a root "." release version`},
-				{map[string]string{".release-please-manifest.json": `{".":"v1.2.3"}`}, `.release-please-manifest.json root version must be numeric major.minor.patch (got "v1.2.3")`},
-			})
-		}},
-		{"release-changelog rejects a version file that differs", func(t *testing.T) {
-			t.Parallel()
-			files := releaseChangelogRelease(upstreamChangelog)
-			files["version.txt"] = "1.2.4\n"
-			out, code := releaseChangelog(t, files)
-			sees(t, out, code, 1, `version.txt version "1.2.4" must match .release-please-manifest.json version "1.2.3"`)
-		}},
-		{"release-changelog rejects a release with no version file", func(t *testing.T) {
-			t.Parallel()
-			out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": `{".":"1.2.3"}` + "\n"})
-			sees(t, out, code, 1, "version.txt is missing; it must match release 1.2.3")
-		}},
-		{"release-changelog passes a matching version and bare changelog", func(t *testing.T) {
-			t.Parallel()
-			for _, changelog := range []string{upstreamChangelog, ""} {
-				repo := example(t, "happyRepo", releaseChangelogRelease(changelog))
-				write(t, repo, map[string]string{".release-please-manifest.json": `{".": "1.2.3"}` + "\n"})
-				git(t, repo, "add", ".release-please-manifest.json")
-				out, code := fitness(t, repo, nil, "release-changelog")
-				sees(t, out, code, 0, "All 1 checks passed")
-			}
-		}},
-	})
-}
-
 // changelogRun runs `fitness-install -- changelog` on happyRepo with files
 // written over it.
 func changelogRun(t *testing.T, files map[string]string) (string, int) {
@@ -706,48 +608,6 @@ func iloPullRequest(t *testing.T, repo string) (string, int) {
 	mustDo(t, os.WriteFile(path, data, 0o644))
 	env := []string{"GITHUB_BASE_REF=main", "GITHUB_EVENT_PATH=" + path}
 	return fitness(t, repo, env, "issue-link-once")
-}
-
-// planTrailer runs `fitness-install -- plan-trailer --message <msg>` on
-// happyRepo, as the commit-msg hook passes a proposed message.
-func planTrailer(t *testing.T, msg string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", nil), nil, "plan-trailer", "--message", msg)
-}
-
-// planTrailerFix is the hint every misspelled plan reference carries.
-const planTrailerFix = `must read exactly "Plan #<number>", "Plan <owner>/<repo>#<number>" or "Plan https://github.com/<owner>/<repo>/issues/<number>"`
-
-// releaseChangelog runs `fitness-install -- release-changelog` on happyRepo
-// with files written over it.
-func releaseChangelog(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "release-changelog")
-}
-
-// releaseChangelogRelease is a repo releasing 1.2.3 with changelog as its
-// CHANGELOG.md, or none when it is empty.
-func releaseChangelogRelease(changelog string) map[string]string {
-	return map[string]string{
-		".release-please-manifest.json": `{".":"1.2.3"}` + "\n",
-		"version.txt":                   "1.2.3\n",
-		"CHANGELOG.md":                  changelog,
-	}
-}
-
-// releaseChangelogCase is one Given a test runs, with the text it must show.
-type releaseChangelogCase struct {
-	files map[string]string
-	want  string
-}
-
-// releaseChangelogFails runs each case and asserts it fails showing its text.
-func releaseChangelogFails(t *testing.T, cases []releaseChangelogCase) {
-	t.Helper()
-	for _, c := range cases {
-		out, code := releaseChangelog(t, c.files)
-		sees(t, out, code, 1, c.want)
-	}
 }
 
 // semanticCommit runs `fitness-install -- semantic-commit <args>` on

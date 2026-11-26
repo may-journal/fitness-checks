@@ -6,15 +6,7 @@ It runs in [pr-check.yml](https://github.com/may-journal/fitness-runner/blob/mai
 
 ## Behavior
 
-Three rules run over the PR description:
-
-- Every PR closes an issue with a keyword such as `close`, `fix` or `resolve`, before `#NN`, `owner/repo#NN` or an issue URL.
-- Every issue the PR says it implements (`Implements #NN` or `Plan #NN`) must be among the closed issues; an unclosed one fails, named individually.
-- When the PR closes a `Plan`, every issue that Plan closes must be closed by the PR too, via `--require-close`.
-
-The full closing-keyword set is `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, `resolved`. A body with only references, like `addresses #12` or a bare `#12`, fails. A keyword in code or an HTML comment never closes, nor does `Closes # 12`. The pre-push gate reads closes by the same rules.
-
-There is no chore or docs exemption — every PR is held to the first rule.
+[Requirement 0001](docs/requirements/0001-a-pr-closes-its-issue.md) states what this check does, and a test case named for each step proves it.
 
 ## Unchecked items
 

@@ -19,11 +19,7 @@ commits and entry files checked
       1. WHEN the commit checks read the subject line
          1. THEN only subjects with a listed type and scope pass
          2. THEN each failure quotes the subject
-2. Plan references are spelled right
-   1. GIVEN Developer has commits with correct and misspelled `Plan` references
-      1. WHEN the commit checks read the Plan trailer
-         1. THEN a misspelled trailer fails with the fix
-         2. THEN prose and absent trailers pass
+2. Removed in 2026.11.26.0000: moved to the plan-trailer check's own requirement
 3. Attribution trailers are present
    1. GIVEN Developer has commits with and without the AI tool and model trailers
       1. WHEN the commit checks read the attribution trailers
@@ -48,8 +44,4 @@ commits and entry files checked
       1. WHEN the changelog checks read the staged commit
          1. THEN the branch's one entry must name the change
          2. THEN published entries stay as released
-8. Release versions agree
-   1. GIVEN Developer has release manifests and version files
-      1. WHEN the changelog checks read the versions
-         1. THEN a mismatched or missing version fails naming it
-         2. THEN repos with no manifest pass
+8. Removed in 2026.11.26.0000: moved to the release-changelog check's own requirement

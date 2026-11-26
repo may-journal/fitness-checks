@@ -31,3 +31,10 @@ requirement docs with step chains
          1. THEN they count toward no limit
       2. WHEN its GIVENs or a WHEN's THENs pass half the list limit
          1. THEN it fails at that level
+4. Requirement docs chain steps by place
+   1. GIVEN Developer has a requirement doc that chains numbered steps
+      1. WHEN `prose-budget` reads the doc
+         1. THEN seven steps pass in a requirement doc
+         2. THEN eight steps fail naming the limit
+         3. THEN a README keeps the plain list limit
+         4. THEN a plain list in a requirement doc keeps half the list limit

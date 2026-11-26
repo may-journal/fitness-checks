@@ -8,10 +8,6 @@ Like `semantic-commit`, it reads the proposed message from the context-inline `-
 
 ## Behavior
 
-- Pass: the message has no plan-reference line, or its reference reads exactly one of the three spellings.
-- Fail: a plan-reference line in another spelling, one error each, with a fix hint naming all three.
-- `Plan 63`, `plan #63`, `Plan: 63` and `Plan may-journal/.github 63` all fail.
-- Body prose is never a trailer. A line like "Plan the rollout in 3 steps" is ignored.
-- `filesChecked` is always 1 (the one commit message).
+[Requirement 0001](docs/requirements/0001-plan-trailers-are-spelled-right.md) states what this check does, and a test case named for each step proves it.
 
 The pre-push gate accepts a qualified Plan only from the pushing repo's own owner, and reads it from the repo it names.

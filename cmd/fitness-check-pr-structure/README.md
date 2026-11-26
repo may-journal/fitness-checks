@@ -6,9 +6,6 @@ A PR description is not a file in the tree, so this check reads its target from 
 
 ## Behavior
 
-- Pass: a non-placeholder blockquote summary before the first `##`; a `## Background` section; a `## Changelog` with a `-` bullet; no other `##` sections.
-- Fail: a missing or placeholder summary, a missing section, a changelog without bullets, or any extra `##` section — each reported separately.
-
-Fenced code is skipped, so a `##` or bullet inside a code sample never counts.
+[Requirement 0001](docs/requirements/0001-pr-bodies-follow-the-template.md) states what this check does, and a test case named for each step proves it.
 
 The bullet links the PR's [entry file](../fitness-check-changelog/README.md#entry-files) rather than copying it. This check sees only the body, so `pr-check` enforces the link with the PR's diff. It fails a PR that adds an entry without linking it, links another file, or copies a bullet the PR adds.
