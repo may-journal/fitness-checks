@@ -22,6 +22,9 @@ type history struct {
 	// homes maps each numbered acceptance, by its doc number and name, to the
 	// ID it was added at.
 	homes map[string]string
+	// held holds every acceptance ID a commit added outside an HTML comment.
+	// A numbered doc that drops one must keep it as a Removed line.
+	held map[string]bool
 }
 
 // wholeDoc is the diff context that keeps each changed doc whole in one hunk,
@@ -36,7 +39,7 @@ func readHistories(root string, roots, paths []string) (map[string]history, stri
 	hists := map[string]history{}
 	dirs := make([]string, len(roots))
 	for i, r := range roots {
-		hists[r] = history{removed: map[string]bool{}, homes: map[string]string{}}
+		hists[r] = history{removed: map[string]bool{}, homes: map[string]string{}, held: map[string]bool{}}
 		dirs[i] = packages.Join(r, docsDir)
 	}
 	log, note := docLog(root, dirs)
@@ -109,6 +112,8 @@ func (h history) replay(log string) docFiles {
 		net, names := commitNet(commit)
 		h.apply(live, net)
 		h.settle(names)
+		h.keep(names["+"])
+		h.keep(names[heldSide])
 		if restructure {
 			h.restart()
 		}
@@ -120,6 +125,14 @@ func (h history) replay(log string) docFiles {
 func (h history) restart() {
 	clear(h.removed)
 	clear(h.homes)
+	clear(h.held)
+}
+
+// keep marks each ID that ids map to as held.
+func (h history) keep(ids map[string]string) {
+	for _, id := range ids {
+		h.held[id] = true
+	}
 }
 
 // settle folds one commit's acceptance names into h: a name only added takes
@@ -154,6 +167,10 @@ func movedFrom(names map[string]map[string]string, key string) string {
 // removedSide files the IDs a commit wrote Removed lines at, beside the
 // names it removed and added.
 const removedSide = "Removed"
+
+// heldSide files the bullet acceptance IDs a commit added outside an HTML
+// comment.
+const heldSide = "Held"
 
 // homeKey names a numbered acceptance across commits: its doc number and
 // name.
@@ -239,7 +256,7 @@ func gitFailure(err error) string {
 // edited or moved line nets to zero. It also maps each numbered acceptance
 // the commit removed or added, by diff sign, to its ID there.
 func commitNet(diff string) (map[string]int, map[string]map[string]string) {
-	sc := scan{net: map[string]int{}, names: map[string]map[string]string{"+": {}, "-": {}, removedSide: {}}}
+	sc := scan{net: map[string]int{}, names: map[string]map[string]string{"+": {}, "-": {}, removedSide: {}, heldSide: {}}}
 	for _, line := range strings.Split(diff, "\n") {
 		sc.read(line)
 	}
@@ -262,9 +279,24 @@ func (sc *scan) read(line string) {
 	}
 	sc.under.follow(line)
 	sc.note(sc.under.numbered(line))
+	sc.hold(line)
 	if id := sc.under.step(line); id != "" {
 		sc.net[id] += lineSign[line[:1]]
 	}
+}
+
+// hold files a bullet acceptance ID line that a diff line adds to a
+// Requirements section outside an HTML comment.
+func (sc *scan) hold(line string) {
+	if m := acceptanceLine.FindStringSubmatch(line); m != nil && sc.under.owns(m[2]) && sc.under.visible(m[1]) == "+" {
+		sc.names[heldSide][m[2]] = m[2]
+	}
+}
+
+// owns reports whether id is an acceptance of the requirement doc whose
+// Requirements section the diff is in.
+func (s sides) owns(id string) bool {
+	return s.inReqs && s.doc != "" && strings.HasPrefix(id, s.doc+".")
 }
 
 // note counts a numbered acceptance line toward its ID and files its name.

@@ -61,3 +61,9 @@ Numbered acceptances
    1. GIVEN Developer runs `requirements` with a flag it does not have
       1. WHEN the flag is a removed `--up` or `--down`
          1. THEN it fails naming the flag
+8. Last acceptance kept
+   1. GIVEN Developer has numbered acceptances
+      1. WHEN the last becomes `Removed`
+         1. THEN it passes
+      2. WHEN the last is deleted outright
+         1. THEN it names the `Removed` line to add

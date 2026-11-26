@@ -115,6 +115,7 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	}
 	errs = append(errs, missingDocs(p)...)
 	errs = append(errs, idErrors(docs, hist)...)
+	errs = append(errs, droppedErrors(root, docs, hist)...)
 	errs = append(errs, capErrors(docs, limit)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)

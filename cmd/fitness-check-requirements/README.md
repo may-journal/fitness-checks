@@ -99,6 +99,8 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 
 Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
 
+History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add.
+
 ## Behavior
 
 [Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.
