@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 # of the checks REQUIREMENT_CHECKS names.
 case "${REQUIREMENT_SHARD:-}" in
 "") folders="$(go list ./... | grep '/requirements$')" ;;
-checks) folders="$(scripts/requirement-shard.sh checks "${REQUIREMENT_CHECKS:-}")" ;;
+checks) folders="$(scripts/requirement-shard.sh checks "${REQUIREMENT_CHECKS:-}" ${REQUIREMENT_CHECK_SHARE:+"$REQUIREMENT_CHECK_SHARE"})" ;;
 *)
   folders=./requirements
   pattern="$(scripts/requirement-shard.sh "$REQUIREMENT_SHARD")"

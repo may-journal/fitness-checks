@@ -154,6 +154,19 @@ func Test0001_2(t *testing.T) {
 			}
 
 		}},
+		{"0001.2.2 changed folders run once in at most six shares", func(t *testing.T) {
+			t.Parallel()
+			if all := runScript(t, "..", "requirement-shard.sh", "checks", ""); len(strings.Fields(all)) < 7 {
+				t.Fatalf("only %q folders, want more than six to prove the cap", all)
+			}
+			for checks, count := range map[string]int{`["gofmt"]`: 0, `["swiftlint"]`: 1, "": 6} {
+				shares := strings.Fields(strings.NewReplacer("[", "", "]", "", `"`, "", ",", " ").Replace(runScript(t, "..", "requirement-shard.sh", "shares", checks)))
+				if len(shares) != count {
+					t.Errorf("shares for %q = %v, want %d", checks, shares, count)
+				}
+				wantOnce(t, shareFolders(t, checks, shares), strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", checks)))
+			}
+		}},
 		{"0001.2.2 shared suite changes run every folder and the slow cases", func(t *testing.T) {
 			t.Parallel()
 			for file, want := range map[string]string{"tests/requirements.sh": "true", "scripts/release-build.sh": "true", "cmd/fitness-check-gofmt/main.go": "false"} {
@@ -1108,4 +1121,30 @@ func shareRuns(t *testing.T, tests []string, n int) map[string]int {
 		}
 	}
 	return runs
+}
+
+// shareFolders counts, for each requirement folder of the shares of checks,
+// the shares that run it.
+func shareFolders(t *testing.T, checks string, shares []string) map[string]int {
+	t.Helper()
+	runs := map[string]int{}
+	for _, share := range shares {
+		for _, folder := range strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", checks, share)) {
+			runs[folder]++
+		}
+	}
+	return runs
+}
+
+// wantOnce fails unless runs holds exactly the folders in want, each once.
+func wantOnce(t *testing.T, runs map[string]int, want []string) {
+	t.Helper()
+	for _, folder := range want {
+		if runs[folder] != 1 {
+			t.Errorf("%s runs in %d shares, want exactly one", folder, runs[folder])
+		}
+	}
+	if len(runs) != len(want) {
+		t.Errorf("shares run %d folders, want %d", len(runs), len(want))
+	}
 }
