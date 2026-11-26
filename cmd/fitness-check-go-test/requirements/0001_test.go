@@ -25,12 +25,12 @@ func Test0001_1(t *testing.T) {
 		out, code := goTest(t, goTestModule("svc/", goTestBroken))
 		acceptance.Sees(t, out, code, 1, "svc: --- FAIL: TestBroken", "svc: m_test.go:5: boom")
 	})
-	t.Run("0001.1.3 a test that does not compile fails with the build error", func(t *testing.T) {
+	t.Run("0001.1.3 a test that does not compile fails with the build error then its location", func(t *testing.T) {
 		t.Parallel()
 		out, code := goTest(t, goTestModule("", "func TestBroken(t *testing.T) { undefinedThing() }\n"))
 		acceptance.Sees(t, out, code, 1, "m_test.go:5:33: undefined: undefinedThing")
 	})
-	t.Run("0001.1.4 passing tests pass, counting the modules", func(t *testing.T) {
+	t.Run("0001.1.4 passing tests pass then count the modules", func(t *testing.T) {
 		t.Parallel()
 		out, code := goTest(t, goTestModule("", "func TestFine(t *testing.T) {}\n"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")

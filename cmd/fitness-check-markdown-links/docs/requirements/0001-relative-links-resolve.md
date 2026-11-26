@@ -31,7 +31,8 @@ relative links in Markdown files
       1. WHEN a link targets a file
          1. THEN it passes
          2. THEN a folder passes
-         3. THEN a heading passes since a `#fragment` is stripped and not validated
+         3. THEN a heading passes since a `#fragment` is stripped
+         4. THEN a `#fragment` is never validated
       2. WHEN a link is a web address
          1. THEN it passes untouched
          2. THEN a mail link passes alike
@@ -40,4 +41,5 @@ relative links in Markdown files
       3. WHEN a broken link sits in inline code or a fenced block
          1. THEN it is ignored
       4. WHEN a link holds a percent-encoded space
-         1. THEN it is decoded and resolves
+         1. THEN it is decoded
+         2. THEN it resolves

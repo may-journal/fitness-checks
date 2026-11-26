@@ -121,3 +121,19 @@ func Test0001_5(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
+
+func Test0001_6(t *testing.T) {
+	t.Parallel()
+	t.Run("0001.6.1 a step item in any case fails naming the line", func(t *testing.T) {
+		t.Parallel()
+		out, code := judged(t, "gofmt", readmeOf(link, command("gofmt"))+"\n## Notes\n\n- When it runs\n")
+		acceptance.Sees(t, out, code, 1, "cmd/fitness-check-gofmt/README.md:17: the README holds a WHEN step")
+		out, code = judged(t, "gofmt", readmeOf(link, command("gofmt"))+"\n## Notes\n\n1. then it passes\n")
+		acceptance.Sees(t, out, code, 1, "cmd/fitness-check-gofmt/README.md:17: the README holds a THEN step")
+	})
+	t.Run("0001.6.2 the words in a fence or a plain sentence pass", func(t *testing.T) {
+		t.Parallel()
+		out, code := judged(t, "gofmt", readmeOf(link, command("gofmt"))+"\n## Notes\n\nWhen it runs it formats.\n\n```\n- When it runs\n```\n\n~~~\n- When it runs\n~~~\n\n````\n```\n- When it runs\n```\n- Then it passes\n````\n")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+}

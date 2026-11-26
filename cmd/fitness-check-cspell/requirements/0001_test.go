@@ -44,7 +44,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 the repo's own word list wins and the owner and agent names pass", func(t *testing.T) {
+	t.Run("0001.2.1 the repo's own word list wins and the owner names or agent names pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := cspellRun(t, map[string]string{
 			"cspell.json":   `{"words":["fitnessrc","` + cspellRepoWord + `"]}` + "\n",
@@ -59,7 +59,7 @@ func Test0001_2(t *testing.T) {
 			t.Errorf("the owner and agent names must be accepted:\n%s", out)
 		}
 	})
-	t.Run("0001.2.2 an ignorePaths setting fails before any scan", func(t *testing.T) {
+	t.Run("0001.2.2 an ignorePaths setting fails before any scan telling Developer to remove it", func(t *testing.T) {
 		t.Parallel()
 		out, code := cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
 		acceptance.Sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file, so remove ignorePaths and fix the findings instead")

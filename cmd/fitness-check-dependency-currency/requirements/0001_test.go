@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 passes dependencies at the latest version", func(t *testing.T) {
+	t.Run("0001.1.1 passes dependencies at the latest version with or without workspaces", func(t *testing.T) {
 		t.Parallel()
 		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`, "", dcLeftPad, "1.3.0"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -48,7 +48,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 rejects each kind behind latest", func(t *testing.T) {
+	t.Run("0001.2.1 rejects each kind behind latest in an installed repo", func(t *testing.T) {
 		t.Parallel()
 		files := dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.0.0"}, "devDependencies": {"is-number": "^6.0.0"}, "peerDependencies": {"@types/left-pad": "^1.0.0"}}`,
 			"", dcLeftPad, "1.0.0", "", dcIsNumber, "6.0.0", "", dcTypes, "1.0.0")
@@ -275,4 +275,16 @@ func registry(t *testing.T, packages map[string]string) string {
 	}))
 	t.Cleanup(srv.Close)
 	return srv.URL
+}
+
+func Test0001_4(t *testing.T) {
+	t.Parallel()
+	url, hits := dcAnswer(t, http.StatusOK, dcDoc(dcLeftPad, "1.0.0", "1.3.0"))
+	proxy := silentListener(t)
+	files := dcRepo(url, `{"dependencies": {"left-pad": "^1.0.0"}}`, "", dcLeftPad, "1.0.0")
+	out, code := dependencyCurrency(t, files, "HTTPS_PROXY="+proxy, "NO_PROXY=", "GITHUB_API_URL=https://api.github.com")
+	acceptance.ShowsInfo(t, out, code, "dependency-currency", "api.github.com did not answer within 2s through proxy "+proxy)
+	if n := hits.Load(); n != 0 {
+		t.Errorf("the registry was asked %d times, want none", n)
+	}
 }

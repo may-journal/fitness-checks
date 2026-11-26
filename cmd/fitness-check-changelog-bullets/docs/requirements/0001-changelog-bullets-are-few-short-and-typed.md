@@ -19,13 +19,17 @@ entry files
    2. GIVEN it may hold `changelog/` entry files
       1. WHEN each section holds 3 to 5 bullets under 365 characters each opening with a semantic type
          1. THEN it passes counting the entry files
-         2. THEN types read `Feat:` and `feat(scope)!:` alike
+         2. THEN types read `Feat:` or `feat(scope)!:` alike
       2. WHEN a `###` section holds fewer than 3 `- ` bullets
-         1. THEN it fails naming the file and the section and its count
-         2. THEN a section of more than 5 fails the same way
+         1. THEN it fails naming the file
+         2. THEN it fails naming the section
+         3. THEN it fails naming its count
+         4. THEN a section of more than 5 fails the same way
       3. WHEN a bullet reaches 365 characters with its continuation lines joined
-         1. THEN it fails naming the file and the line and the length
-      4. WHEN a bullet opens with none of the types `Feat:` and `Fix:` through `Revert:`
+         1. THEN it fails naming the file
+         2. THEN it fails naming the line
+         3. THEN it fails naming the length
+      4. WHEN a bullet opens with none of the types `Feat:` through `Revert:`
          1. THEN it fails that bullet alone naming its line
          2. THEN a commit subject of such a type passes
       5. WHEN several entry files break these rules

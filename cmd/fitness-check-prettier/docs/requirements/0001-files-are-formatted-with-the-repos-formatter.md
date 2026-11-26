@@ -33,7 +33,8 @@ repos with a formatter
 2. Prettier trouble is reported
    1. GIVEN Developer has a repo that Prettier cannot judge cleanly
       1. WHEN a `.prettierignore` exists
-         1. THEN it fails telling to delete it and fix the findings
+         1. THEN it fails telling to delete it
+         2. THEN it tells to fix the findings
       2. WHEN Prettier is not installed
          1. THEN it reports info with an install hint
       3. WHEN a plugin is missing
@@ -41,7 +42,8 @@ repos with a formatter
       4. WHEN a file cannot be parsed
          1. THEN it fails naming the file
 3. Biome formats a repo that chose it
-   1. GIVEN Developer has a repo with `biome.json` and `@biomejs/biome` in its dependencies
+   1. GIVEN Developer has a repo with `biome.json`
+   2. GIVEN it lists `@biomejs/biome` in its dependencies
       1. WHEN a file needs reformatting
          1. THEN `prettier` fails naming the file
          2. THEN it needs no Prettier

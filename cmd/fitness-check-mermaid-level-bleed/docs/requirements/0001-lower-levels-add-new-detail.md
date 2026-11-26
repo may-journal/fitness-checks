@@ -25,9 +25,9 @@ Architecture level files
          1. THEN it is reported once
       3. WHEN every description is distinct or blank
          1. THEN the levels pass
-      4. WHEN levels one and three share text
+      4. WHEN level one shares text with level three
          1. THEN they pass
-      5. WHEN levels two and ten share text
+      5. WHEN level two shares text with level ten
          1. THEN they compare as adjacent
          2. THEN the repeat fails
 2. Only description cells are compared

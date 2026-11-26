@@ -17,20 +17,20 @@ Markdown files with a diagram or a callout table
 1. Callouts and rows pair one to one
    1. GIVEN Developer has Markdown files or a PR body with mermaid diagrams
    2. GIVEN each diagram has a callout table
-      1. WHEN every callout in a diagram maps to exactly one table row and back
+      1. WHEN every callout in a diagram maps to exactly one table row in both directions
          1. THEN the file passes
          2. THEN the count includes the file
       2. WHEN a diagram other than a legend has no numbered callouts
          1. THEN it fails with `mermaid diagram has no numbered callouts`
-      3. WHEN a callout and its row do not pair
-         1. THEN a callout with no row fails naming it and its line
-         2. THEN a row with no callout fails naming it and its line
+      3. WHEN a callout does not pair with its row
+         1. THEN a callout with no row fails naming it with its line
+         2. THEN a row with no callout fails naming it with its line
          3. THEN a callout or row that appears twice fails the same way
          4. THEN a callout with no table or a row with no diagram fails the same way
       4. WHEN a connector callout is a number
          1. THEN it fails asking for a letter
          2. THEN the failure names `--fix`
-      5. WHEN a connector letter breaks the doubling from `A` to `Z` then `AA` to `ZZ`
+      5. WHEN a connector letter breaks the doubling from `A` to `Z` or from `AA` to `ZZ`
          1. THEN it fails for the diagram callout
          2. THEN it fails for the table row
       6. WHEN a PR body diagram has a callout with no row

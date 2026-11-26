@@ -21,9 +21,14 @@ pinned workflow calls read
          1. THEN it passes
          2. THEN it counts the workflow files
       2. WHEN a workflow or action path is missing at its tag
-         1. THEN it fails naming the file and line and path and ref
+         1. THEN it fails naming the file
+         2. THEN it fails naming the line
+         3. THEN it fails naming the path
+         4. THEN it fails naming the ref
       3. WHEN a ref is not a tag or a branch or a full sha or a sha names no commit
-         1. THEN it fails naming the file and line and ref
+         1. THEN it fails naming the file
+         2. THEN it fails naming the line
+         3. THEN it fails naming the ref
       4. WHEN a call is local or another owner's or built from an expression or in a script block
          1. THEN it is not read
          2. THEN it passes

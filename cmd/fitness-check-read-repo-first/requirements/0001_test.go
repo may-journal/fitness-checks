@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 the run passes with zero files and shows the reminder", func(t *testing.T) {
+	t.Run("0001.1.1 the run passes with zero files and asks whether the decisions and the enabled checks were read", func(t *testing.T) {
 		t.Parallel()
 		out, code := readRepoFirst(t)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed",
@@ -28,7 +28,7 @@ func Test0001_1(t *testing.T) {
 			"NOTE: Do not under any circumstance use `--no-verify`")
 		acceptance.PassedWithNoFiles(t, out, "read-repo-first")
 	})
-	t.Run("0001.1.2 the table lists only enabled checks", func(t *testing.T) {
+	t.Run("0001.1.2 the table lists only enabled checks without a disabled one", func(t *testing.T) {
 		t.Parallel()
 		out, code := readRepoFirst(t, "--policy=external", "--checks=read-repo-first,duplicate-code")
 		acceptance.Sees(t, out, code, 0, "Check │ Src", "duplicate-code │ go/cmd/fitness-check-duplicate-code")

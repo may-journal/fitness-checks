@@ -100,7 +100,7 @@ func Test0001_2(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, check)
 	})
-	t.Run("0001.2.2 a tie goes to kebab-case and passes with no files", func(t *testing.T) {
+	t.Run("0001.2.2 a tie between hyphens or capitals goes to kebab-case then passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, map[string]string{
 			"docs/api-design.md":   "# API\n",

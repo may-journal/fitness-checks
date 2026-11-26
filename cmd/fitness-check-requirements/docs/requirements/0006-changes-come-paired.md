@@ -15,7 +15,7 @@ changed requirement tests and docs
 ## Requirements
 
 1. A test and its doc change together
-   1. GIVEN Developer has requirement tests and docs
+   1. GIVEN Developer has requirement tests with docs
       1. WHEN a test or a doc changes without its partner
          1. THEN it fails naming both files
       2. WHEN a test is named for two requirements

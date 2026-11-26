@@ -50,6 +50,14 @@ const joinedError = "write no AND or BUT; an extra condition is the next GIVEN a
 // commaError is what a step holding a comma outside code fails with.
 const commaError = "split this item at its comma; an extra condition is the next GIVEN and an extra result the next THEN"
 
+// gherkinWord matches a Gherkin word between spaces in any casing. A step reads
+// as one condition or result, so a word not in caps hides a second clause.
+var gherkinWord = regexp.MustCompile(`(?i)(?:^|\s)(given|when|then|and|but)(?:\s|$)`)
+
+// quoted matches text in straight or curly double quotes, which a step
+// repeats as written.
+var quoted = regexp.MustCompile(`"[^"]*"|“[^”]*”`)
+
 // parserError matches one Cucumber parse error, "(line:column): message".
 var parserError = regexp.MustCompile(`\((\d+):\d+\): (.*)`)
 
@@ -86,6 +94,7 @@ func numberedChild(l line) bool {
 // parseGherkin checks each numbered acceptance and reads it as Gherkin
 // through the Cucumber parser.
 func parseGherkin(p *problems, docID string, s section) []IDLine {
+	checkBlockKeywords(p, s)
 	groups := groupItems(p, s.lines, topLevelMessage)
 	kinds := map[int]kind{}
 	doc := parsed(p, s.n, gherkinText(p, s.n, groups, kinds))
@@ -240,6 +249,17 @@ func hasComma(text string) bool {
 	return strings.Contains(codeSpan.ReplaceAllString(text, ""), ",")
 }
 
+// joinWord is the first Gherkin word of text, outside code and quotes, that
+// is not in caps, or "" when it holds none.
+func joinWord(text string) string {
+	for _, m := range gherkinWord.FindAllStringSubmatch(quoted.ReplaceAllString(codeSpan.ReplaceAllString(text, ""), ""), -1) {
+		if m[1] != strings.ToUpper(m[1]) {
+			return m[1]
+		}
+	}
+	return ""
+}
+
 // gherkinText is the acceptances as the Cucumber parser reads them, each on
 // its doc line below a Feature line on heading line n. It fails each item's
 // wording and files its kind by line.
@@ -271,8 +291,8 @@ func cutWord(text string) (string, string) {
 	return word, rest
 }
 
-// checkItem fails an AND or BUT, a keyword not in caps, or a comma outside
-// code. It returns the item's kind.
+// checkItem fails an AND or BUT, or the wording of a step. It returns the
+// item's kind.
 func checkItem(p *problems, n int, word, rest string) kind {
 	upper := strings.ToUpper(word)
 	if joinWords[upper] {
@@ -283,13 +303,22 @@ func checkItem(p *problems, n int, word, rest string) kind {
 	if k == other {
 		return other
 	}
-	if word != upper {
+	itemWording(p, n, word, rest)
+	return k
+}
+
+// itemWording fails a keyword not in caps, a comma outside code, or a
+// lowercase "and" or "but" outside code and quotes.
+func itemWording(p *problems, n int, word, rest string) {
+	if upper := strings.ToUpper(word); word != upper {
 		p.add(n, "write the keyword "+upper+" in caps")
 	}
 	if hasComma(rest) {
 		p.add(n, commaError)
 	}
-	return k
+	if w := joinWord(rest); w != "" {
+		p.add(n, "write the Gherkin word "+strings.ToUpper(w)+" in caps, or split it into its own GIVEN, WHEN or THEN")
+	}
 }
 
 // readAs is the Gherkin keyword for kind k after kind prev. A failed AND or
@@ -332,4 +361,18 @@ func numberSteps(a IDLine, thens [][]string) IDLine {
 		}
 	}
 	return a
+}
+
+// blockKeyword matches a Gherkin block keyword and its colon opening a line of
+// a Requirements section, after any list number. Group 1 is the keyword.
+var blockKeyword = regexp.MustCompile(`(?i)^\s*(?:\d+\.\s+|[-*+]\s+)?(feature|rule|background|scenario outline|scenario|examples|example):`)
+
+// checkBlockKeywords fails each Gherkin block keyword that opens a line and
+// is not in caps. It is the caps rule for the keywords no step opens with.
+func checkBlockKeywords(p *problems, s section) {
+	for _, l := range s.lines {
+		if m := blockKeyword.FindStringSubmatch(l.text); m != nil && m[1] != strings.ToUpper(m[1]) {
+			p.add(l.n, "write the keyword "+strings.ToUpper(m[1])+" in caps")
+		}
+	}
 }

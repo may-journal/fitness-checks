@@ -31,12 +31,12 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, hint+`"It's not a workout It's a lifestyle"`,
 			hint+`"They’re not bugs They’re features"`)
 	})
-	t.Run("0001.1.2 one sentence that negates and pivots fails", func(t *testing.T) {
+	t.Run("0001.1.2 one sentence that negates plus pivots fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := reframing(t, "This isn't about speed; it's about consistency.\n")
 		acceptance.Sees(t, out, code, 1, hint+`"This isn't about speed; it's about consistency"`)
 	})
-	t.Run("0001.1.3 ordinary negations pass", func(t *testing.T) {
+	t.Run("0001.1.3 ordinary negations and the not only X but also Y form pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := reframing(t, "It's not ready yet. The file is not found, but the fallback loads.\n\n"+
 			"We should not merge, but wait for review. Not only fast, but also correct.\n\n"+

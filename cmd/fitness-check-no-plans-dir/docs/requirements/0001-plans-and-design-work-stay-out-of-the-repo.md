@@ -16,7 +16,7 @@ Repo paths
 
 1. Plan files fail by path
    1. GIVEN Developer has a repo
-   2. GIVEN it may hold plan and design files
+   2. GIVEN it may hold plan or design files
       1. WHEN a file sits in a `plans` folder at any depth
          1. THEN it fails naming the path
          2. THEN it names a Plan issue

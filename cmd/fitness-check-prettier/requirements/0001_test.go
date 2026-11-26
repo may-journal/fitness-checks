@@ -81,7 +81,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a prettierignore file fails", func(t *testing.T) {
+	t.Run("0001.2.1 a prettierignore file fails telling to delete it and fix the findings", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", map[string]string{".prettierignore": "README.md\n"}), nil, "prettier")
 		acceptance.Sees(t, out, code, 1, ".prettierignore exists; Prettier checks every tracked file, so delete it and fix the findings instead")
@@ -107,7 +107,7 @@ func Test0001_2(t *testing.T) {
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 Biome checks every tracked file", func(t *testing.T) {
+	t.Run("0001.3.1 Biome checks every tracked file in a repo with a biome config and the Biome package", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n"}
 		var report strings.Builder

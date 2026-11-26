@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a pitch and Background and a list of references pass", func(t *testing.T) {
+	t.Run("0001.1.1 a pitch plus Background plus a list of references pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := epicStructure(t, nil, pitch+background+list("1. #22\n2. #23, after #22\n3. org/repo#24"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")

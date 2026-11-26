@@ -25,7 +25,7 @@ func Test0001_1(t *testing.T) {
 		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)))
 		acceptance.Sees(t, out, code, 1, "✖ api: "+goVetFinding)
 	})
-	t.Run("0001.1.3 clean modules pass, counting the modules", func(t *testing.T) {
+	t.Run("0001.1.3 clean modules pass then count the modules vetted", func(t *testing.T) {
 		t.Parallel()
 		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", "package m\n\nfunc F() int { return 1 }\n")))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -45,7 +45,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "go-vet")
 	})
-	t.Run("0001.1.5 a change touching no Go file passes", func(t *testing.T) {
+	t.Run("0001.1.5 a run scoped to changed files with none of them Go passes", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad))
 		acceptance.Write(t, repo, map[string]string{"README.md": "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n\nMore text.\n"})

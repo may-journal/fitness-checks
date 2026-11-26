@@ -15,7 +15,7 @@ repos with JavaScript or TypeScript files
 ## Requirements
 
 1. Rule breaks fail
-   1. GIVEN Developer has a repo with JavaScript or TypeScript files and a lint config
+   1. GIVEN Developer has a repo with JavaScript or TypeScript files that carry a lint config
       1. WHEN every tracked file is clean
          1. THEN it passes
          2. THEN it counts the files ESLint was asked to lint
@@ -36,7 +36,7 @@ repos with JavaScript or TypeScript files
    1. GIVEN Developer has a repo with JavaScript files where ESLint is missing or crashes or Biome is chosen
       1. WHEN no eslint binary resolves or ESLint crashes without a finding
          1. THEN it reports info naming the cause
-      2. WHEN the repo has a `biome.json` and lists `@biomejs/biome` in its dependencies
+      2. WHEN the repo has a `biome.json` plus `@biomejs/biome` in its dependencies
          1. THEN Biome lints the same paths with no eslint needed
          2. THEN each error or warning fails as `path:line:col - message (rule)`
          3. THEN a Biome older than 1.8 fails naming its version without running Biome

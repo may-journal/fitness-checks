@@ -33,5 +33,6 @@ Markdown files in repos that use camelCase
    1. GIVEN Developer has a repo whose Markdown names are mostly hyphenated
       1. WHEN most names are hyphenated
          1. THEN it passes with no files
-      2. WHEN names tie between hyphens and capitals
-         1. THEN kebab-case wins and it passes with no files
+      2. WHEN names tie between hyphens or capitals
+         1. THEN kebab-case wins
+         2. THEN it passes with no files

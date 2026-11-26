@@ -16,8 +16,9 @@ repos checked
 
 1. Build output stays out of git
    1. GIVEN Developer has a repo
-   2. GIVEN it may hold `dist` and Maven and Gradle output
-   3. GIVEN it may hold TypeScript imports
+   2. GIVEN it may hold `dist` output
+   3. GIVEN it may hold Maven or Gradle output
+   4. GIVEN it may hold TypeScript imports
       1. WHEN git does not ignore the `dist` folder
          1. THEN it fails with the hint to add `dist/` to `.gitignore`
       2. WHEN git tracks files under any `dist` folder
@@ -28,13 +29,14 @@ repos checked
          2. THEN a build folder without Java passes
       4. WHEN a tracked TypeScript file imports from a `dist/` path
          1. THEN it fails as `path:line` for each `from`
-         2. THEN it fails the same way for each `import()` and `require()`
-         3. THEN tests are judged like any other file
+         2. THEN it fails the same way for each `import()`
+         3. THEN it fails the same way for each `require()`
+         4. THEN tests are judged like any other file
       5. WHEN that import is commented out
          1. THEN it passes
          2. THEN an untracked file passes too
-      6. WHEN `dist` is ignored and every import is local
+      6. WHEN `dist` is ignored with every import local
          1. THEN it passes
          2. THEN it counts the scanned sources plus one for the `dist` rules
-      7. WHEN the repo has no build output and no TypeScript
+      7. WHEN the repo has neither build output nor TypeScript
          1. THEN it passes with no files

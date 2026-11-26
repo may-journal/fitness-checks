@@ -110,7 +110,7 @@ func Test0001_1(t *testing.T) {
 		_, out, code = acceptance.JavaRun(t, karate, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}})
 		acceptance.Sees(t, out, code, 1, "the Maven build at . has test files but ran no test", "Karate: Karate runs feature files only from a test class with a @Karate.Test method")
 	})
-	t.Run("0001.1.6 a framework needing Docker fails fast without it", func(t *testing.T) {
+	t.Run("0001.1.6 a framework needing Docker that is down fails fast", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{
 			"pom.xml":                         acceptance.JavaPom(javaTestMaven),
@@ -149,7 +149,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a Maven build runs verify once and reads its reports", func(t *testing.T) {
+	t.Run("0001.2.1 a Maven build runs verify once then reads the Surefire reports then the Failsafe reports", func(t *testing.T) {
 		t.Parallel()
 		maven := javaTestMavenRun(map[string]string{
 			"target/surefire-reports/TEST-example.AppTest.xml": javaTestPassed,

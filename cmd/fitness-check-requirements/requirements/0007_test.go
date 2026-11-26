@@ -95,7 +95,7 @@ func Test0007_2(t *testing.T) {
 
 func Test0007_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0007.3.1 a Swift test on another framework fails naming the line and the library", func(t *testing.T) {
+	t.Run("0007.3.1 a Swift test on another framework fails naming the line then the library", func(t *testing.T) {
 		t.Parallel()
 		out, code := swiftChecked(t, map[string]string{swiftTest: xcTestFile("test0001_1")})
 		acceptance.Sees(t, out, code, 1, swiftTest+":1: imports XCTest; only an end-to-end test that imports UITestingLibrarySystem may use it, so "+libraryHint, swiftTest+":3: subclasses XCTestCase; "+libraryHint)

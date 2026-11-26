@@ -31,7 +31,7 @@ func Test0001_1(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "go")}, "go-test-coverage")
 		acceptance.ShowsInfo(t, out, code, "go-test-coverage", "Go not installed: see https://go.dev/dl")
 	})
-	t.Run("0001.1.3 a library with no declared entry fails", func(t *testing.T) {
+	t.Run("0001.1.3 a library with no declared entry fails asking to declare entries", func(t *testing.T) {
 		t.Parallel()
 		out, code := goTestCoverage(t, library("{}\n"))
 		acceptance.Sees(t, out, code, 1, "no entry packages; declare library entries with --entry=import/path")
@@ -82,7 +82,7 @@ func Test0001_3(t *testing.T) {
 		out, code := goTestCoverage(t, files)
 		acceptance.Sees(t, out, code, 0, "example.test/cli/TestFlip (", "unstable coverage; excluded from overlap advice")
 	})
-	t.Run("0001.3.3 parallel and serial tests overlap correctly", func(t *testing.T) {
+	t.Run("0001.3.3 parallel plus serial tests overlap correctly", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", slowTests())
 		out, code := acceptance.Fitness(t, repo, nil, "go-test-coverage")

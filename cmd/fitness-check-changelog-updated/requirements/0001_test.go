@@ -133,7 +133,7 @@ func Test0001_2(t *testing.T) {
 		out, code := changelogStaged(t, files)
 		sees(t, out, code, 1, "changelog/runner-feature.md must be named changelog/2026-10-12-0900-runner-feature.md: its heading's date, then the change")
 	})
-	t.Run("0001.2.2 a second entry file on a branch fails", func(t *testing.T) {
+	t.Run("0001.2.2 a commit adding another entry after an earlier one on the branch fails", func(t *testing.T) {
 		t.Parallel()
 		repo := changelogBranch(t, map[string]string{"changelog/2026-01-02-0900-runner-feature.md": changelogFirstEntry})
 		out, code := changelogSecond(t, repo, changelogOption())

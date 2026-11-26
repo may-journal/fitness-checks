@@ -33,7 +33,7 @@ const demoReadme = "# demo\n\n" +
 func Test0008_1(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"the comment becomes a README and doc.go embeds it", func(t *testing.T) {
+		{"the comment becomes a README then doc.go names it then embeds it", func(t *testing.T) {
 			t.Parallel()
 			folder := demoFolder(t, demoDoc)
 			if out, err := moveDocs(t, folder); err != nil {
@@ -146,7 +146,7 @@ var movedChecks = []string{
 func Test0008_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"a moved check's doc.go is one line that names its README and embeds it", func(t *testing.T) {
+		{"a moved check's doc.go is one line naming its README then one line embedding it", func(t *testing.T) {
 			t.Parallel()
 			for _, name := range movedChecks {
 				docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")

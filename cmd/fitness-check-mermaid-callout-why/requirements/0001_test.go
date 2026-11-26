@@ -64,7 +64,7 @@ func Test0001_1(t *testing.T) {
 		out, code := why(t, map[string]string{"body.md": "## Design\n\n" + noWhy + "\n"}, "--body-file", "body.md")
 		acceptance.Sees(t, out, code, 1, `(description): callout table at line 3 is missing a "Why" column`)
 	})
-	t.Run("0001.1.6 docs with only plain tables are skipped", func(t *testing.T) {
+	t.Run("0001.1.6 a file with neither a diagram nor a callout table is skipped", func(t *testing.T) {
 		t.Parallel()
 		out, code := why(t, map[string]string{"docs/plain.md": "# Plain\n\n| Name | Value |\n| --- | --- |\n| a | b |\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")

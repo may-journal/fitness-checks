@@ -58,7 +58,7 @@ func Test0002_1(t *testing.T) {
 
 func Test0002_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0002.2.1 each package with code owns its docs and tests", func(t *testing.T) {
+	t.Run("0002.2.1 each package with code owns its docs plus tests", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.Monorepo(true)), nil, "requirements")
 		acceptance.Sees(t, out, code, 0)

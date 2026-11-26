@@ -16,7 +16,7 @@ epic bodies
 
 1. Epics follow the template
    1. GIVEN Developer has an epic issue body that reaches the check by `--body-file` or `--body`
-      1. WHEN the body holds a one-line pitch and a Background section and a list under What needs to happen
+      1. WHEN the body holds a one-line pitch plus a Background section plus a list under What needs to happen
          1. THEN it passes
       2. WHEN the body lacks the pitch or one of the sections
          1. THEN it fails naming what is missing

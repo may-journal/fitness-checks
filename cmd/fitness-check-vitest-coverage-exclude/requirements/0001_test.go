@@ -53,7 +53,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("an imported name must not be reported:\n%s", out)
 		}
 	})
-	t.Run("0001.1.4 the config file wins over package json", func(t *testing.T) {
+	t.Run("0001.1.4 the config file beside a package json field wins", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, map[string]string{
 			"package.json":     `{"vitest": {"coverage": {"exclude": ["src/foo.ts"]}}}` + "\n",

@@ -17,12 +17,15 @@ code view classes and edges
 1. The code view names real symbols
    1. GIVEN Developer has a code view
    2. GIVEN its concrete classes link their declaring sources
-      1. WHEN each label and link and kind and signature and member matches
-         1. THEN it passes with generics and extensions and any spacing and methods elsewhere
+      1. WHEN each class matches its source declaration
+         1. THEN it passes with generics
+         2. THEN it passes with extensions
+         3. THEN it passes with any spacing or methods elsewhere
       2. WHEN a class's linked lines lack its symbol
          1. THEN it fails naming where it is declared if anywhere
       3. WHEN a kind or signature or member differs from the source
-         1. THEN it fails naming the class line and the source line
+         1. THEN it fails naming the class line
+         2. THEN it fails naming the source line
       4. WHEN one name is declared twice
          1. THEN it fails listing both until a link or signature picks one
       5. WHEN a class links a test or generated file

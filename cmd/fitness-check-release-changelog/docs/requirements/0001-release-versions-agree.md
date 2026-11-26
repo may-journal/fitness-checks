@@ -16,7 +16,8 @@ repos with a Release Please manifest
 
 1. Release versions agree
    1. GIVEN Developer has a repo that may hold a Release Please manifest
-   2. GIVEN it may hold a `version.txt` and a `CHANGELOG.md`
+   2. GIVEN it may hold a `version.txt`
+   3. GIVEN it may hold a `CHANGELOG.md`
       1. WHEN the repo has no manifest
          1. THEN `release-changelog` passes with zero files
       2. WHEN the manifest is an empty JSON object

@@ -15,7 +15,7 @@ commit messages in repos that use the trailers
 ## Requirements
 
 1. Commits disclose AI use
-   1. GIVEN Developer has commits with or without the `AI-Tools:` and `AI-Models:` trailers
+   1. GIVEN Developer has commits with or without the trailers `AI-Tools:` or `AI-Models:`
       1. WHEN the repo has no trailers adopted
          1. THEN it passes with no files
       2. WHEN a message carries both trailers with a value each

@@ -40,7 +40,7 @@ func Test0001_1(t *testing.T) {
 			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		}
 	})
-	t.Run("0001.1.2 a subject with no scope fails with the format and the types", func(t *testing.T) {
+	t.Run("0001.1.2 a subject with no scope fails with the format then the types", func(t *testing.T) {
 		t.Parallel()
 		out, code := semanticCommit(t, "--message", "feat: add endpoint")
 		acceptance.Sees(t, out, code, 1, `Commit message: "feat: add endpoint" — use type(scope): description `+types)

@@ -36,7 +36,7 @@ staged commits
    2. GIVEN its commits add entry files
       1. WHEN a commit adds an entry file whose name lacks its heading's date
          1. THEN it fails naming the file it should be
-      2. WHEN an earlier commit on the branch added its entry and this one adds another
+      2. WHEN a commit adds another entry after an earlier commit on the branch added its own
          1. THEN it fails naming the branch's entry
          2. THEN it names each new one
       3. WHEN the branch stacks on another `origin` branch

@@ -34,7 +34,8 @@ acceptances
 3. Swift tests use the UI testing library
    1. GIVEN Developer has a Swift package with requirement tests
       1. WHEN a test imports another test framework or drives the app another way
-         1. THEN it fails naming the line and the library to use
+         1. THEN it fails naming the line
+         2. THEN it fails naming the library to use
       2. WHEN a Swift Testing test uses UITestingLibrary
          1. THEN it passes
 4. A check can prove a requirement

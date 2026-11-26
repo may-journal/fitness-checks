@@ -66,6 +66,7 @@ func run(root string, _ []string) (checkkit.Result, error) {
 func judge(root, rel, text string) (errs, info []string) {
 	lines := strings.Split(text, "\n")
 	errs = behaviorErrors(root, rel, lines)
+	errs = append(errs, stepErrors(rel, lines)...)
 	m := checkReadme.FindStringSubmatch(rel)
 	if m == nil {
 		return errs, nil
@@ -140,6 +141,56 @@ func linkErrors(root, rel string, n int, line string) []string {
 		return []string{fmt.Sprintf("%s:%d: the link %s names nothing that exists", rel, n, m[1])}
 	}
 	return nil
+}
+
+// stepItem matches a list item, bulleted or numbered, that opens with a Gherkin
+// keyword in any case, with the keyword in group 1.
+var stepItem = regexp.MustCompile(`(?i)^\s*(?:[-*+]|\d+[.)])\s+(given|when|then)\b`)
+
+// fenceOf is the run of three or more backticks or tildes that makes line a
+// code fence, or "" when line is no fence.
+func fenceOf(line string) string {
+	t := strings.TrimSpace(line)
+	for _, mark := range []string{"`", "~"} {
+		if run := t[:len(t)-len(strings.TrimLeft(t, mark))]; len(run) >= 3 {
+			return run
+		}
+	}
+	return ""
+}
+
+// fenceState is the fence open after line, given the fence open before it,
+// and whether line is a fence. A fence closes on the same character at least
+// as long as its opening.
+func fenceState(open, line string) (string, bool) {
+	f := fenceOf(line)
+	switch {
+	case f == "":
+		return open, false
+	case open == "":
+		return f, true
+	case f[0] == open[0] && len(f) >= len(open):
+		return "", true
+	}
+	return open, false
+}
+
+// stepErrors fails each GIVEN, WHEN or THEN list item outside a code fence. A
+// README keeps its requirements in docs/requirements, so such an item hides
+// them where no check reads them.
+func stepErrors(rel string, lines []string) []string {
+	var errs []string
+	open := ""
+	for i, line := range lines {
+		var fence bool
+		if open, fence = fenceState(open, line); fence {
+			continue
+		}
+		if m := stepItem.FindStringSubmatch(line); open == "" && m != nil {
+			errs = append(errs, fmt.Sprintf("%s:%d: the README holds a %s step; move it to this folder's docs/requirements as a numbered acceptance", rel, i+1, strings.ToUpper(m[1])))
+		}
+	}
+	return errs
 }
 
 // configKey is one key of a check's --describe config list.

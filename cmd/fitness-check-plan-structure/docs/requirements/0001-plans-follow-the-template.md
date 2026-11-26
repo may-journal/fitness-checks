@@ -16,7 +16,7 @@ Plan bodies
 
 1. A Plan follows the template
    1. GIVEN Developer has a Plan body
-      1. WHEN it holds a pitch and a Background section and a checklist
+      1. WHEN it holds a pitch plus a Background section plus a checklist
          1. THEN `plan-structure` passes it
       2. WHEN it has no blockquote pitch
          1. THEN it fails

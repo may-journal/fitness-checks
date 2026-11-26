@@ -14,7 +14,7 @@ func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a dist folder git does not ignore fails", func(t *testing.T) {
+	t.Run("0001.1.1 a dist folder git does not ignore fails with the hint", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", nil)
 		acceptance.Write(t, repo, map[string]string{"dist/app.js": "built\n"})
@@ -77,7 +77,7 @@ func Test0001_1(t *testing.T) {
 		out, code := buildOutputRun(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
 	})
-	t.Run("0001.1.6 local imports pass, counting the dist rules once", func(t *testing.T) {
+	t.Run("0001.1.6 an ignored dist with local imports passes, counting the dist rules once", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{
 			".gitignore": buildOutputIgnore,

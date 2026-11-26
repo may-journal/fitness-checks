@@ -50,7 +50,7 @@ func Test0001_1(t *testing.T) {
 		out, code := check(t, repo, message)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 no message and no pull request pass with no files", func(t *testing.T) {
+	t.Run("0001.1.4 neither a message nor a pull request passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "issue-link-once")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")

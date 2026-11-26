@@ -41,7 +41,7 @@ func Test0001_1(t *testing.T) {
 				t.Errorf("%s reads engine config; declare the key in the check", use)
 			}
 		}},
-		{"describe prints name summary scope and the keys with their defaults", func(t *testing.T) {
+		{"describe prints itself then declares the keys with their defaults", func(t *testing.T) {
 			t.Parallel()
 			ours := installOnly(t)
 			for _, folder := range checkFolders(t, "..") {
@@ -238,7 +238,7 @@ func Test0001_3(t *testing.T) {
 func Test0001_4(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"archive and checksum per platform", func(t *testing.T) {
+		{"a stripped archive then a checksum per platform", func(t *testing.T) {
 			t.Parallel()
 			out := filepath.Join(t.TempDir(), "release")
 			build := exec.Command("./scripts/release-build.sh", "fitness-check-adr-checks-v1.2.3", out)

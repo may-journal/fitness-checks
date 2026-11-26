@@ -4,7 +4,7 @@ Keeps a README's Behavior section to one link to its own requirements. A check R
 
 ## What it reads
 
-A README with a `## Behavior` section holds exactly one Markdown link there and nothing else. The link points at that README's own `docs/requirements`, as a folder or a doc in it, and the target must exist. A failure names the file and the line.
+A README with a `## Behavior` section holds exactly one Markdown link there and nothing else. The link points at that README's own `docs/requirements`, as a folder or a doc in it, and the target must exist. A failure names the file and the line. A README holds no GIVEN, WHEN or THEN list item in any case outside a code fence, since a step belongs in `docs/requirements`.
 
 The README of a check program, at `cmd/fitness-check-<name>/README.md`, needs a `## Example` section too. The Example shows the command `fitness <name>` and each flag the program declares. It also sets each config key its `--describe` declares to its default in a `.fitnessrc.json` snippet.
 

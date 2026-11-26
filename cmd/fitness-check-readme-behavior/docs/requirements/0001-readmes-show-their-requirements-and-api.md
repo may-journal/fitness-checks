@@ -48,3 +48,9 @@ READMEs the check judges
          1. THEN it fails naming the key
       2. WHEN a `.fitnessrc.json` snippet sets each key to its default
          1. THEN it passes
+6. Steps stay out of the README
+   1. GIVEN Developer has a README
+      1. WHEN a bulleted or numbered item opens with GIVEN or WHEN or THEN in any case
+         1. THEN it fails naming the line
+      2. WHEN the same words sit in a code fence or open a plain sentence
+         1. THEN it passes

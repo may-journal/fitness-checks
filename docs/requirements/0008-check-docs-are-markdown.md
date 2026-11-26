@@ -16,10 +16,10 @@ checks
 
 1. The doc move keeps Markdown
    1. GIVEN Developer has a check whose rule is a doc.go comment
-   2. GIVEN the comment has a heading and list and link and code and spell checker line
+   2. GIVEN the comment has a heading plus a list plus a link plus code plus a spell checker line
       1. WHEN the doc move script runs on its folder
          1. THEN its README holds them as Markdown
-         2. THEN its doc.go is one line that names and embeds the README
+         2. THEN its doc.go is one line naming the README it embeds
          3. THEN the described summary stays
          4. THEN its Behavior holds one link to its requirement doc
 2. A doc with extras fails
@@ -30,7 +30,7 @@ checks
 3. Every check is moved
    1. GIVEN Developer has every check moved to Markdown
       1. WHEN the README test reads each folder
-         1. THEN each doc.go is one line naming its README and embedding it
+         1. THEN each doc.go is one line naming the README it embeds
          2. THEN the repo README alone links the architecture page
 4. Summaries read cleanly
    1. GIVEN Developer has a README with a parenthesized link URL
@@ -46,5 +46,5 @@ checks
    1. GIVEN Developer has each check's README
       1. WHEN the README test reads it against the check's `--describe`
          1. THEN the README names only config keys its check declares besides check names
-         2. THEN it says to run `fitness explain` when it declares keys
+         2. THEN it says to run `fitness explain` if it declares keys
 7. Removed in 2026.11.26.0500: moved to the readme-behavior check's own requirement

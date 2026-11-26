@@ -120,7 +120,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aoCheck, "1")
 	})
-	t.Run("0001.1.5 a reference missing from the view fails", func(t *testing.T) {
+	t.Run("0001.1.5 a reference missing from the view fails naming the view", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, aoFixture())
 		sees(t, out, code, 0)
@@ -279,7 +279,7 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, aoCheck)
 	})
-	t.Run("0001.2.6 a scoped run of a view or product source reads the whole model", func(t *testing.T) {
+	t.Run("0001.2.6 a scoped run of a view or product source reads the whole model or every source", func(t *testing.T) {
 		t.Parallel()
 		for _, change := range []map[string]string{
 			{aoStore: "package store\n\n// Save writes one record.\nfunc Save() {}\n\n// Load reads one record.\nfunc Load() {}\n"},

@@ -37,7 +37,7 @@ func Test0001_1(t *testing.T) {
 		out, code := javaVersionRun(t, map[string]string{"pom.xml": "<project/>\n", ".java-version": "17\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 a pin above the running JDK fails", func(t *testing.T) {
+	t.Run("0001.1.4 a pin above the running JDK fails naming the file then the release", func(t *testing.T) {
 		t.Parallel()
 		out, code := javaVersionRun(t, map[string]string{"pom.xml": javaVersionRelease("25")})
 		acceptance.Sees(t, out, code, 1, "JDK 21.0.2 does not satisfy pom.xml (requires 25); install JDK 25 or point JAVA_HOME at one")
@@ -47,7 +47,7 @@ func Test0001_1(t *testing.T) {
 		out, code := javaVersionRun(t, map[string]string{"pom.xml": "<project/>\n", ".java-version": "system\n"})
 		acceptance.Sees(t, out, code, 1, `.java-version pins JDK "system", which names no release`)
 	})
-	t.Run("0001.1.6 a pom takes its release from properties and parents", func(t *testing.T) {
+	t.Run("0001.1.6 a pom takes its release from properties or parents", func(t *testing.T) {
 		t.Parallel()
 		out, code := javaVersionRun(t, map[string]string{
 			"pom.xml": "<project><properties><java.version>25</java.version>" +

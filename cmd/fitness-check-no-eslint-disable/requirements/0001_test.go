@@ -32,7 +32,7 @@ func check(t *testing.T, files map[string]string) (string, int) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 every directive form is listed with its line", func(t *testing.T) {
+	t.Run("0001.1.1 every directive form is listed with its file line and directive", func(t *testing.T) {
 		t.Parallel()
 		legacy := "export const x = 1;\n" + next + "console.log(x);\n" +
 			"const y = 2; // eslint-disable-line\n/* eslint-disable */\n"
@@ -91,7 +91,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 an untracked directive file passes", func(t *testing.T) {
+	t.Run("0001.2.1 a directive file that is untracked passes", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"src/a.ts": "export const a = 1;\n"})
 		acceptance.Write(t, repo, map[string]string{"src/scratch.ts": next})

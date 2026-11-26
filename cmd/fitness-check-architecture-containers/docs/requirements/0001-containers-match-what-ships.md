@@ -16,7 +16,7 @@ repos with a containers view
 
 1. Every product has one container
    1. GIVEN Developer has a containers view
-   2. GIVEN it has products proven by build targets and entry points and deploy files
+   2. GIVEN it has products proven by build targets or entry points or deploy files
       1. WHEN each product has one container naming its folder
          1. THEN it passes counting the container views
          2. THEN a `*` or `.` path or its name works too
@@ -27,7 +27,8 @@ repos with a containers view
          1. THEN it fails naming the view line
          2. THEN paths holding only source layers fail the same way
       4. WHEN a container's technology does not name its product's language
-         1. THEN it fails naming the view line and the product
+         1. THEN it fails naming the view line
+         2. THEN it fails naming the product
       5. WHEN an owned store names no path
          1. THEN it fails naming the store
          2. THEN an external system naming no platform service fails too
@@ -47,7 +48,8 @@ repos with a containers view
          2. THEN a test folder or `scripts/` file proves none
       3. WHEN `.gitattributes` marks a build manifest `linguist-generated`
          1. THEN it still reads that manifest
-      4. WHEN a scoped run changes only tests and changelog and docs
+      4. WHEN a scoped run changes only tests or changelog or docs
          1. THEN it passes with zero files
       5. WHEN a scoped run changes a view or a product
-         1. THEN it reads every view and every product
+         1. THEN it reads every view
+         2. THEN it reads every product

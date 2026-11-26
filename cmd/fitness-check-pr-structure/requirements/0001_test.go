@@ -27,7 +27,7 @@ const prStructureChangelog = "## Changelog\n\n- Feat: the new behavior\n"
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a summary and background and changelog bullet pass", func(t *testing.T) {
+	t.Run("0001.1.1 a summary plus background plus changelog bullet passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog)
 		acceptance.Sees(t, out, code, 0, "pr-structure")

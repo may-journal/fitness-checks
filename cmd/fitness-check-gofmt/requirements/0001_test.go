@@ -21,13 +21,13 @@ func Test0001_1(t *testing.T) {
 		out, code := gofmtCheck(t, nil, map[string]string{"ok.go": gofmtTidy, "bad.go": gofmtMessy})
 		acceptance.Sees(t, out, code, 1, "bad.go: not gofmt-formatted (run: gofmt -w bad.go)")
 	})
-	t.Run("0001.1.2 formatted files pass, counting the files", func(t *testing.T) {
+	t.Run("0001.1.2 formatted files pass then count the files checked", func(t *testing.T) {
 		t.Parallel()
 		out, code := gofmtCheck(t, nil, map[string]string{"ok.go": gofmtTidy})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "gofmt", "1")
 	})
-	t.Run("0001.1.3 testdata and vendor and untracked files are not judged", func(t *testing.T) {
+	t.Run("0001.1.3 testdata or vendor or untracked files are not judged", func(t *testing.T) {
 		t.Parallel()
 		out, code := gofmtCheck(t, nil, map[string]string{
 			"ok.go":                 gofmtTidy,

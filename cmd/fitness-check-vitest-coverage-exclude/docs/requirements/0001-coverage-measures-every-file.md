@@ -23,7 +23,7 @@ repos with Vitest
       3. WHEN `coverage.exclude` holds any entry
          1. THEN it fails once per quoted entry telling Developer to remove it
          2. THEN it never reports an imported name
-      4. WHEN the repo has a `vitest.config.*` file and a `vitest` field in `package.json`
+      4. WHEN the repo has a `vitest.config.*` file beside a `vitest` field in `package.json`
          1. THEN the config file is the one judged
       5. WHEN the repo has no Vitest config
          1. THEN the shared config is judged

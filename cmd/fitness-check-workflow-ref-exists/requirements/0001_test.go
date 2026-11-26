@@ -32,7 +32,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-ref-exists", "1")
 	})
-	t.Run("0001.1.2 a workflow missing at its tag fails", func(t *testing.T) {
+	t.Run("0001.1.2 a workflow missing at its tag fails naming file then line then path then ref", func(t *testing.T) {
 		t.Parallel()
 		out, code, _ := refCheck(t, refWorkflow(
 			"may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1",
@@ -44,7 +44,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1: "+
 			".github/workflows/comment-check-reusable.yml does not exist at v1")
 	})
-	t.Run("0001.1.3 an unknown ref or sha fails", func(t *testing.T) {
+	t.Run("0001.1.3 an unknown ref or sha fails naming file then line then ref", func(t *testing.T) {
 		t.Parallel()
 		badSha := strings.Repeat("0", 40)
 		out, code, _ := refCheck(t, refWorkflow("may-journal/fitness-runner@v9", "may-journal/fitness-runner@"+badSha), []acceptance.Response{

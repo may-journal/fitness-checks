@@ -17,8 +17,10 @@ Markdown files and comment blocks judged
 1. Dense documents fail
    1. GIVEN Developer has Markdown files with plain or dense prose
       1. WHEN a file scores in alarm on at least two of the three formulas
-         1. THEN it fails naming the file and its prose words and its scores
-         2. THEN it adds the formulas and the fix and the methodology
+         1. THEN it fails naming the file
+         2. THEN it names its prose words plus its scores
+         3. THEN it adds the formulas plus the fix
+         4. THEN it adds the methodology
       2. WHEN a file has short plain sentences
          1. THEN it passes
       3. WHEN a file has fewer than 100 prose words
@@ -34,7 +36,7 @@ Markdown files and comment blocks judged
       2. WHEN the repo sets lower bands in `.fitnessrc.json`
          1. THEN the files are judged with those bands
       3. WHEN `--report` is passed
-         1. THEN it prints every file's word count and scores
+         1. THEN it prints every file's word count with its scores
          2. THEN the verdict is unchanged
 3. Dense comments fail
    1. GIVEN Developer has a code comment block of 100 prose words or more

@@ -24,7 +24,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-reporting", "1")
 	})
-	t.Run("0001.1.2 a job with no reporting step fails with the step to add", func(t *testing.T) {
+	t.Run("0001.1.2 a job with no reporting step fails naming file then line with the step to add", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, map[string]string{".github/workflows/build.yaml": reportingJob("")})
 		acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY",
@@ -58,7 +58,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 YAML GitHub rejects fails at its line and column", func(t *testing.T) {
+	t.Run("0001.2.1 YAML GitHub rejects fails at its line then its column", func(t *testing.T) {
 		t.Parallel()
 		files := runsOnWorkflows(rejectedRunsOn)
 		files[".github/workflows/ci.yml"] = "name: CI\non: push\njobs:\n  build:\n\truns-on: ubuntu-latest\n"

@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no manifest passes with zero files", func(t *testing.T) {
+	t.Run("0001.1.1 a repo with no manifest passes with zero files whatever version file or changelog it holds", func(t *testing.T) {
 		t.Parallel()
 		out, code := releaseChangelog(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
