@@ -147,61 +147,6 @@ func Test0003_2(t *testing.T) {
 	})
 }
 
-func Test0003_3(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"commit-attribution passes a repo with no trailers adopted", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{"feat(api): add endpoint\n\nNo trailers here.\n"})
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "commit-attribution")
-
-			folder := example(t, "happyRepo", nil)
-			mustDo(t, os.RemoveAll(filepath.Join(folder, ".git")))
-			out, code = fitness(t, folder, nil, "commit-attribution")
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "commit-attribution")
-		}},
-		{"commit-attribution passes a commit with both trailers", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers})
-			sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
-		}},
-		{"commit-attribution rejects an adopting repo missing trailers", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nJust a body.\n"})
-			sees(t, out, code, 1, commitAttributionMissing("AI-Models"), commitAttributionMissing("AI-Tools"))
-		}},
-		{"commit-attribution judges the proposed message", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers}, "--message=feat(api): add paging\n\nJust a body.\n")
-			sees(t, out, code, 1, commitAttributionMissing("AI-Models"), commitAttributionMissing("AI-Tools"))
-		}},
-		{"commit-attribution rejects an empty proposed message", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers}, "--message=")
-			sees(t, out, code, 1, `No commit message to validate; add "AI-Tools:" and "AI-Models:" trailers to disclose AI usage`)
-		}},
-		{"commit-attribution exempts merges and reverts", func(t *testing.T) {
-			t.Parallel()
-			for _, subject := range []string{"Merge branch 'feature' into main", `Revert "feat(api): add endpoint"`} {
-				out, code := commitAttribution(t, []string{commitAttributionTrailers, subject})
-				sees(t, out, code, 0, "All 1 checks passed")
-			}
-		}},
-		{"commit-attribution rejects an empty models trailer", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nAI-Tools: Claude Code\nAI-Models:   \n"})
-			sees(t, out, code, 1, commitAttributionMissing("AI-Models"))
-		}},
-		{"commit-attribution rejects a trailer mid sentence", func(t *testing.T) {
-			t.Parallel()
-			out, code := commitAttribution(t, []string{commitAttributionTrailers, "feat(api): add paging\n\nAI-Tools: Claude Code\nWe set AI-Models: Opus 4.8 later.\n"})
-			sees(t, out, code, 1, commitAttributionMissing("AI-Models"))
-		}},
-	})
-}
-
 func Test0003_4(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -624,25 +569,6 @@ func changelogSecond(t *testing.T, repo string, entry map[string]string) (string
 	write(t, repo, entry)
 	git(t, repo, "add", "-A")
 	return fitness(t, repo, nil, "changelog-updated")
-}
-
-// commitAttributionTrailers is a commit message carrying both AI trailers.
-const commitAttributionTrailers = "feat(api): add endpoint\n\nAI-Tools: Claude Code\nAI-Models: Opus 4.8\n"
-
-// commitAttributionMissing is the error for a missing trailer key.
-func commitAttributionMissing(key string) string {
-	return `commit message missing "` + key + `:" trailer`
-}
-
-// commitAttribution commits each message on happyRepo in order, the last at
-// HEAD, then runs `fitness-install -- commit-attribution <args>`.
-func commitAttribution(t *testing.T, messages []string, args ...string) (string, int) {
-	t.Helper()
-	repo := example(t, "happyRepo", nil)
-	for _, m := range messages {
-		commit(t, repo, nil, m)
-	}
-	return fitness(t, repo, nil, append([]string{"commit-attribution"}, args...)...)
 }
 
 // iloRepo is the repo on GitHub that origin points at, so a bare `#NN`

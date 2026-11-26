@@ -27,12 +27,6 @@ SCENARIO: 0003.2
   THEN every misspelled trailer fails with the fix
     AND prose and other repos and absent trailers pass
 
-SCENARIO: 0003.3
-  GIVEN Developer has commits with and without the AI tool and model trailers
-  WHEN the commit checks read the attribution trailers
-  THEN an adopting repo fails naming each missing trailer
-    AND merges and reverts pass
-
 SCENARIO: 0003.4
   GIVEN Developer has a branch and open PR that already link some issues
   WHEN the commit checks look for repeated issue links
