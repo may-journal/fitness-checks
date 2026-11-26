@@ -15,11 +15,7 @@ repo files and settings checked
 ## Requirements
 
 1. Removed in 2026.11.25.0800: moved to the `build-output-untracked` doc
-2. Design scraps stay out
-   1. GIVEN Developer has plan files and mockups
-      1. WHEN the source checks look for temporary design work
-         1. THEN each such file fails naming its rule
-         2. THEN maintained docs pass
+2. Removed in 2026.11.26.0300: moved to the no-plans-dir doc
 3. Removed in 2026.11.26.0100: moved to the duplicate-code doc
 4. Repeated strings get names
    1. GIVEN Developer has string values used several times

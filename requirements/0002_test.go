@@ -226,46 +226,6 @@ func Test0002_3(t *testing.T) {
 	})
 }
 
-func Test0002_5(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"fitness key fails once per file", func(t *testing.T) {
-			t.Parallel()
-			out, code := noFitnessFront(t, map[string]string{
-				"docs/guide.md":                    fitnessBlock + "# Guide\n",
-				"changelog/2026-10-11-0900-one.md": entryFileText("2026.10.11.0900", "Feat: one change."),
-				".github/PULL_REQUEST_TEMPLATE.md": "<!--\n---\nfitnessFunctions: ['pr-structure']\n---\n-->\n<!-- One sentence. -->\n> REPLACE-ME\n",
-			})
-			sees(t, out, code, 1)
-			flagged(t, out, "docs/guide.md", "changelog/2026-10-11-0900-one.md", ".github/PULL_REQUEST_TEMPLATE.md")
-		}},
-		{"crlf and byte order mark still fail", func(t *testing.T) {
-			t.Parallel()
-			out, code := noFitnessFront(t, map[string]string{
-				"docs/crlf.md":                  "---\r\nrelatedConfigurations: ['../.fitnessrc.json']\r\n---\r\n\r\n# Crlf\r\n",
-				"docs/bom.md":                   byteOrderMark + "---\nfitnessFunctions: ['prose-budget']\n---\n\n# Bom\n",
-				".github/ISSUE_TEMPLATE/bug.md": "---\nname: Bug\nrelatedConfigurations: ['../../.fitnessrc.json']\nlabels: Bug\n---\n\n## Steps\n",
-			})
-			sees(t, out, code, 1)
-			flagged(t, out, "docs/crlf.md", "docs/bom.md", ".github/ISSUE_TEMPLATE/bug.md")
-		}},
-		{"other front matter and fixtures pass", func(t *testing.T) {
-			t.Parallel()
-			out, code := noFitnessFront(t, map[string]string{
-				"docs/notes.md":                     "---\ntitle: Notes\n---\n\n# Notes\n",
-				"docs/ruled.md":                     "---\n\nrelatedConfigurations: a note set between two rules.\n\n---\n\n# Ruled\n",
-				".github/ISSUE_TEMPLATE/bug.md":     "---\nname: Bug\nlabels: Bug\n---\n\n## Steps\n",
-				"tests/examples/demoRepo/README.md": fitnessBlock + "# Demo\n",
-				"go/tool/testdata/guide.md":         fitnessBlock + "# Guide\n",
-			})
-			sees(t, out, code, 0, "All 1 checks passed")
-			if strings.Contains(out, "strip-front-matter") {
-				t.Errorf("a file without fitness front matter, or a fixture, was flagged:\n%s", out)
-			}
-		}},
-	})
-}
-
 func Test0002_6(t *testing.T) {
 	runCases(t, []edgeCase{
 		{"large diff starts git few times", func(t *testing.T) {

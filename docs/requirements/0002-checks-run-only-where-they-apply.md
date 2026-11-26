@@ -34,11 +34,7 @@ Checks
          1. THEN it skips them and names them as info
          2. THEN it judges the rest
 4. Removed in 2026.11.26.0000: moved to the read-repo-first check's own requirement
-5. Front matter stays out
-   1. GIVEN Developer has docs with and without fitness front matter
-      1. WHEN fitness runs `no-fitness-front-matter`
-         1. THEN it fails once for each file holding a fitness key
-         2. THEN it passes the rest
+5. Removed in 2026.11.26.0300: moved to the no-fitness-front-matter doc
 6. Large repos stay fast
    1. GIVEN Developer has a large tree with a long branch
    2. GIVEN the tree has hundreds of docs and changed files

@@ -4,10 +4,4 @@ Requires numbered flowchart callout nodes to carry a style class, and diagrams w
 
 ## Behavior
 
-A class is inline `:::class` or a `class` or `style` statement. The check flags numbered callout nodes with no styling, since consistent styling keeps callouts legible in a legend. C4 and other diagram types, with their different styling model, are skipped.
-
-Connectors carry letter callouts, not numbers, as [mermaid-callouts](../fitness-check-mermaid-callouts/README.md) requires. Links take `linkStyle`, not a class, so this check skips connector letters.
-
-## Where it runs
-
-A `.mmd` or `.mermaid` file is judged whole. A Markdown file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-legend` for the files it reads.
+[Requirement 0001](docs/requirements/0001-numbered-callouts-carry-a-style-class.md) states what this check does, and a test case named for each step proves it.

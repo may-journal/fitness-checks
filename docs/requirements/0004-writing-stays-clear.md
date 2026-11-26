@@ -19,11 +19,7 @@ docs, bodies and comments the writing checks judge
       1. WHEN the readability check reads it
          1. THEN it fails naming place and limit
          2. THEN plain prose passes
-2. Wording is plain
-   1. GIVEN Developer has text with bold
-      1. WHEN the wording checks read it
-         1. THEN each fails naming the finding
-         2. THEN code and quotes pass
+2. Removed in 2026.11.26.0300: moved to the markdown-no-bold-italic and no-contrastive-reframing docs
 3. Comments say why
    1. GIVEN Developer has code comments that are hard to read
    2. GIVEN they reframe a sentence

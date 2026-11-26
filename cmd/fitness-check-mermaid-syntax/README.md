@@ -4,15 +4,4 @@ Fails a mermaid diagram that would not render, so a broken diagram never reaches
 
 ## Behavior
 
-The check parses each fenced `mermaid` block in pure Go, with no npm or browser. Errors name the document line and the diagram's opening fence.
-
-- Flowcharts and graphs: the header, node shapes, edges and their labels, `&` groups, `subgraph` blocks, and styling statements.
-- An unquoted flowchart label holding brackets or quotes fails; wrap it in double quotes.
-- Sequence diagrams: participants, notes, messages with a target and a colon, and blocks with their branches and `end`.
-- Other known types, such as `C4Context` and `classDiagram`: balanced brackets and quotes only, since a full grammar for each is out of reach.
-- `erDiagram`, `mindmap`, and `block-beta`: the header only, since their syntax leaves brackets unpaired.
-- An unknown diagram type fails.
-
-Fences inside a blockquote count. Run `fitness explain mermaid-syntax` for the files it reads. Given `--body-file`, it judges one Plan, PR, or comment body. A file with no diagram is skipped and doesn't count toward `filesChecked`.
-
-<!-- cspell:ignore mindmap -->
+[Requirement 0001](docs/requirements/0001-diagrams-render.md) states what this check does, and a test case named for each step proves it.

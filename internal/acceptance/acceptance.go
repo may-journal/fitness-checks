@@ -294,3 +294,15 @@ func Main(m *testing.M, standIns ...string) {
 	KeepHostGitOut()
 	os.Exit(m.Run())
 }
+
+// Diagram is a fenced mermaid diagram with the given lines.
+func Diagram(lines ...string) string {
+	return "```mermaid\n" + strings.Join(lines, "\n") + "\n```\n"
+}
+
+// DiagramDoc is a README followed by diagrams, whose first fence sits on
+// line 9.
+func DiagramDoc(diagrams ...string) map[string]string {
+	readme := "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n\n"
+	return map[string]string{"README.md": readme + strings.Join(diagrams, "\n")}
+}

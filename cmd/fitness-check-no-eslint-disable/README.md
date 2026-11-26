@@ -2,53 +2,6 @@
 
 Fails any JS or TS source file that holds an ESLint disable directive, in file, block, `-line`, or `-next-line` form. This keeps lint hygiene on the fix-the-rule path instead of accumulating suppressions. It is on by default.
 
-## What passes
-
-A source file with no disable directives:
-
-```
-// src/slug.ts
-export function toSlug(input: string): string {
-  return input.trim().toLowerCase().replace(/\s+/g, '-');
-}
-```
-
-## What fails
-
-Any of the directive forms — file-level, block, line, or next-line:
-
-```
-// src/legacy.ts
-export const x = 1;
-// eslint-disable-next-line no-console
-console.log(x);
-const y = 2; // eslint-disable-line
-/* eslint-disable */
-```
-
-produces one error per hit, with the matched directive and its 1-based line number:
-
-```
-src/legacy.ts:3: eslint-disable-next-line
-src/legacy.ts:5: eslint-disable-line
-src/legacy.ts:6: eslint-disable
-```
-
-## Advanced
-
-Detection is a plain line scan (grep-like), so the directive text is flagged even inside a string or unrelated comment:
-
-```
-// Flagged, even though it only describes the directive:
-const hint = 'prefix a line with eslint-disable-next-line to skip a rule';
-```
-
-Reword the rare case rather than suppressing it. Test and spec files are included. Run `fitness explain no-eslint-disable` for the files it reads. The policy is zero-config and strict, with no allowlist.
-
 ## Behavior
 
-- Combines and de-duplicates the files it lists.
-- Matches `eslint-disable(-next-line|-line)?` — file-level `eslint-disable`, block `eslint-disable ... eslint-enable`, `eslint-disable-line`, and `eslint-disable-next-line`.
-- Pass: no scanned file contains a directive.
-- Fail: `path/to/file.ts:42: <directive>` per hit.
-- `filesChecked` counts every scanned source file (after de-duplication).
+[Requirement 0001](docs/requirements/0001-source-holds-no-eslint-disable.md) states what this check does, and a test case named for each step proves it.

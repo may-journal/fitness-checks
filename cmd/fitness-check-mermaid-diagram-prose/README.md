@@ -4,6 +4,4 @@ Fails edge labels that carry prose beyond a callout, number or letter, in any me
 
 ## Behavior
 
-In every diagram, with a callout table or not, it flags edge labels with prose after a callout number or letter. For example, `"6 Uses"` should be `"6"` and `"A calls"` should be `"A"`. Arrows carry callouts only; descriptions belong in the table, not the diagram.
-
-A file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-diagram-prose` for the files it reads.
+[Requirement 0001](docs/requirements/0001-diagram-labels-hold-callouts-only.md) states what this check does, and a test case named for each step proves it.
