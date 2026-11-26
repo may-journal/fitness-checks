@@ -27,44 +27,54 @@ import (
 func Test0001_1(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"engine-free go dependencies for every check", func(t *testing.T) {
+		{"0001.1.1.1.1 it holds no engine or other check's code", func(t *testing.T) {
 			t.Parallel()
-			for _, folder := range checkFolders(t, "..") {
-				for _, dep := range strayDeps(t, folder) {
-					t.Errorf("%s depends on %s", filepath.Base(folder), dep)
-				}
-			}
+			runCases(t, []edgeCase{
+				{"engine-free go dependencies for every check", func(t *testing.T) {
+					t.Parallel()
+					for _, folder := range checkFolders(t, "..") {
+						for _, dep := range strayDeps(t, folder) {
+							t.Errorf("%s depends on %s", filepath.Base(folder), dep)
+						}
+					}
+				}},
+				{"checks read no config key the engine declares", func(t *testing.T) {
+					t.Parallel()
+					for _, use := range engineConfigReads(t, "..") {
+						t.Errorf("%s reads engine config; declare the key in the check", use)
+					}
+				}},
+			})
 		}},
-		{"checks read no config key the engine declares", func(t *testing.T) {
+		{"0001.1.1.1.2 it describes itself plus key defaults", func(t *testing.T) {
 			t.Parallel()
-			for _, use := range engineConfigReads(t, "..") {
-				t.Errorf("%s reads engine config; declare the key in the check", use)
-			}
+			runCases(t, []edgeCase{
+				{"describe prints itself then declares the keys with their defaults", func(t *testing.T) {
+					t.Parallel()
+					ours := installOnly(t)
+					for _, folder := range checkFolders(t, "..") {
+						name := filepath.Base(folder)
+						got := describeMap(t, filepath.Join(ours, name))
+						for _, problem := range append(describeProblems(name, got), keyProblems(name, got)...) {
+							t.Error(problem)
+						}
+					}
+				}},
+				{"config schema and explain show each check's keys", func(t *testing.T) {
+					t.Parallel()
+					repo := example(t, "happyRepo", nil)
+					var schema map[string]any
+					stdoutJSON(t, repo, &schema, "config", "schema")
+					for check, keys := range checkKeys {
+						schemaLists(t, schema, keys)
+						if check != byNameOnly {
+							explainLists(t, repo, check, keys)
+						}
+					}
+				}},
+			})
 		}},
-		{"describe prints itself then declares the keys with their defaults", func(t *testing.T) {
-			t.Parallel()
-			ours := installOnly(t)
-			for _, folder := range checkFolders(t, "..") {
-				name := filepath.Base(folder)
-				got := describeMap(t, filepath.Join(ours, name))
-				for _, problem := range append(describeProblems(name, got), keyProblems(name, got)...) {
-					t.Error(problem)
-				}
-			}
-		}},
-		{"config schema and explain show each check's keys", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", nil)
-			var schema map[string]any
-			stdoutJSON(t, repo, &schema, "config", "schema")
-			for check, keys := range checkKeys {
-				schemaLists(t, schema, keys)
-				if check != byNameOnly {
-					explainLists(t, repo, check, keys)
-				}
-			}
-		}},
-		{"installed engine starts each check program", func(t *testing.T) {
+		{"0001.1.1.1.3 fitness runs it", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", nil)
 			all, code := fitness(t, repo, nil)
@@ -86,52 +96,57 @@ func Test0001_1(t *testing.T) {
 func Test0001_2(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"0001.2.1 one file in one check names only that check", func(t *testing.T) {
+		{"0001.2.4.1.1 it tests only checks the change can alter", func(t *testing.T) {
 			t.Parallel()
-			clone, base := changedClone(t, "cmd/fitness-check-gofmt/main.go")
-			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"gofmt"}) {
-				t.Errorf("changed-checks = %v, want only gofmt", got)
-			}
+			runCases(t, []edgeCase{
+				{"one file in one check names only that check", func(t *testing.T) {
+					t.Parallel()
+					clone, base := changedClone(t, "cmd/fitness-check-gofmt/main.go")
+					if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"gofmt"}) {
+						t.Errorf("changed-checks = %v, want only gofmt", got)
+					}
+				}},
+				{"a changed test of a check tests only that check", func(t *testing.T) {
+					t.Parallel()
+					clone, base := changedClone(t, "cmd/fitness-check-prose-budget/requirements/0001_test.go")
+					if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"prose-budget"}) {
+						t.Errorf("changed-checks = %v, want only prose-budget", got)
+					}
+				}},
+				{"shared helper names dependent checks", func(t *testing.T) {
+					t.Parallel()
+					for _, file := range []string{"internal/spell/mask.go", "internal/spell/dict/git.txt"} {
+						clone, base := changedClone(t, file)
+						if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"cspell"}) {
+							t.Errorf("after %s, changed-checks = %v, want only cspell, the one check that imports spell", file, got)
+						}
+					}
+				}},
+				{"go mod change or no base names all checks", func(t *testing.T) {
+					t.Parallel()
+					clone, base := changedClone(t, "go.mod")
+					var every []string
+					for _, folder := range checkFolders(t, clone) {
+						every = append(every, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"))
+					}
+					for _, got := range [][]string{changedChecks(t, clone, base), changedChecks(t, clone)} {
+						if !slices.Equal(got, every) {
+							t.Errorf("changed-checks = %v, want every check, %v", got, every)
+						}
+					}
+				}},
+				{"test script builds vets and tests one check", func(t *testing.T) {
+					t.Parallel()
+					script, err := filepath.Abs(filepath.Join("..", "scripts", "test-check.sh"))
+					mustDo(t, err)
+					out, err := exec.Command(script, "gofmt").CombinedOutput()
+					if err != nil || !strings.Contains(string(out), `{"name":"gofmt"`) {
+						t.Errorf("test-check.sh gofmt: %v\n%s", err, out)
+					}
+				}},
+			})
 		}},
-		{"0001.2.1 a changed test of a check tests only that check", func(t *testing.T) {
-			t.Parallel()
-			clone, base := changedClone(t, "cmd/fitness-check-prose-budget/requirements/0001_test.go")
-			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"prose-budget"}) {
-				t.Errorf("changed-checks = %v, want only prose-budget", got)
-			}
-		}},
-		{"0001.2.1 shared helper names dependent checks", func(t *testing.T) {
-			t.Parallel()
-			for _, file := range []string{"internal/spell/mask.go", "internal/spell/dict/git.txt"} {
-				clone, base := changedClone(t, file)
-				if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"cspell"}) {
-					t.Errorf("after %s, changed-checks = %v, want only cspell, the one check that imports spell", file, got)
-				}
-			}
-		}},
-		{"0001.2.1 go mod change or no base names all checks", func(t *testing.T) {
-			t.Parallel()
-			clone, base := changedClone(t, "go.mod")
-			var every []string
-			for _, folder := range checkFolders(t, clone) {
-				every = append(every, strings.TrimPrefix(filepath.Base(folder), "fitness-check-"))
-			}
-			for _, got := range [][]string{changedChecks(t, clone, base), changedChecks(t, clone)} {
-				if !slices.Equal(got, every) {
-					t.Errorf("changed-checks = %v, want every check, %v", got, every)
-				}
-			}
-		}},
-		{"0001.2.1 test script builds vets and tests one check", func(t *testing.T) {
-			t.Parallel()
-			script, err := filepath.Abs(filepath.Join("..", "scripts", "test-check.sh"))
-			mustDo(t, err)
-			out, err := exec.Command(script, "gofmt").CombinedOutput()
-			if err != nil || !strings.Contains(string(out), `{"name":"gofmt"`) {
-				t.Errorf("test-check.sh gofmt: %v\n%s", err, out)
-			}
-		}},
-		{"0001.2.2 each root test runs once", func(t *testing.T) {
+		{"0001.2.4.2.1 each root test runs once", func(t *testing.T) {
 			t.Parallel()
 			tests := rootTests(t)
 			for _, n := range []int{1, 3, 8} {
@@ -143,38 +158,43 @@ func Test0001_2(t *testing.T) {
 				}
 			}
 		}},
-		{"0001.2.2 only the changed checks' folders run", func(t *testing.T) {
+		{"0001.2.4.2.2 only a changed check's own folder runs once in six shares", func(t *testing.T) {
 			t.Parallel()
-			got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["no-folder-yet","swiftlint"]`))
-			if want := []string{"./cmd/fitness-check-swiftlint/requirements"}; !slices.Equal(got, want) {
-				t.Errorf("folders for a check with no folder and swiftlint = %v, want %v", got, want)
-			}
-			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
-				t.Errorf("folders for no changed check = %q, want none", got)
-			}
+			runCases(t, []edgeCase{
+				{"only the changed checks' folders run", func(t *testing.T) {
+					t.Parallel()
+					got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["no-folder-yet","swiftlint"]`))
+					if want := []string{"./cmd/fitness-check-swiftlint/requirements"}; !slices.Equal(got, want) {
+						t.Errorf("folders for a check with no folder and swiftlint = %v, want %v", got, want)
+					}
+					if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
+						t.Errorf("folders for no changed check = %q, want none", got)
+					}
 
-		}},
-		{"0001.2.2 changed folders run once in at most six shares", func(t *testing.T) {
-			t.Parallel()
-			if all := runScript(t, "..", "requirement-shard.sh", "checks", ""); len(strings.Fields(all)) < 7 {
-				t.Fatalf("only %q folders, want more than six to prove the cap", all)
-			}
-			for checks, count := range map[string]int{`["no-folder-yet"]`: 0, `["swiftlint"]`: 1, "": 6} {
-				shares := strings.Fields(strings.NewReplacer("[", "", "]", "", `"`, "", ",", " ").Replace(runScript(t, "..", "requirement-shard.sh", "shares", checks)))
-				if len(shares) != count {
-					t.Errorf("shares for %q = %v, want %d", checks, shares, count)
-				}
-				wantOnce(t, shareFolders(t, checks, shares), strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", checks)))
-			}
-		}},
-		{"0001.2.2 shared suite changes run every folder and the slow cases", func(t *testing.T) {
-			t.Parallel()
-			for file, want := range map[string]string{"tests/requirements.sh": "true", "scripts/release-build.sh": "true", "cmd/fitness-check-gofmt/main.go": "false"} {
-				clone, base := changedClone(t, file)
-				if got := strings.TrimSpace(runScript(t, clone, "requirement-shard.sh", "suite", base)); got != want {
-					t.Errorf("after %s, suite = %s, want %s", file, got, want)
-				}
-			}
+				}},
+				{"changed folders run once in at most six shares", func(t *testing.T) {
+					t.Parallel()
+					if all := runScript(t, "..", "requirement-shard.sh", "checks", ""); len(strings.Fields(all)) < 7 {
+						t.Fatalf("only %q folders, want more than six to prove the cap", all)
+					}
+					for checks, count := range map[string]int{`["no-folder-yet"]`: 0, `["swiftlint"]`: 1, "": 6} {
+						shares := strings.Fields(strings.NewReplacer("[", "", "]", "", `"`, "", ",", " ").Replace(runScript(t, "..", "requirement-shard.sh", "shares", checks)))
+						if len(shares) != count {
+							t.Errorf("shares for %q = %v, want %d", checks, shares, count)
+						}
+						wantOnce(t, shareFolders(t, checks, shares), strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", checks)))
+					}
+				}},
+				{"shared suite changes run every folder and the slow cases", func(t *testing.T) {
+					t.Parallel()
+					for file, want := range map[string]string{"tests/requirements.sh": "true", "scripts/release-build.sh": "true", "cmd/fitness-check-gofmt/main.go": "false"} {
+						clone, base := changedClone(t, file)
+						if got := strings.TrimSpace(runScript(t, clone, "requirement-shard.sh", "suite", base)); got != want {
+							t.Errorf("after %s, suite = %s, want %s", file, got, want)
+						}
+					}
+				}},
+			})
 		}},
 	})
 }
@@ -182,55 +202,65 @@ func Test0001_2(t *testing.T) {
 func Test0001_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"major tag is never the last release", func(t *testing.T) {
+		{"0001.3.1.1.2 no other check releases", func(t *testing.T) {
 			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", true, "cmd/fitness-check-gofmt/main.go")
-			git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD")
-			if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-gofmt-v1.0.1"}) {
-				t.Errorf("release-plan = %v, want only gofmt at 1.0.1", got)
-			}
+			runCases(t, []edgeCase{
+				{"major tag is never the last release", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", true, "cmd/fitness-check-gofmt/main.go")
+					git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD")
+					if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-gofmt-v1.0.1"}) {
+						t.Errorf("release-plan = %v, want only gofmt at 1.0.1", got)
+					}
+				}},
+				{"fix commit plans patch for one check", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", true, "cmd/fitness-check-gofmt/main.go")
+					if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-gofmt-v1.0.1"}) {
+						t.Errorf("release-plan = %v, want only gofmt at 1.0.1", got)
+					}
+				}},
+			})
 		}},
-		{"fix commit plans patch for one check", func(t *testing.T) {
+		{"0001.3.1.1.1 each changed check gets the bump its commits call for", func(t *testing.T) {
 			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", true, "cmd/fitness-check-gofmt/main.go")
-			if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-gofmt-v1.0.1"}) {
-				t.Errorf("release-plan = %v, want only gofmt at 1.0.1", got)
-			}
-		}},
-		{"feat on helper plans minor for dependents", func(t *testing.T) {
-			t.Parallel()
-			clone := releaseClone(t, "feat(spell): change spell", true, "internal/spell/mask.go")
-			if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-cspell-v1.1.0"}) {
-				t.Errorf("release-plan = %v, want only cspell, the one check that imports spell, at 1.1.0", got)
-			}
-		}},
-		{"deps commit plans patch for all checks", func(t *testing.T) {
-			t.Parallel()
-			clone := releaseClone(t, "build(deps): change go.mod", true, "go.mod")
-			if got, want := releasePlan(t, clone), tagsFor(t, clone, "1.0.1"); !slices.Equal(got, want) {
-				t.Errorf("release-plan = %v, want every check at 1.0.1, %v", got, want)
-			}
-		}},
-		{"docs breaking and revert commit kinds", func(t *testing.T) {
-			t.Parallel()
-			cases := map[string][]string{
-				"docs(gofmt): change gofmt":          {},
-				"refactor(gofmt)!: change gofmt":     {"fitness-check-gofmt-v2.0.0"},
-				`Revert "feat(gofmt): change gofmt"`: {"fitness-check-gofmt-v1.0.1"},
-			}
-			for message, want := range cases {
-				clone := releaseClone(t, message, true, "cmd/fitness-check-gofmt/main.go")
-				if got := releasePlan(t, clone); !slices.Equal(got, want) {
-					t.Errorf("after %q, release-plan = %v, want %v", message, got, want)
-				}
-			}
-		}},
-		{"unreleased check plans first release", func(t *testing.T) {
-			t.Parallel()
-			clone := releaseClone(t, "docs(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-			if got, want := releasePlan(t, clone), tagsFor(t, clone, "1.0.0"); !slices.Equal(got, want) {
-				t.Errorf("release-plan = %v, want every check's first release, %v", got, want)
-			}
+			runCases(t, []edgeCase{
+				{"feat on helper plans minor for dependents", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "feat(spell): change spell", true, "internal/spell/mask.go")
+					if got := releasePlan(t, clone); !slices.Equal(got, []string{"fitness-check-cspell-v1.1.0"}) {
+						t.Errorf("release-plan = %v, want only cspell, the one check that imports spell, at 1.1.0", got)
+					}
+				}},
+				{"deps commit plans patch for all checks", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "build(deps): change go.mod", true, "go.mod")
+					if got, want := releasePlan(t, clone), tagsFor(t, clone, "1.0.1"); !slices.Equal(got, want) {
+						t.Errorf("release-plan = %v, want every check at 1.0.1, %v", got, want)
+					}
+				}},
+				{"docs breaking and revert commit kinds", func(t *testing.T) {
+					t.Parallel()
+					cases := map[string][]string{
+						"docs(gofmt): change gofmt":          {},
+						"refactor(gofmt)!: change gofmt":     {"fitness-check-gofmt-v2.0.0"},
+						`Revert "feat(gofmt): change gofmt"`: {"fitness-check-gofmt-v1.0.1"},
+					}
+					for message, want := range cases {
+						clone := releaseClone(t, message, true, "cmd/fitness-check-gofmt/main.go")
+						if got := releasePlan(t, clone); !slices.Equal(got, want) {
+							t.Errorf("after %q, release-plan = %v, want %v", message, got, want)
+						}
+					}
+				}},
+				{"unreleased check plans first release", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "docs(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+					if got, want := releasePlan(t, clone), tagsFor(t, clone, "1.0.0"); !slices.Equal(got, want) {
+						t.Errorf("release-plan = %v, want every check's first release, %v", got, want)
+					}
+				}},
+			})
 		}},
 	})
 }
@@ -238,46 +268,51 @@ func Test0001_3(t *testing.T) {
 func Test0001_4(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"a stripped archive then a checksum per platform", func(t *testing.T) {
+		{"0001.4.1.1.1 it writes a stripped archive plus checksum per platform", func(t *testing.T) {
 			t.Parallel()
-			out := filepath.Join(t.TempDir(), "release")
-			build := exec.Command("./scripts/release-build.sh", "fitness-check-adr-checks-v1.2.3", out)
-			build.Dir = ".."
-			if got, err := build.CombinedOutput(); err != nil {
-				t.Fatalf("release-build.sh: %v\n%s", err, got)
-			}
-			for _, platform := range []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64"} {
-				for _, suffix := range []string{".tar", ".tar.sha256", ".tar.gz", ".tar.gz.sha256"} {
-					name := "fitness-check-adr-checks-v1.2.3-" + platform + suffix
-					if _, err := os.Stat(filepath.Join(out, name)); err != nil {
-						t.Errorf("the release lacks %s: %v", name, err)
+			runCases(t, []edgeCase{
+				{"a stripped archive then a checksum per platform", func(t *testing.T) {
+					t.Parallel()
+					out := filepath.Join(t.TempDir(), "release")
+					build := exec.Command("./scripts/release-build.sh", "fitness-check-adr-checks-v1.2.3", out)
+					build.Dir = ".."
+					if got, err := build.CombinedOutput(); err != nil {
+						t.Fatalf("release-build.sh: %v\n%s", err, got)
 					}
-				}
-			}
-		}},
-		{"stripped program is smaller in gzip", func(t *testing.T) {
-			t.Parallel()
-			out := filepath.Join(t.TempDir(), "release")
-			got, code := runSize(t, nil, "release-build.sh", "fitness-check-gofmt-v1.2.3", out)
-			if code != 0 {
-				t.Fatalf("release-build.sh exited %d: %s", code, got)
-			}
-			unpacked := t.TempDir()
-			mustDo(t, exec.Command("tar", "-xzf", filepath.Join(out, "fitness-check-gofmt-v1.2.3-linux-arm64.tar.gz"), "-C", unpacked).Run())
-			plain := filepath.Join(t.TempDir(), "plain")
-			build := exec.Command("go", "build", "-trimpath", "-buildvcs=false", "-o", plain, "./cmd/fitness-check-gofmt")
-			build.Dir = ".."
-			build.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=arm64")
-			if b, err := build.CombinedOutput(); err != nil {
-				t.Fatalf("go build: %v\n%s", err, b)
-			}
-			stripped, err := os.Stat(filepath.Join(unpacked, "fitness-check-gofmt"))
-			mustDo(t, err)
-			unstripped, err := os.Stat(plain)
-			mustDo(t, err)
-			if stripped.Size() >= unstripped.Size() {
-				t.Errorf("the released program is %d bytes, want fewer than the unstripped %d", stripped.Size(), unstripped.Size())
-			}
+					for _, platform := range []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64"} {
+						for _, suffix := range []string{".tar", ".tar.sha256", ".tar.gz", ".tar.gz.sha256"} {
+							name := "fitness-check-adr-checks-v1.2.3-" + platform + suffix
+							if _, err := os.Stat(filepath.Join(out, name)); err != nil {
+								t.Errorf("the release lacks %s: %v", name, err)
+							}
+						}
+					}
+				}},
+				{"stripped program is smaller in gzip", func(t *testing.T) {
+					t.Parallel()
+					out := filepath.Join(t.TempDir(), "release")
+					got, code := runSize(t, nil, "release-build.sh", "fitness-check-gofmt-v1.2.3", out)
+					if code != 0 {
+						t.Fatalf("release-build.sh exited %d: %s", code, got)
+					}
+					unpacked := t.TempDir()
+					mustDo(t, exec.Command("tar", "-xzf", filepath.Join(out, "fitness-check-gofmt-v1.2.3-linux-arm64.tar.gz"), "-C", unpacked).Run())
+					plain := filepath.Join(t.TempDir(), "plain")
+					build := exec.Command("go", "build", "-trimpath", "-buildvcs=false", "-o", plain, "./cmd/fitness-check-gofmt")
+					build.Dir = ".."
+					build.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=arm64")
+					if b, err := build.CombinedOutput(); err != nil {
+						t.Fatalf("go build: %v\n%s", err, b)
+					}
+					stripped, err := os.Stat(filepath.Join(unpacked, "fitness-check-gofmt"))
+					mustDo(t, err)
+					unstripped, err := os.Stat(plain)
+					mustDo(t, err)
+					if stripped.Size() >= unstripped.Size() {
+						t.Errorf("the released program is %d bytes, want fewer than the unstripped %d", stripped.Size(), unstripped.Size())
+					}
+				}},
+			})
 		}},
 	})
 }
@@ -285,68 +320,78 @@ func Test0001_4(t *testing.T) {
 func Test0001_5(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"major tags move to newest release on every rerun", func(t *testing.T) {
+		{"0001.5.1.1.1 each points at its newest release", func(t *testing.T) {
 			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-			bare := remoteOf(t, clone)
-			cutRelease(t, clone, "1.0.0")
-			one := cutRelease(t, clone, "1.2.0")
-			two := cutRelease(t, clone, "2.0.0")
-			git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~2")
-			git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
-			runScriptWith(t, clone, bare, "release-major.sh")
-			got := []string{tagCommit(bare, "fitness-check-gofmt-v1"), tagCommit(bare, "fitness-check-gofmt-v2")}
-			if calls := remoteCalls(t, bare); !strings.Contains(calls, "-X POST repos/acme/checks/git/refs -f ref=refs/tags/fitness-check-gofmt-v2") {
-				t.Errorf("the missing v2 tag was not created with a POST: %s", calls)
-			}
-			if !slices.Equal(got, []string{one, two}) {
-				t.Errorf("remote major tags = %v, want %v", got, []string{one, two})
-			}
-			before := remoteCalls(t, bare)
-			runScriptWith(t, clone, bare, "release-major.sh")
-			if after := remoteCalls(t, bare); after != before {
-				t.Errorf("the second run called gh again: %s", after)
-			}
+			runCases(t, []edgeCase{
+				{"major tags move to newest release on every rerun", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+					bare := remoteOf(t, clone)
+					cutRelease(t, clone, "1.0.0")
+					one := cutRelease(t, clone, "1.2.0")
+					two := cutRelease(t, clone, "2.0.0")
+					git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~2")
+					git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+					runScriptWith(t, clone, bare, "release-major.sh")
+					got := []string{tagCommit(bare, "fitness-check-gofmt-v1"), tagCommit(bare, "fitness-check-gofmt-v2")}
+					if calls := remoteCalls(t, bare); !strings.Contains(calls, "-X POST repos/acme/checks/git/refs -f ref=refs/tags/fitness-check-gofmt-v2") {
+						t.Errorf("the missing v2 tag was not created with a POST: %s", calls)
+					}
+					if !slices.Equal(got, []string{one, two}) {
+						t.Errorf("remote major tags = %v, want %v", got, []string{one, two})
+					}
+					before := remoteCalls(t, bare)
+					runScriptWith(t, clone, bare, "release-major.sh")
+					if after := remoteCalls(t, bare); after != before {
+						t.Errorf("the second run called gh again: %s", after)
+					}
+				}},
+				{"non-ancestor major tag is forced forward", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+					bare := remoteOf(t, clone)
+					release := cutRelease(t, clone, "1.0.0")
+					git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+					// An orphan commit in the remote is no ancestor of the release.
+					tree := gitOut(t, bare, "rev-parse", "main^{tree}")
+					other := gitOut(t, bare, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "-m", "other line", tree)
+					git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", other)
+					runScriptWith(t, clone, bare, "release-major.sh")
+					if got := tagCommit(bare, "fitness-check-gofmt-v1"); got != release {
+						t.Errorf("remote major tag = %q, want the release %q, moved by force", got, release)
+					}
+				}},
+			})
 		}},
-		{"forbidden create exits with github message", func(t *testing.T) {
+		{"0001.5.1.1.2 a refused move fails", func(t *testing.T) {
 			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-			bare := remoteOf(t, clone)
-			cutRelease(t, clone, "1.0.0")
-			git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
-			out, err := forbiddenMajor(t, clone, bare)
-			if err == nil || !strings.Contains(string(out), "HTTP 403") || tagCommit(bare, "fitness-check-gofmt-v1") != "" {
-				t.Errorf("run = %v with %q, want an error naming HTTP 403 and no tag created", err, out)
-			}
-		}},
-		{"non-ancestor major tag is forced forward", func(t *testing.T) {
-			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-			bare := remoteOf(t, clone)
-			release := cutRelease(t, clone, "1.0.0")
-			git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
-			// An orphan commit in the remote is no ancestor of the release.
-			tree := gitOut(t, bare, "rev-parse", "main^{tree}")
-			other := gitOut(t, bare, "-c", "user.name=t", "-c", "user.email=t@t", "commit-tree", "-m", "other line", tree)
-			git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", other)
-			runScriptWith(t, clone, bare, "release-major.sh")
-			if got := tagCommit(bare, "fitness-check-gofmt-v1"); got != release {
-				t.Errorf("remote major tag = %q, want the release %q, moved by force", got, release)
-			}
-		}},
-		{"refused move names tag and never creates", func(t *testing.T) {
-			t.Parallel()
-			clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
-			bare := remoteOf(t, clone)
-			first := cutRelease(t, clone, "1.0.0")
-			git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~1")
-			git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
-			git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", first)
-			git(t, clone, "tag", "-d", "fitness-check-gofmt-v1")
-			out, err := forbiddenMajor(t, clone, bare)
-			if err == nil || !strings.Contains(string(out), "could not move fitness-check-gofmt-v1") || strings.Contains(remoteCalls(t, bare), "-X POST") {
-				t.Errorf("run = %v with %q, want an error naming the tag and no POST for an existing tag", err, out)
-			}
+			runCases(t, []edgeCase{
+				{"forbidden create exits with github message", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+					bare := remoteOf(t, clone)
+					cutRelease(t, clone, "1.0.0")
+					git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+					out, err := forbiddenMajor(t, clone, bare)
+					if err == nil || !strings.Contains(string(out), "HTTP 403") || tagCommit(bare, "fitness-check-gofmt-v1") != "" {
+						t.Errorf("run = %v with %q, want an error naming HTTP 403 and no tag created", err, out)
+					}
+				}},
+				{"refused move names tag and never creates", func(t *testing.T) {
+					t.Parallel()
+					clone := releaseClone(t, "fix(gofmt): change gofmt", false, "cmd/fitness-check-gofmt/main.go")
+					bare := remoteOf(t, clone)
+					first := cutRelease(t, clone, "1.0.0")
+					git(t, clone, "tag", "fitness-check-gofmt-v1", "HEAD~1")
+					git(t, clone, "push", "-q", "origin", "HEAD:refs/heads/main")
+					git(t, bare, "update-ref", "refs/tags/fitness-check-gofmt-v1", first)
+					git(t, clone, "tag", "-d", "fitness-check-gofmt-v1")
+					out, err := forbiddenMajor(t, clone, bare)
+					if err == nil || !strings.Contains(string(out), "could not move fitness-check-gofmt-v1") || strings.Contains(remoteCalls(t, bare), "-X POST") {
+						t.Errorf("run = %v with %q, want an error naming the tag and no POST for an existing tag", err, out)
+					}
+				}},
+			})
 		}},
 	})
 }
@@ -354,7 +399,7 @@ func Test0001_5(t *testing.T) {
 func Test0001_6(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"index holds only the newest published version of each major", func(t *testing.T) {
+		{"0001.6.1.1.1 it lists each published check's newest version per major", func(t *testing.T) {
 			t.Parallel()
 			file := filepath.Join(t.TempDir(), "releases.json")
 			mustDo(t, os.WriteFile(file, []byte(publishedReleases), 0o644))
@@ -365,35 +410,51 @@ func Test0001_6(t *testing.T) {
 				t.Errorf("index = %v, want %v", got, want)
 			}
 		}},
-		{"describe fields appear only on newer version", func(t *testing.T) {
+		{"0001.6.1.1.2 each entry holds artifacts plus checksums plus describe fields", func(t *testing.T) {
 			t.Parallel()
-			dir := t.TempDir()
-			releases, describes := filepath.Join(dir, "releases.json"), filepath.Join(dir, "describes.json")
-			mustDo(t, os.WriteFile(releases, []byte(publishedReleases), 0o644))
-			mustDo(t, os.WriteFile(describes, []byte(`{"fitness-check-gofmt-v1.10.0":
+			runCases(t, []edgeCase{
+				{"describe fields appear only on newer version", func(t *testing.T) {
+					t.Parallel()
+					dir := t.TempDir()
+					releases, describes := filepath.Join(dir, "releases.json"), filepath.Join(dir, "describes.json")
+					mustDo(t, os.WriteFile(releases, []byte(publishedReleases), 0o644))
+					mustDo(t, os.WriteFile(describes, []byte(`{"fitness-check-gofmt-v1.10.0":
 		{"name":"gofmt","scope":"files","files":"\\.(go)$","exclude":"(^|/)vendor/","needs":"","requires":["repo"]}}`), 0o644))
-			var index struct {
-				Checks map[string]struct {
-					Versions map[string]map[string]any `json:"versions"`
-				} `json:"checks"`
-			}
-			mustDo(t, json.Unmarshal([]byte(runScript(t, "..", "release-index.sh", releases, describes)), &index))
-			versions := index.Checks["gofmt"].Versions
-			got := map[string]any{}
-			for _, key := range []string{"files", "exclude", "needs", "requires", "name", "scope"} {
-				if v, ok := versions["1.10.0"][key]; ok {
-					got[key] = v
-				}
-			}
-			want := map[string]any{"files": `\.(go)$`, "exclude": "(^|/)vendor/", "requires": []any{"repo"}}
-			if !reflect.DeepEqual(got, want) {
-				t.Errorf("1.10.0 copies %v from its describe line, want only %v", got, want)
-			}
-			if _, ok := versions["2.0.0"]["files"]; ok {
-				t.Errorf("2.0.0 has no describe line, so it must hold no files: %v", versions["2.0.0"])
-			}
+					var index struct {
+						Checks map[string]struct {
+							Versions map[string]map[string]any `json:"versions"`
+						} `json:"checks"`
+					}
+					mustDo(t, json.Unmarshal([]byte(runScript(t, "..", "release-index.sh", releases, describes)), &index))
+					versions := index.Checks["gofmt"].Versions
+					got := map[string]any{}
+					for _, key := range []string{"files", "exclude", "needs", "requires", "name", "scope"} {
+						if v, ok := versions["1.10.0"][key]; ok {
+							got[key] = v
+						}
+					}
+					want := map[string]any{"files": `\.(go)$`, "exclude": "(^|/)vendor/", "requires": []any{"repo"}}
+					if !reflect.DeepEqual(got, want) {
+						t.Errorf("1.10.0 copies %v from its describe line, want only %v", got, want)
+					}
+					if _, ok := versions["2.0.0"]["files"]; ok {
+						t.Errorf("2.0.0 has no describe line, so it must hold no files: %v", versions["2.0.0"])
+					}
+				}},
+				{"tar url stays with optional gz", func(t *testing.T) {
+					t.Parallel()
+					file := filepath.Join(t.TempDir(), "releases.json")
+					mustDo(t, os.WriteFile(file, []byte(sizedReleases), 0o644))
+					var got, want any
+					mustDo(t, json.Unmarshal([]byte(runScript(t, "..", "release-index.sh", file)), &got))
+					mustDo(t, json.Unmarshal([]byte(sizedIndex), &want))
+					if !reflect.DeepEqual(got, want) {
+						t.Errorf("index = %v, want %v", got, want)
+					}
+				}},
+			})
 		}},
-		{"index downloads only new versions", func(t *testing.T) {
+		{"0001.6.1.1.3 it fetches only new versions", func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
 			published := filepath.Join(dir, "published.json")
@@ -418,24 +479,13 @@ func Test0001_6(t *testing.T) {
 				}
 			}
 		}},
-		{"tar url stays with optional gz", func(t *testing.T) {
-			t.Parallel()
-			file := filepath.Join(t.TempDir(), "releases.json")
-			mustDo(t, os.WriteFile(file, []byte(sizedReleases), 0o644))
-			var got, want any
-			mustDo(t, json.Unmarshal([]byte(runScript(t, "..", "release-index.sh", file)), &got))
-			mustDo(t, json.Unmarshal([]byte(sizedIndex), &want))
-			if !reflect.DeepEqual(got, want) {
-				t.Errorf("index = %v, want %v", got, want)
-			}
-		}},
 	})
 }
 
 func Test0001_7(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"size baseline drift over ten percent fails", func(t *testing.T) {
+		{"0001.7.1.1.1 a program over its limit fails by name", func(t *testing.T) {
 			t.Parallel()
 			baseline := filepath.Join(t.TempDir(), "baseline.tsv")
 			env := []string{"SIZE_BASELINE=" + baseline, "SIZE_BUILD_DIR=" + t.TempDir()}
@@ -457,7 +507,7 @@ func Test0001_7(t *testing.T) {
 				sizeFails(t, env, baseline, text, want)
 			}
 		}},
-		{"measure script records sizes and timing", func(t *testing.T) {
+		{"0001.7.1.1.2 the sizes are recorded", func(t *testing.T) {
 			t.Parallel()
 			repo := filepath.Join(t.TempDir(), "repo")
 			mustDo(t, os.CopyFS(repo, os.DirFS(filepath.Join("..", "tests", "examples", "happyRepo"))))
@@ -483,24 +533,29 @@ func Test0001_7(t *testing.T) {
 func Test0001_8(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"README names the check and opens with the described summary", func(t *testing.T) {
+		{"0001.8.1.1.1 it holds its name plus summary plus links", func(t *testing.T) {
 			t.Parallel()
-			var ours string
-			eachReadme(t, func(folder, name, readme string) {
-				if ours == "" {
-					ours = installOnly(t)
-				}
-				checkDocumentedReadme(t, ours, folder, name, readme)
-			})
-		}},
-		{"relative links resolve", func(t *testing.T) {
-			t.Parallel()
-			eachReadme(t, func(folder, _, readme string) {
-				for _, target := range readmeLinks(readme) {
-					if _, err := os.Stat(filepath.Join(folder, target)); err != nil {
-						t.Errorf("%s/README.md links %s, which does not resolve: %v", folder, target, err)
-					}
-				}
+			runCases(t, []edgeCase{
+				{"README names the check and opens with the described summary", func(t *testing.T) {
+					t.Parallel()
+					var ours string
+					eachReadme(t, func(folder, name, readme string) {
+						if ours == "" {
+							ours = installOnly(t)
+						}
+						checkDocumentedReadme(t, ours, folder, name, readme)
+					})
+				}},
+				{"relative links resolve", func(t *testing.T) {
+					t.Parallel()
+					eachReadme(t, func(folder, _, readme string) {
+						for _, target := range readmeLinks(readme) {
+							if _, err := os.Stat(filepath.Join(folder, target)); err != nil {
+								t.Errorf("%s/README.md links %s, which does not resolve: %v", folder, target, err)
+							}
+						}
+					})
+				}},
 			})
 		}},
 	})
