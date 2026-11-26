@@ -86,7 +86,7 @@ func numberedChild(l line) bool {
 // parseGherkin checks each numbered acceptance and reads it as Gherkin
 // through the Cucumber parser.
 func parseGherkin(p *problems, docID string, s section) []IDLine {
-	groups := groupItems(p, s.lines, "top-level items must be numbered acceptance names, `1. Name`")
+	groups := groupItems(p, s.lines, topLevelMessage)
 	kinds := map[int]kind{}
 	doc := parsed(p, s.n, gherkinText(p, s.n, groups, kinds))
 	at := func(l *messages.Location) int { return s.n + int(l.Line) - 1 }

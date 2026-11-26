@@ -41,7 +41,7 @@ users who have lost connection
 
 ## Rules
 
-[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance IDs and their cap, sections, measurement, acceptance order, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
+[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance names and their cap, sections, measurement, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 
 [Requirement 0006](docs/requirements/0006-changes-come-paired.md) states that a test and its doc change together. [Requirement 0007](docs/requirements/0007-tests-fit-their-language.md) states how each language finds its tests.
 
@@ -59,7 +59,7 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 
 ## Gherkin
 
-[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) lets a doc number its acceptances instead of using bullets. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects. Shared context sits in the GIVENs once, each WHEN says only what differs and each THEN gives its own result.
+[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) has every doc number its acceptances. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects. Shared context sits in the GIVENs once, each WHEN says only what differs and each THEN gives its own result.
 
 ```markdown
 1. Opens to photos
@@ -78,7 +78,7 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 
 An acceptance's place sets its ID, so item 2 of 0001 is 0001.2, and tests, history and messages use that ID. Its other rules are stated in requirement 0003 and proven by its tests: names, moves, removed lines, shape, keywords and steps. Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
 
-History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add.
+History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add. The nested bullet form, `- NNNN.N` over `- Given`, `- When` and `- Then`, is retired. A doc still in it fails at each acceptance, pointing to the template above, while its tests keep owning their IDs.
 
 ## Behavior
 

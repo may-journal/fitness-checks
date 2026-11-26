@@ -154,16 +154,19 @@ func AccKit(files map[string]string, label, description string) map[string]strin
 // AcDoc is the fixture's requirement doc.
 const AcDoc = "docs/requirements/0001-open.md"
 
-// AcDocWith is requirement 0001 with one acceptance whose Given is given.
-// The Given sits on line 16.
+// AcDocWith is requirement 0001 with one acceptance whose GIVEN is given.
+// The GIVEN sits on line 16.
 func AcDocWith(given string) string {
-	return "# 0001 Open\n\n## Why\n\nI open the app.\n\n## Measurement\n\nopens\n-\ntries\n\n## Requirements\n\n- 0001.1\n    - Given " + given + "\n        - When it starts\n            - Then it opens\n"
+	return "# 0001 Open\n\n## Why\n\nI open the app.\n\n## Measurement\n\nopens\n-\ntries\n\n## Requirements\n\n1. Starts\n   1. GIVEN " + given + "\n" + acStarts
 }
+
+// acStarts is the one WHEN of AcDocWith's acceptance and its THEN.
+const acStarts = "      1. WHEN it starts\n         1. THEN it opens\n"
 
 // AcChained is the fixture doc whose 0001.1 chains two steps, so `0001.1.2`
 // cites its second.
-var AcChained = strings.Replace(AcDocWith("User opens the app"), "        - When it starts\n            - Then it opens\n",
-	"        1. When it starts\n            - Then it opens\n        2. When it opens\n            - Then it shows the record\n", 1)
+var AcChained = strings.Replace(AcDocWith("User opens the app"), acStarts,
+	acStarts+"      2. WHEN it opens\n         1. THEN it shows the record\n", 1)
 
 const (
 	AoCheck    = "architecture-components"

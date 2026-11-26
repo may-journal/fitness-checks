@@ -37,8 +37,8 @@ Givens in repos with architecture views
          4. THEN only the context's C4 `Person` and `Person_Ext` are actors
       6. WHEN the repo has no architecture views
          1. THEN it passes with no files
-      7. WHEN a doc's shape is wrong or a view other than the context is missing
-         1. THEN it reports neither
+      7. WHEN a doc's shape is wrong or it holds bullet acceptances or a view other than the context is missing
+         1. THEN it reports none of them
          2. THEN it leaves them to `requirements` and `architecture-contract`
 2. A dropped actor fails every Given naming it
    1. GIVEN Developer has a Given naming an actor the system context no longer declares

@@ -30,3 +30,4 @@ changed requirement tests and docs
          1. THEN it needs no doc
       7. WHEN only comments or formatting change
          1. THEN it needs no partner
+         2. THEN a reformat or rename of numbered acceptances needs no partner

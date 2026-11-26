@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -15,15 +14,9 @@ var acceptID = regexp.MustCompile(`^(\d{4})\.[1-9]\d*$`)
 // numberedItem is a numbered list line, "2. When ...", with its number and text.
 var numberedItem = regexp.MustCompile(`^(\d{1,3})\. (.*)$`)
 
-// chainKeywords open the three nested lines under each acceptance ID.
-var chainKeywords = []string{"Given", "When", "Then"}
-
-// stepShape is what a numbered step that is not a When fails with.
-const stepShape = "each step is a numbered When nested under the Given, with one Then nested under the When"
-
 // sourceError is what a line starting "Source:" fails with. A line
 // number in a doc goes stale as soon as the code moves, so docs cite none.
-const sourceError = "delete this `Source:` line, or run `fitness requirements --fix`, which also moves bullet acceptances to numbered GIVEN, WHEN and THEN items; a Measurement is a numerator, `-` and a denominator"
+const sourceError = "delete this `Source:` line, or run `fitness requirements --fix`; a Measurement is a numerator, `-` and a denominator"
 
 // checkMeasurement requires a numerator, a "-" line, and a denominator, and
 // fails a line starting "Source:", which older docs carry. It
@@ -86,8 +79,16 @@ type item struct {
 	num      int
 }
 
-// parseRequirements groups list items under top-level acceptance IDs and
-// checks each one's Given, When, Then chain.
+// NumberedForm is where the requirements README shows the numbered
+// acceptance form, with GIVEN, WHEN and THEN in caps.
+const NumberedForm = "https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md#template"
+
+// topLevelMessage is what a Requirements line that is no list item fails with.
+const topLevelMessage = "top-level items must be numbered acceptance names, `1. Name`"
+
+// parseRequirements reads a Requirements section of numbered acceptances. A
+// section that opens with any other list, such as the retired bullet form,
+// fails at each acceptance.
 func parseRequirements(p *problems, docID string, s section) []IDLine {
 	if len(s.lines) == 0 {
 		return nil
@@ -95,17 +96,35 @@ func parseRequirements(p *problems, docID string, s section) []IDLine {
 	if hasGherkin(s) {
 		return parseGherkin(p, docID, s)
 	}
+	return bulletAcceptances(p, groupItems(p, s.lines, topLevelMessage))
+}
+
+// bulletAcceptances fails each acceptance of a section not in the numbered
+// form at its first line. It keeps each `- NNNN.N` ID and its numbered step
+// IDs, so tests and views still name them while the doc moves.
+func bulletAcceptances(p *problems, groups [][]item) []IDLine {
 	var out []IDLine
-	seen := map[string]bool{}
-	for _, g := range groupItems(p, s.lines, idMessage(docID)) {
-		a := checkAcceptance(p, docID, g)
-		if seen[a.ID] {
-			p.add(a.Line, a.ID+" appears twice; each acceptance needs its own ID")
+	for _, g := range groups {
+		top := g[0]
+		p.add(top.n, "this is the bullet acceptance form, which `requirements` no longer reads; "+
+			"number each acceptance and write its GIVEN, WHEN and THEN items in caps, as "+NumberedForm+" shows")
+		if !top.numbered && acceptID.MatchString(top.text) {
+			out = append(out, IDLine{ID: top.text, Line: top.n, Steps: bulletSteps(top.text, g[1:])})
 		}
-		seen[a.ID] = true
-		out = append(out, a)
 	}
 	return out
+}
+
+// bulletSteps is the numbered `N. When` steps of bullet acceptance id, each
+// with its ID, such as 0001.1.2.
+func bulletSteps(id string, items []item) []Step {
+	var steps []Step
+	for _, it := range items {
+		if it.numbered && strings.HasPrefix(it.text, "When ") {
+			steps = append(steps, Step{ID: fmt.Sprintf("%s.%d", id, it.num), Line: it.n})
+		}
+	}
+	return steps
 }
 
 // groupItems splits list items into groups, each a top-level item and the
@@ -138,127 +157,4 @@ func listItem(l line) (item, bool) {
 		return item{line: line{l.n, strings.TrimSpace(m[2])}, indent: indent, numbered: true, num: n}, true
 	}
 	return item{}, false
-}
-
-// checkAcceptance requires a top-level NNNN.N ID with the doc's prefix,
-// nesting one Given and one step, or a numbered chain of steps.
-func checkAcceptance(p *problems, docID string, g []item) IDLine {
-	checkAcceptanceID(p, docID, g[0])
-	if slices.ContainsFunc(g[1:], func(it item) bool { return it.numbered }) {
-		return checkChain(p, g)
-	}
-	return checkSingle(p, g)
-}
-
-// checkSingle requires exactly one Given, one When and one Then, each a
-// bullet nested under the line above.
-func checkSingle(p *problems, g []item) IDLine {
-	top := g[0]
-	if len(g) != len(chainKeywords)+1 {
-		p.add(top.n, top.text+" needs exactly one Given, one When, and one Then; a branch is a new ID")
-		return IDLine{ID: top.text, Line: top.n}
-	}
-	ordered := true
-	for i, kw := range chainKeywords {
-		ordered = checkChainLine(p, kw, g[i], g[i+1]) && ordered
-	}
-	a := withGiven(g)
-	if ordered {
-		a.Steps = []Step{{Line: g[2].n, When: strings.TrimPrefix(g[2].text, "When "), Then: strings.TrimPrefix(g[3].text, "Then ")}}
-	}
-	return a
-}
-
-// withGiven is the acceptance g opens, with the Given on its second line.
-func withGiven(g []item) IDLine {
-	return IDLine{ID: g[0].text, Line: g[0].n, Given: strings.TrimPrefix(g[1].text, "Given "), GivenLine: g[1].n}
-}
-
-// checkChainLine requires child to be a bullet that starts with kw and sits
-// deeper than parent, and reports whether it does.
-func checkChainLine(p *problems, kw string, parent, child item) bool {
-	if child.numbered || !nests(kw, parent, child) {
-		p.add(child.n, "each acceptance is one Given, then one When, then one Then, each nested under the line above")
-		return false
-	}
-	return true
-}
-
-// nests reports whether child starts with kw and sits deeper than parent.
-func nests(kw string, parent, child item) bool {
-	return strings.HasPrefix(child.text, kw+" ") && child.indent > parent.indent
-}
-
-// checkChain requires one Given, then 2 to p.maxSteps numbered steps. Step 2
-// of 0003.6 is 0003.6.2.
-func checkChain(p *problems, g []item) IDLine {
-	if !checkChainLine(p, "Given", g[0], g[1]) {
-		return IDLine{ID: g[0].text, Line: g[0].n}
-	}
-	a := withGiven(g)
-	steps, ok := chainSteps(p, a.ID, g[1], g[2:])
-	switch {
-	case !ok:
-	case len(steps) > p.maxSteps:
-		p.add(a.Line, fmt.Sprintf("%s chains %d steps, at most %d; move the rest to a new ID", a.ID, len(steps), p.maxSteps))
-	case len(steps) == 1:
-		p.add(steps[0].Line, "a single step is the plain bullet `- When`; number steps only in a chain of two or more")
-	default:
-		a.Steps = steps
-	}
-	return a
-}
-
-// chainSteps reads the steps of acceptance id's chain under given, and
-// reports whether each one is well formed.
-func chainSteps(p *problems, id string, given item, rest []item) ([]Step, bool) {
-	var steps []Step
-	for ; len(rest) > 0; rest = rest[min(2, len(rest)):] {
-		n := len(steps) + 1
-		if !checkStep(p, n, given, rest) {
-			return steps, false
-		}
-		steps = append(steps, Step{ID: fmt.Sprintf("%s.%d", id, n), Line: rest[0].n, When: strings.TrimPrefix(rest[0].text, "When "), Then: strings.TrimPrefix(rest[1].text, "Then ")})
-	}
-	return steps, true
-}
-
-// checkStep requires rest to open with step n: a When numbered n under the
-// Given, with one Then bullet under it.
-func checkStep(p *problems, n int, given item, rest []item) bool {
-	when := rest[0]
-	switch {
-	case !nests("When", given, when):
-		p.add(when.n, stepShape)
-	case !numberedAs(when, n):
-		p.add(when.n, fmt.Sprintf("number this step `%d.`; a chain numbers its steps `1.` to `%d.` in order", n, p.maxSteps))
-	case !thenUnder(when, rest[1:]):
-		p.add(when.n, fmt.Sprintf("step %d needs exactly one Then nested under its When", n))
-	default:
-		return true
-	}
-	return false
-}
-
-// numberedAs reports whether it is numbered n.
-func numberedAs(it item, n int) bool {
-	return it.numbered && it.num == n
-}
-
-// thenUnder reports whether after opens with a Then bullet nested under when.
-func thenUnder(when item, after []item) bool {
-	return len(after) > 0 && !after[0].numbered && nests("Then", when, after[0])
-}
-
-// checkAcceptanceID requires a top-level `NNNN.N` bullet with the doc's ID.
-func checkAcceptanceID(p *problems, docID string, top item) {
-	m := acceptID.FindStringSubmatch(top.text)
-	if top.indent != 0 || top.numbered || m == nil || m[1] != docID {
-		p.add(top.n, idMessage(docID))
-	}
-}
-
-// idMessage says what a top-level Requirements line must be.
-func idMessage(docID string) string {
-	return "top-level items must be acceptance IDs `" + docID + ".N`"
 }

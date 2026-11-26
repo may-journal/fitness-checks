@@ -47,10 +47,11 @@ func Test0004_1(t *testing.T) {
 		out, code := suite(t, acceptance.With(acceptance.GoRepo(), map[string]string{"docs/requirements/0001-other.md": acceptance.RequirementDoc("0001.1")}))
 		acceptance.Sees(t, out, code, 1, "requirement 0001 is used by")
 	})
-	t.Run("0004.1.3 a repeated acceptance ID fails", func(t *testing.T) {
+	t.Run("0004.1.3 two acceptances sharing a name fail naming both IDs", func(t *testing.T) {
 		t.Parallel()
-		out, code := suite(t, acceptance.Reqs(acceptance.Acceptances("0001.1", "0001.1")))
-		acceptance.Sees(t, out, code, 1, "0001.1 appears twice")
+		shared := strings.Replace(acceptance.Acceptances("0001.1", "0001.2"), "Adds pair 2", "Adds pair 1", 1)
+		out, code := suite(t, acceptance.Reqs(shared))
+		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":21: 0001.2 has the name of 0001.1; give each acceptance its own name")
 	})
 	t.Run("0004.1.4 a doc past the acceptance cap fails", func(t *testing.T) {
 		t.Parallel()
@@ -106,14 +107,6 @@ func Test0004_2(t *testing.T) {
 	})
 }
 
-func Test0004_3(t *testing.T) {
-	t.Parallel()
-	out, code := suite(t, acceptance.Reqs(acceptance.Acceptances("0001.1")+"        - When I add them again\n"))
-	acceptance.Sees(t, out, code, 1, "needs exactly one Given, one When, and one Then")
-	out, code = suite(t, acceptance.Reqs("- 0001.1\n    - When I add them\n        - Given two numbers\n            - Then I get their sum\n"))
-	acceptance.Sees(t, out, code, 1, "each acceptance is one Given, then one When, then one Then, each nested under the line above")
-}
-
 func Test0004_4(t *testing.T) {
 	t.Parallel()
 	t.Run("0004.4.1 steps chain up to the limit beside a single step", func(t *testing.T) {
@@ -124,14 +117,11 @@ func Test0004_4(t *testing.T) {
 		out, code = suite(t, acceptance.Reqs(acceptance.Chain("0001.1", 8)))
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":17: 0001.1 chains 8 steps, at most 7; move the rest to a new ID")
 	})
-	t.Run("0004.4.2 misnumbered or unnumbered or single steps fail", func(t *testing.T) {
+	t.Run("0004.4.2 misnumbered or unnumbered steps fail", func(t *testing.T) {
 		t.Parallel()
 		for body, want := range map[string]string{
-			strings.Replace(acceptance.Chain("0001.1", 3), "    3. When", "    4. When", 1): ":23: number this step `3.`; a chain numbers its steps `1.` to `7.` in order",
-			strings.Replace(acceptance.Chain("0001.1", 2), "    2. When", "    - When", 1):  ":21: number this step `2.`",
-			acceptance.Chain("0001.1", 1): ":19: a single step is the plain bullet `- When`; number steps only in a chain of two or more",
-			strings.Replace(acceptance.Chain("0001.1", 2), "       - Then I get their sum\n", "", 1): ":19: step 1 needs exactly one Then nested under its When",
-			strings.Replace(acceptance.Chain("0001.1", 2), "    2. When", "    2. Then", 1):          ":21: " + "each step is a numbered When nested under the Given",
+			strings.Replace(acceptance.Chain("0001.1", 3), "3. WHEN", "4. WHEN", 1): ":23: number this WHEN `3.`; each level numbers from 1 in order",
+			strings.Replace(acceptance.Chain("0001.1", 2), "2. WHEN", "- WHEN", 1):  ":21: number each GIVEN, WHEN and THEN item; the numbered form holds no dashes",
 		} {
 			out, code := suite(t, acceptance.Reqs(body))
 			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+want)
@@ -140,8 +130,8 @@ func Test0004_4(t *testing.T) {
 	t.Run("0004.4.3 two docs sharing a WHEN fail", func(t *testing.T) {
 		t.Parallel()
 		other := "docs/requirements/0002-adds-again.md"
-		adds := "- 0001.1\n    - Given Writer has two whole numbers\n        - When I add them\n            - Then I get their sum\n"
-		again := "- 0002.1\n    - Given Writer has two whole numbers that carry\n        - When I add them\n            - Then I get their sum\n"
+		adds := "1. Adds\n   1. GIVEN Writer has two whole numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
+		again := "1. Adds carries\n   1. GIVEN Writer has two whole numbers that carry\n      1. WHEN I add them\n         1. THEN I get their sum\n"
 		out, code := suite(t, acceptance.With(acceptance.GoRepo(), map[string]string{
 			"adder_test.go":      acceptance.TestFile("adder", "Test0001_1", "Test0002_1"),
 			acceptance.PairedDoc: acceptance.DocWith(adds),
@@ -204,4 +194,25 @@ func Test0004_5(t *testing.T) {
 		out, code = acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 1, "0001.2 was deleted before")
 	})
+}
+
+// bulletDoc is 0001.1 and 0001.2 in the retired bullet form, each ID line on
+// its acceptance's first doc line.
+const bulletDoc = "- 0001.1\n  - Given two numbers\n    - When I add them\n      - Then I get their sum\n" +
+	"- 0001.2\n  - Given two numbers\n    - When I double them\n      - Then I get twice each\n"
+
+func Test0004_6(t *testing.T) {
+	t.Parallel()
+	out, code := judged(t, gherkinRepo(t, bulletDoc, acceptance.TestFile("adder", "Test0001_1", "Test0001_2")))
+	acceptance.Sees(t, out, code, 1, rootDoc+":17: this is the bullet acceptance form, which `requirements` no longer reads",
+		rootDoc+":21: this is the bullet acceptance form")
+	acceptance.Sees(t, out, code, 1, "number each acceptance and write its GIVEN, WHEN and THEN items in caps")
+	// The table wraps the link, so it is found without spaces.
+	link := "https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md#template"
+	if !strings.Contains(strings.Join(strings.Fields(out), ""), link) {
+		t.Errorf("output is missing the link %s:\n%s", link, out)
+	}
+	if strings.Contains(out, "adder_test.go") {
+		t.Errorf("a bullet doc's tests still own its IDs, got:\n%s", out)
+	}
 }
