@@ -10,9 +10,7 @@ Scope is required, as in `feat(api): add endpoint`. Merge commits are always acc
 
 ## Behavior
 
-- Pass: the subject matches `type(scope): description` or `Merge ...`. Only the first line is judged.
-- Fail: the subject doesn’t match → error quoting it, with the suggested format and allowed types.
-- Fail (empty message, or no repo to read): a no-message error.
+[Requirement 0001](docs/requirements/0001-subjects-carry-type-and-scope.md) states what this check does, and a test case named for each step proves it.
 
 ## Which message it judges
 

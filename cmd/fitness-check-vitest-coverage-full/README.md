@@ -4,15 +4,9 @@ Requires Vitest coverage thresholds of 100 in the repo and the shared config, th
 
 ## Behavior
 
-A repo with no tracked JavaScript or TypeScript source passes with 0 files, even with a `package.json` for formatting tools.
+[Requirement 0001](docs/requirements/0001-coverage-is-full-and-tests-pass.md) states what this check does, and a test case named for each step proves it.
 
-A pass requires all three of:
-
-- The project sets Vitest coverage thresholds to 100 for branches, functions, lines, and statements.
-- The fitness-runner shared config carries the same 100% thresholds.
-- `vitest run --coverage` exits 0 in the project root.
-
-Both configs are checked statically, through their code views, so a commented-out threshold never counts. Neither side may lower thresholds to pass.
+A pass needs two things. The project and the fitness-runner shared config set Vitest coverage thresholds of 100 for branches, functions, lines, and statements. Then `vitest run --coverage` exits 0 in the project root. Both configs are read statically, through their code views, so a commented-out threshold never counts.
 
 - Threshold and exclude settings come from the project's vitest config, else the shared `vitest.config.mjs` (installed `@mayjournal/fitness-shared` package or the binary's embedded copy).
 - When the project has no local vitest config, `vitest run --coverage` runs with `--config` pointing at that resolved file.

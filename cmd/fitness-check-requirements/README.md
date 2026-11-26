@@ -41,14 +41,7 @@ users who have lost connection
 
 ## Rules
 
-- IDs: the file is `NNNN-kebab-title.md`, its `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
-- Acceptance IDs: the title ID plus `.N`, unique in its doc, at most `requirements.maxAcceptances` per doc; the first one past fails.
-- Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
-- Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty. Why is one sentence on what a person can do once it holds.
-- Measurement: numerator, `-`, denominator, set apart by blank lines, nothing else. A `Source:` line fails; `fitness requirements --fix` deletes every one.
-- Acceptance: GIVENs, then WHENs with THENs or a chain of steps, numbered in order; the first GIVEN starts with an [actor](../fitness-check-architecture-actors/README.md).
-- Ownership: exactly one test named for each acceptance owns it. A test named for an undefined acceptance fails.
-- Every test: each top-level test in the repository must be named for an acceptance. Setup functions and helpers are not tests.
+[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance IDs and their cap, sections, measurement, acceptance order, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 
 The error for a missing test names the one it expects, and deleting an ID deletes its test. Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
 
@@ -56,15 +49,8 @@ The error for a missing test names the one it expects, and deleting an ID delete
 
 An acceptance may chain 2 to `requirements.maxSteps` WHENs under its last GIVEN, as item 2 of the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
 
-- Numbering: a chain numbers its WHENs in order from `1.`, each with its THENs numbered under it.
-- Failures: more steps than `requirements.maxSteps`, a gap, an unnumbered step or a numbered single step fail, naming the line.
-- Citing: step 2 of 0001.2 is `0001.2.2`; a test named for a step, such as `Test0001_2_2`, fails.
-- Checks: overlap reads every step, a deleted step brought back fails, and a chain counts once toward the cap.
+Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) the cases they need.
 
-Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test.
-
-- Missing: a step no case names fails, naming the step and the test to add its case to.
-- Stray: a case whose name opens with a step its acceptance does not chain fails, naming the case.
 - Cases: Go reads `t.Run` names and case table rows, and Java dynamic tests and `Named` arguments.
 - Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
 - Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
@@ -88,16 +74,7 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
          2. THEN the photo keeps its caption
 ```
 
-- IDs: an acceptance's place sets its ID, so item 2 of 0001 is 0001.2. Tests, history and messages use that ID.
-- Names: each acceptance has its own short name, with no comma and no keyword.
-- Moves: history fails a commit that moves a named acceptance to another number, so a new one goes last.
-- Removed: a deleted acceptance stays as `N. Removed in <version>: <reason>`, its version the changelog entry that removes it. It counts toward no limit.
-- Shape: GIVENs under the name, WHENs under the last GIVEN and THENs under each WHEN, each level numbered from 1 with no dash.
-- Keywords: GIVEN, WHEN and THEN in caps, never AND or BUT, and no comma outside code. An extra condition is the next GIVEN.
-- Steps: two WHENs or more chain as steps `NNNN.N.K`, at most `requirements.maxSteps`.
-- Parser: it reads a second GIVEN or THEN in a row as And.
-
-Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
+An acceptance's place sets its ID, so item 2 of 0001 is 0001.2, and tests, history and messages use that ID. Its other rules are stated in requirement 0003 and proven by its tests: names, moves, removed lines, shape, keywords and steps. Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
 
 History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add.
 

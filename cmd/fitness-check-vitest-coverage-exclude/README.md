@@ -4,9 +4,7 @@ Fails any Vitest coverage exclude entry, so coverage measures every file.
 
 ## Behavior
 
-- Pass: no Vitest config, or `coverage.exclude` is empty or missing.
-- Fail: any exclude entry, tests and type files included → one error per entry, naming it to remove.
-- Vitest's own default exclude skips tests and declarations, so set `coverage.exclude: []` to measure them; the shared config does.
+[Requirement 0001](docs/requirements/0001-coverage-measures-every-file.md) states what this check does, and a test case named for each step proves it. Vitest's own default exclude skips tests and declarations, so set `coverage.exclude: []` to measure them; the shared config does.
 
 It reads `vitest.config.*` or the `package.json` `vitest` field in the project root. If none exist, it uses the shared vitest config. That is an installed `@mayjournal/fitness-shared` package when present, else the copy embedded in the check binary, materialized on demand.
 

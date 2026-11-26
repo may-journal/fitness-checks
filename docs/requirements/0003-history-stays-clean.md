@@ -15,10 +15,10 @@ commits and entry files checked
 ## Requirements
 
 1. Subjects carry type and scope
-   1. GIVEN Developer has commit subjects with and without a type
-      1. WHEN the commit checks read the subject line
-         1. THEN only subjects with a listed type and scope pass
-         2. THEN each failure quotes the subject
+   1. GIVEN Developer has hooks installed on a fork branch
+      1. WHEN I commit a subject
+         1. THEN a valid subject commits without judging inherited history
+         2. THEN a subject with no scope fails quoting only that subject
 2. Removed in 2026.11.26.0000: moved to the plan-trailer check's own requirement
 3. Removed in 2026.11.26.0100: moved to the commit-attribution doc
 4. Removed in 2026.11.26.0200: moved to the issue-link-once doc

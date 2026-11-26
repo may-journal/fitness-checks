@@ -4,14 +4,9 @@ Fails a workflow job that can fail without a report on its run page ([#181](http
 
 ## Behavior
 
-- It reads the `.yml` and `.yaml` workflow files directly under `.github/workflows`, keeping each value's line.
-- Pass: each job with `steps` has one step with `if: always()`, bare or as `${{ always() }}`, whose `run` writes to `$GITHUB_STEP_SUMMARY`.
-- Pass: a job that only calls a reusable workflow with `uses:` has no steps, and the called workflow reports.
-- A matrix job is one definition, so it is judged once and named once.
-- Fail: a job with steps and no such step, naming the file, the job's line, and the step to add.
-- Fail: a job whose summary step lacks `if: always()`, naming that step's line.
-- Fail: a file that is not valid YAML, naming the line where reading stopped, and the column for the values below.
-- A repo with no workflow files passes having checked none.
+[Requirement 0001](docs/requirements/0001-every-job-reports-on-its-run-page.md) states what this check passes and fails, and a test case named for each step proves it. It reads the `.yml` and `.yaml` workflow files directly under `.github/workflows`, keeping each value's line.
+
+A job with `steps` needs one step with `if: always()`, bare or as `${{ always() }}`, whose `run` writes to `$GITHUB_STEP_SUMMARY`.
 
 ## Values GitHub rejects
 

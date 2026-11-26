@@ -2,7 +2,9 @@
 // runs the installer at FITNESS_INSTALL in a copied example repo.
 package requirements
 
-import "github.com/may-journal/fitness-checks/internal/acceptance"
+import (
+	"github.com/may-journal/fitness-checks/internal/acceptance"
+)
 
 // The helpers every requirement test folder shares live in acceptance, so a
 // package's own requirement tests use the same ones.
@@ -35,6 +37,12 @@ var (
 	requirementDoc    = acceptance.RequirementDoc
 	acceptances       = acceptance.Acceptances
 	chain             = acceptance.Chain
+	pairedRepo        = acceptance.PairedRepo
+	docOf             = acceptance.DocOf
+	reqs              = acceptance.Reqs
+	withSource        = acceptance.WithSource
+	caseFile          = acceptance.CaseFile
+	stepCases         = acceptance.StepCases
 	inComments        = acceptance.InComments
 	atEachFile        = acceptance.AtEachFile
 	longSentence      = acceptance.LongSentence

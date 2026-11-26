@@ -63,6 +63,16 @@
     "cmd/fitness-check-release-changelog",
     "cmd/fitness-check-repeated-string-literals",
     "cmd/fitness-check-requirements",
-    "cmd/fitness-check-swiftlint"
+    "cmd/fitness-check-requirements-changed",
+    "cmd/fitness-check-semantic-commit",
+    "cmd/fitness-check-spotless",
+    "cmd/fitness-check-swift-storybook-requirements",
+    "cmd/fitness-check-swiftlint",
+    "cmd/fitness-check-text-readability",
+    "cmd/fitness-check-vitest-coverage-exclude",
+    "cmd/fitness-check-vitest-coverage-full",
+    "cmd/fitness-check-workflow-ref-exists",
+    "cmd/fitness-check-workflow-reporting",
+    "cmd/fitness-check-workflow-scripts"
   ]
 }

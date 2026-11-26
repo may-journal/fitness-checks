@@ -166,16 +166,6 @@ func Test0002_3(t *testing.T) {
 				t.Errorf("the readable file's finding must still fail, got row %q", row(out, "markdown-links"))
 			}
 		}},
-		{"service that cannot answer passes with info", func(t *testing.T) {
-			t.Parallel()
-			out, code, _ := refCheck(t, refWorkflow("may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1"), []response{
-				{Stderr: "error connecting to api.github.com\n", Exit: 1},
-			})
-			sees(t, out, code, 0, "workflow refs were not verified: gh api repos/may-journal/fitness-runner/git/ref/tags/v1: error connecting to api.github.com")
-			if strings.Contains(row(out, "workflow-ref-exists"), "failed") {
-				t.Errorf("a check whose service cannot answer must not fail, got row %q", row(out, "workflow-ref-exists"))
-			}
-		}},
 		{"text checks skip unreadable files", func(t *testing.T) {
 			t.Parallel()
 			for _, c := range lockedChecks {

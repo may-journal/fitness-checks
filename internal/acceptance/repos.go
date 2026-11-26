@@ -106,3 +106,54 @@ func Occurrences(path, want string) int {
 	raw, _ := os.ReadFile(path)
 	return strings.Count(string(raw), want)
 }
+
+// CaseFile is a Go test file in pkg declaring test name, which runs one
+// empty case per case name.
+func CaseFile(pkg, name string, cases ...string) string {
+	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
+	for _, c := range cases {
+		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n"
+	}
+	return body + "}\n"
+}
+
+// StepCases names one case for each of id's first steps, such as
+// "0001.2.1 step".
+func StepCases(id string, steps int) []string {
+	var out []string
+	for n := 1; n <= steps; n++ {
+		out = append(out, id+"."+strconv.Itoa(n)+" step")
+	}
+	return out
+}
+
+// PairedDoc is the path of requirement 0001 in GoRepo.
+const PairedDoc = "docs/requirements/0001-adds-numbers.md"
+
+// PairedRepo is GoRepo with requirement 0001's test in reqs/0001_test.go,
+// named for it, beside a shared helper that proves no requirement. Only the
+// requirements check runs, so commits meet no other check.
+func PairedRepo() map[string]string {
+	return With(GoRepo(), map[string]string{
+		".fitnessrc.json":    `{"policy": "external", "checks": ["requirements"]}` + "\n",
+		"adder_test.go":      "",
+		"reqs/0001_test.go":  TestFile("reqs", "Test0001_1"),
+		"reqs/tools_test.go": "package reqs\n\n// two is a helper the tests share.\nfunc two() int { return 2 }\n",
+	})
+}
+
+// DocOf is GoRepo with requirement 0001 replaced by body at path.
+func DocOf(path, body string) map[string]string {
+	return With(GoRepo(), map[string]string{PairedDoc: "", path: body})
+}
+
+// Reqs is GoRepo with requirement 0001's Requirements replaced.
+func Reqs(body string) map[string]string {
+	return DocOf(PairedDoc, DocWith(body))
+}
+
+// WithSource is doc with the Source line older docs end their Measurement
+// with, citing cite. It sits on line 19.
+func WithSource(doc, cite string) string {
+	return strings.Replace(doc, "## Requirements", "Source: "+cite+"\n\n## Requirements", 1)
+}

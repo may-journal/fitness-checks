@@ -4,14 +4,7 @@ Checks Java formatting with the [Spotless](https://github.com/diffplug/spotless)
 
 ## Behavior
 
-- Runs once from each build root: `spotless:check` for Maven, `spotlessCheck` for Gradle.
-- The [Java module](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/java/java.go) says what a build root is and which wrapper or tool runs it.
-- Pass: Spotless finds nothing to rewrite.
-- Fail: each file Spotless would rewrite, as `file is not formatted; run spotless:apply` (or `spotlessApply`).
-- A failure that names no file reports the build's own error lines.
-- No Maven or Gradle build in the repo: passes clean with `filesChecked: 0`.
-- A Java repo with no running JDK fails with an install hint.
-- A build that does not declare Spotless fails with the plugin snippet to add.
+[Requirement 0001](docs/requirements/0001-java-formatting-passes-spotless.md) states what this check does, and a test case named for each step proves it. It runs `spotless:check` for Maven and `spotlessCheck` for Gradle. The [Java module](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/java/java.go) says what a build root is and which wrapper or tool runs it.
 
 ## Formatter
 

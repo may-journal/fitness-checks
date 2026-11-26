@@ -2,58 +2,28 @@
 
 Fails each Swift Storybook page not named by a requirement acceptance, and each acceptance without exactly one page ([#79](https://github.com/may-journal/fitness-checks/issues/79), [#129](https://github.com/may-journal/fitness-checks/issues/129)). The Storybook package in common-swift reads each page's acceptance to badge new and changed pages from that acceptance's git history ([common-swift #53](https://github.com/may-journal/common-swift/issues/53)). A page named any other way, or an acceptance with no page, would drop out unnoticed.
 
+## Behavior
+
+[Requirement 0001](docs/requirements/0001-each-acceptance-has-one-storybook-page.md) states what this check does, and a test case named for each step proves it.
+
 ## Storybook apps
 
-The check judges only a repo where a Swift file imports a Storybook module or declares a `BookPage`. The modules are common-swift's `Storybook` and `StorybookSandbox`, swift-storybook's `StorybookKit`, and `SwiftUIStorybook`. An import in a comment or a string does not count.
-
-An app with no pages yet still imports Storybook for its catalog, so it is judged. A plain `#Preview` needs only SwiftUI, so it marks no Storybook app. A manifest may name Storybook only as a dependency of a dependency. Any other repo passes with the note:
-
-```
-no Storybook in this repo: no Swift file imports a Storybook module or declares a BookPage, so acceptances need no pages
-```
+The modules are common-swift's `Storybook` and `StorybookSandbox`, swift-storybook's `StorybookKit`, and `SwiftUIStorybook`. A plain `#Preview` needs only SwiftUI, so it marks no Storybook app. A manifest may name Storybook only as a dependency of a dependency.
 
 ## Pages
 
-- A `#Preview` macro is a page, and its first argument is its name.
-- A `BookPage` call is a page, and its own `title:` argument is its name.
-- A page in a comment or a string is not read.
-- Each acceptance has one page, and its variants are labeled rows inside that page.
-
-## Names
-
-A name starts with one acceptance ID, alone or followed by a space and a label, such as `#Preview("0006.3 unlocked")`. The check fails:
-
-- a page with no name, such as `#Preview { … }`;
-- a name that does not start with an acceptance ID;
-- a name that starts with a chained step such as `0006.3.2`, since one page shows every step;
-- an ID that no doc in `docs/requirements` defines;
-- a name held in a variable or built by interpolation;
-- a page whose full name repeats an earlier page's, so a `--storybook` launch opens exactly one page;
-- a page whose acceptance ID an earlier page already names, whatever its label.
+A `#Preview` macro is a page named by its first argument. A `BookPage` call is a page named by its own `title:` argument. A name starts with one acceptance ID, alone or followed by a space and a label, such as `#Preview("0006.3 unlocked")`. A page's variants are labeled rows inside that page.
 
 A failure reads:
 
 ```
 App/BadgeView.swift:12 - page "day" does not start with an acceptance ID; name it such as "0001.1 day"
 MosaicShareView+Previews.swift:77 - page "0010.4 month" repeats acceptance 0010.4 from line 73; draw each variant as a labeled row on one page
+docs/requirements/0006-lock.md:17 - acceptance 0006.3 has no Storybook page; add one named "0006.3 <label>"
 ```
 
 A repo can allow more pages per acceptance in `.fitnessrc.json`. Run `fitness explain swift-storybook-requirements` for the key and its default.
 
-## Acceptances
-
-Every acceptance a doc in `docs/requirements` declares needs one page whose plain literal name starts with its ID, and no more. This holds even in a Storybook app with no pages yet. The failure names the doc line that declares it:
-
-```
-docs/requirements/0006-lock.md:17 - acceptance 0006.3 has no Storybook page; add one named "0006.3 <label>"
-```
-
-A repo with no Swift files, or no requirement docs, passes with zero files. Every Swift file is read in every run, since names repeat and pages go missing across files.
-
 ## Apart from other checks
 
 This check owns only the page names and the pages each acceptance needs. It shares helpers, the Swift lexer and the requirement doc reader, and no judgment with any other check.
-
-## Requirements
-
-[Requirement 0006](https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0006-code-is-tested-by-its-own-tools.md) proves this check with installed-command cases.
