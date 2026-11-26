@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no JavaScript source passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := vcfRun(t, acceptance.Example(t, "happyRepo", nil), nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -28,52 +28,58 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "vitest-coverage-full")
 	})
-	t.Run("0001.1.2 a project threshold below full fails", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails naming the four metrics", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
 		out, code := vcfRun(t, vcfRepo(t, map[string]string{"vitest.config.mjs": vcfConfig("90")}), rp.Env)
 		acceptance.Sees(t, out, code, 1, "Vitest coverage thresholds must be 100 for branches, functions, lines, and statements.")
 	})
-	t.Run("0001.1.3 a shared config threshold below full fails", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it fails naming the fitness-runner package", func(t *testing.T) {
 		t.Parallel()
 		shared := "node_modules/@mayjournal/fitness-shared/config/vitest.config.mjs"
 		out, code := vcfRun(t, vcfRepo(t, map[string]string{shared: vcfConfig("90")}), nil)
 		acceptance.Sees(t, out, code, 1, "Fitness-runner package must have Vitest coverage thresholds set to 100 for branches, functions, lines, and statements.")
 	})
-	t.Run("0001.1.4 full thresholds with all code covered pass with the local config", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
 		out, code := vcfRun(t, vcfRepo(t, nil), rp.Env)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		vcfRanWithLocalConfig(t, rp)
+	})
+	t.Run("0001.1.2.4.2 Vitest runs with the repo's own config", func(t *testing.T) {
+		t.Parallel()
+		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
+		out, code := vcfRun(t, vcfRepo(t, nil), rp.Env)
+		acceptance.Sees(t, out, code, 0)
+		assertVcfRanWithLocalConfig(t, rp)
 	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 untested code shows the coverage failure", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it fails showing the coverage line Vitest printed", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfShortRun}})
 		repo := vcfRepo(t, map[string]string{"src/sub.ts": "export const sub = (a: number, b: number): number => a - b;\n"})
 		out, code := vcfRun(t, repo, rp.Env)
 		acceptance.Sees(t, out, code, 1, "Coverage for statements (50%) does not meet global threshold (100%)")
-		vcfRanWithLocalConfig(t, rp)
+		assertVcfRanWithLocalConfig(t, rp)
 	})
-	t.Run("0001.2.2 a missing Vitest shows an install hint", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 it reports info with an install hint", func(t *testing.T) {
 		t.Parallel()
 		out, code := vcfRun(t, vcfRepo(t, nil), nil)
 		acceptance.ShowsInfo(t, out, code, "vitest-coverage-full", "vitest not found in node_modules/.bin (walking up from root) or on PATH. Install it (npm install -D vitest)")
 	})
-	t.Run("0001.2.3 Vitest on PATH stands in while the binary is broken", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 the one on PATH runs", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
 		repo := vcfRepo(t, map[string]string{"node_modules/.bin/vitest": "#!/bin/sh\nexit 1\n"})
 		acceptance.MustDo(t, os.Chmod(filepath.Join(repo, "node_modules", ".bin", "vitest"), 0o644))
 		out, code := vcfRun(t, repo, rp.Env)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		vcfRanWithLocalConfig(t, rp)
+		assertVcfRanWithLocalConfig(t, rp)
 	})
-	t.Run("0001.2.4 an exit with no finding shows the last lines", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 it reports info quoting its last lines", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {{
 			Match:  []string{"run --coverage"},
@@ -82,7 +88,7 @@ func Test0001_2(t *testing.T) {
 		}}})
 		out, code := vcfRun(t, vcfRepo(t, nil), rp.Env)
 		acceptance.ShowsInfo(t, out, code, "vitest-coverage-full", "vitest run --coverage exited 1 without a finding", "Cannot find dependency '@vitest/coverage-v8'")
-		vcfRanWithLocalConfig(t, rp)
+		assertVcfRanWithLocalConfig(t, rp)
 	})
 }
 
@@ -151,9 +157,9 @@ var vcfShortRun = acceptance.Response{
 	Exit: 1,
 }
 
-// vcfRanWithLocalConfig fails t unless fitness ran vitest once with
+// assertVcfRanWithLocalConfig fails t unless fitness ran vitest once with
 // `run --coverage` alone, leaving Vitest to load the repo's own config.
-func vcfRanWithLocalConfig(t *testing.T, rp acceptance.Replays) {
+func assertVcfRanWithLocalConfig(t *testing.T, rp acceptance.Replays) {
 	t.Helper()
 	if calls := rp.Calls("vitest"); len(calls) != 1 || calls[0] != "run --coverage" {
 		t.Errorf("vitest calls = %q, want one \"run --coverage\"", calls)

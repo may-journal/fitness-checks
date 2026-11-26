@@ -38,29 +38,50 @@ func flagged(t *testing.T, out string, files ...string) {
 	}
 }
 
+// keyFiles holds a fitness key in a doc, a changelog entry and a PR template.
+func keyFiles() map[string]string {
+	return map[string]string{
+		"docs/guide.md":                    block + "# Guide\n",
+		"changelog/2026-10-11-0900-one.md": "---\nrelatedConfigurations: ['../.fitnessrc.json']\n---\n\n### 2026.10.11.0900\n\n- Feat: one change.\n",
+		".github/PULL_REQUEST_TEMPLATE.md": "<!--\n---\nfitnessFunctions: ['pr-structure']\n---\n-->\n<!-- One sentence. -->\n> REPLACE-ME\n",
+	}
+}
+
+// edgeFiles holds a key behind CRLF, a byte order mark and other keys.
+func edgeFiles() map[string]string {
+	return map[string]string{
+		"docs/crlf.md":                  "---\r\nrelatedConfigurations: ['../.fitnessrc.json']\r\n---\r\n\r\n# Crlf\r\n",
+		"docs/bom.md":                   byteOrderMark + "---\nfitnessFunctions: ['prose-budget']\n---\n\n# Bom\n",
+		".github/ISSUE_TEMPLATE/bug.md": "---\nname: Bug\nrelatedConfigurations: ['../../.fitnessrc.json']\nlabels: Bug\n---\n\n## Steps\n",
+	}
+}
+
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a fitness key fails once per file", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails once per file", func(t *testing.T) {
 		t.Parallel()
-		out, code := front(t, map[string]string{
-			"docs/guide.md":                    block + "# Guide\n",
-			"changelog/2026-10-11-0900-one.md": "---\nrelatedConfigurations: ['../.fitnessrc.json']\n---\n\n### 2026.10.11.0900\n\n- Feat: one change.\n",
-			".github/PULL_REQUEST_TEMPLATE.md": "<!--\n---\nfitnessFunctions: ['pr-structure']\n---\n-->\n<!-- One sentence. -->\n> REPLACE-ME\n",
-		})
+		out, code := front(t, keyFiles())
 		acceptance.Sees(t, out, code, 1)
 		flagged(t, out, "docs/guide.md", "changelog/2026-10-11-0900-one.md", ".github/PULL_REQUEST_TEMPLATE.md")
 	})
-	t.Run("0001.1.2 CRLF and a byte order mark and other keys still fail", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 the failure names `fitness strip-front-matter`", func(t *testing.T) {
 		t.Parallel()
-		out, code := front(t, map[string]string{
-			"docs/crlf.md":                  "---\r\nrelatedConfigurations: ['../.fitnessrc.json']\r\n---\r\n\r\n# Crlf\r\n",
-			"docs/bom.md":                   byteOrderMark + "---\nfitnessFunctions: ['prose-budget']\n---\n\n# Bom\n",
-			".github/ISSUE_TEMPLATE/bug.md": "---\nname: Bug\nrelatedConfigurations: ['../../.fitnessrc.json']\nlabels: Bug\n---\n\n## Steps\n",
-		})
-		acceptance.Sees(t, out, code, 1)
-		flagged(t, out, "docs/crlf.md", "docs/bom.md", ".github/ISSUE_TEMPLATE/bug.md")
+		out, code := front(t, keyFiles())
+		acceptance.Sees(t, out, code, 1, "fitness strip-front-matter")
 	})
-	t.Run("0001.1.3 other front matter passes", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it still fails", func(t *testing.T) {
+		t.Parallel()
+		out, code := front(t, edgeFiles())
+		acceptance.Sees(t, out, code, 1)
+		flagged(t, out, "docs/crlf.md", "docs/bom.md")
+	})
+	t.Run("0001.1.2.2.2 other keys beside the fitness key do not save it", func(t *testing.T) {
+		t.Parallel()
+		out, code := front(t, edgeFiles())
+		acceptance.Sees(t, out, code, 1)
+		flagged(t, out, ".github/ISSUE_TEMPLATE/bug.md")
+	})
+	t.Run("0001.1.2.3.1 the file passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := front(t, map[string]string{
 			"docs/notes.md":                 "---\ntitle: Notes\n---\n\n# Notes\n",
@@ -71,7 +92,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("a file without fitness front matter was flagged:\n%s", out)
 		}
 	})
-	t.Run("0001.1.4 a rule before prose is not front matter", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 the file passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := front(t, map[string]string{
 			"docs/ruled.md": "---\n\nrelatedConfigurations: a note set between two rules.\n\n---\n\n# Ruled\n",
@@ -81,7 +102,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("a leading rule was flagged:\n%s", out)
 		}
 	})
-	t.Run("0001.1.5 test fixtures are never judged", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it is never judged", func(t *testing.T) {
 		t.Parallel()
 		out, code := front(t, map[string]string{
 			"tests/examples/demoRepo/README.md": block + "# Demo\n",

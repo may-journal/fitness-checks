@@ -17,18 +17,18 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no manifest passes with zero files whatever version file or changelog it holds", func(t *testing.T) {
+	t.Run("0001.1.3.1.1 `release-changelog` passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		out, code := releaseChangelog(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "release-changelog")
 	})
-	t.Run("0001.1.2 an empty bootstrap manifest passes", func(t *testing.T) {
+	t.Run("0001.1.3.2.1 it passes as a bootstrap", func(t *testing.T) {
 		t.Parallel()
 		out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": "{}\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 a malformed manifest or one without a root version fails", func(t *testing.T) {
+	t.Run("0001.1.3.3.1 it fails naming the problem", func(t *testing.T) {
 		t.Parallel()
 		for _, c := range []struct {
 			files map[string]string
@@ -43,19 +43,19 @@ func Test0001_1(t *testing.T) {
 			acceptance.Sees(t, out, code, 1, c.want)
 		}
 	})
-	t.Run("0001.1.4 a version file that differs fails", func(t *testing.T) {
+	t.Run("0001.1.3.4.1 it fails naming both versions", func(t *testing.T) {
 		t.Parallel()
 		files := releaseChangelogRelease(upstreamChangelog)
 		files["version.txt"] = "1.2.4\n"
 		out, code := releaseChangelog(t, files)
 		acceptance.Sees(t, out, code, 1, `version.txt version "1.2.4" must match .release-please-manifest.json version "1.2.3"`)
 	})
-	t.Run("0001.1.5 a release with no version file fails", func(t *testing.T) {
+	t.Run("0001.1.3.5.1 it fails naming the version it must match", func(t *testing.T) {
 		t.Parallel()
 		out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": `{".":"1.2.3"}` + "\n"})
 		acceptance.Sees(t, out, code, 1, "version.txt is missing; it must match release 1.2.3")
 	})
-	t.Run("0001.1.6 a matching version passes with or without a changelog", func(t *testing.T) {
+	t.Run("0001.1.3.6.1 it passes with or without a `CHANGELOG.md`", func(t *testing.T) {
 		t.Parallel()
 		for _, changelog := range []string{upstreamChangelog, ""} {
 			repo := acceptance.Example(t, "happyRepo", releaseChangelogRelease(changelog))

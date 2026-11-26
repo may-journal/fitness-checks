@@ -20,15 +20,14 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 unformatted files fail naming each", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming each as `file is not formatted; run spotless:apply`", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(spotlessMaven)})
 		_, out, code := acceptance.JavaRun(t, repo, "spotless", map[string][]acceptance.Response{"mvn": {spotlessViolations}})
 		acceptance.Sees(t, out, code, 1, acceptance.JavaSource+" is not formatted; run spotless:apply")
 	})
-	t.Run("0001.1.2 clean builds pass and run once from each build root", func(t *testing.T) {
-		t.Parallel()
-		modules := map[string]string{
+	modules := func() map[string]string {
+		return map[string]string{
 			"pom.xml":                         acceptance.JavaParent(spotlessMaven, "core", "web"),
 			"core/pom.xml":                    acceptance.JavaPom(""),
 			"core/src/main/java/Core.java":    "class Core {}\n",
@@ -36,19 +35,28 @@ func Test0001_1(t *testing.T) {
 			"web/pom.xml":                     acceptance.JavaPom(""),
 			"web/src/main/java/web/Page.java": "class Page {}\n",
 		}
-		rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, modules), "spotless", map[string][]acceptance.Response{"mvn": {spotlessClean}})
+	}
+	t.Run("0001.1.2.2.1 it passes counting the Java files", func(t *testing.T) {
+		t.Parallel()
+		_, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, modules()), "spotless", map[string][]acceptance.Response{"mvn": {spotlessClean}})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "spotless", "3")
+	})
+	t.Run("0001.1.2.2.2 it runs once from each build root", func(t *testing.T) {
+		t.Parallel()
+		rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, modules()), "spotless", map[string][]acceptance.Response{"mvn": {spotlessClean}})
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.JavaCalledOnce(t, rp, "mvn")
 		// A nested build no pom lists as a module is a build root of its own.
-		modules["tools/pom.xml"] = acceptance.JavaPom(spotlessMaven)
-		rp, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, modules), "spotless", map[string][]acceptance.Response{"mvn": {spotlessClean}})
+		nested := modules()
+		nested["tools/pom.xml"] = acceptance.JavaPom(spotlessMaven)
+		rp, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, nested), "spotless", map[string][]acceptance.Response{"mvn": {spotlessClean}})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		if calls := rp.Calls("mvn"); len(calls) != 2 {
 			t.Errorf("mvn calls = %q, want one per build root", calls)
 		}
 	})
-	t.Run("0001.1.3 the build wrapper runs and Gradle runs without a daemon", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 the wrapper runs instead of the tool on PATH", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(spotlessMaven)})
 		self, err := os.Executable()
@@ -60,13 +68,16 @@ func Test0001_1(t *testing.T) {
 		if calls := rp.Calls("mvn"); len(calls) != 0 {
 			t.Errorf("the build tool on PATH ran %q, want the wrapper only", calls)
 		}
-		rp, out, code = acceptance.JavaRun(t, spotlessGradleRepo(t), "spotless", map[string][]acceptance.Response{"gradle": {spotlessGradleClean}})
+	})
+	t.Run("0001.1.2.3.2 Gradle runs `spotlessCheck` without a daemon", func(t *testing.T) {
+		t.Parallel()
+		rp, out, code := acceptance.JavaRun(t, spotlessGradleRepo(t), "spotless", map[string][]acceptance.Response{"gradle": {spotlessGradleClean}})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		if !rp.Called("gradle", "--no-daemon", "spotlessCheck") {
 			t.Errorf("gradle calls = %q, want spotlessCheck with --no-daemon", rp.Calls("gradle"))
 		}
 	})
-	t.Run("0001.1.4 a build without Spotless gets the plugin snippet", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails with the plugin snippet to add to that build", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{
 			"pom.xml":                         acceptance.JavaPom(""),
@@ -80,20 +91,20 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("the nested build declares Spotless, so only the root may fail:\n%s", out)
 		}
 	})
-	t.Run("0001.1.5 a repo with no build passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		_, out, code := acceptance.JavaRun(t, acceptance.Example(t, "happyRepo", nil), "spotless", nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "spotless")
 	})
-	t.Run("0001.1.6 a failure naming no file shows the build's error", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it reports the build's own error lines", func(t *testing.T) {
 		t.Parallel()
 		_, out, code := acceptance.JavaRun(t, spotlessGradleRepo(t), "spotless", map[string][]acceptance.Response{"gradle": {spotlessGradleNoJDK}})
 		acceptance.Sees(t, out, code, 1, "Could not determine the dependencies of task ':spotlessJava'.")
 		acceptance.JavaSeesSnippet(t, out, "> Cannot find a Java installation on your machine")
 		acceptance.JavaSeesSnippet(t, out, "matching: {languageVersion=17,")
 	})
-	t.Run("0001.1.7 no running JDK shows the install hint", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it fails with an install hint", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(spotlessMaven)})
 		out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "java"), "JAVA_HOME="}, "spotless")

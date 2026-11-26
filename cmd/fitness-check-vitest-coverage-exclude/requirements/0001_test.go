@@ -16,13 +16,13 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo with no package json passes with no files", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it passes with no files judged", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "vitest-coverage-exclude")
 	})
-	t.Run("0001.1.2 an empty exclude passes", func(t *testing.T) {
+	t.Run("0001.1.1.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, map[string]string{
 			"package.json":     "{}\n",
@@ -30,7 +30,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 each exclude entry fails by name", func(t *testing.T) {
+	t.Run("0001.1.1.3.1 it fails once per quoted entry telling Developer to remove it", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, map[string]string{
 			"package.json":     "{}\n",
@@ -42,8 +42,11 @@ func Test0001_1(t *testing.T) {
 			"package.json": `{"vitest": {"test": {"coverage": {"exclude": ["src/foo.ts"]}}}}` + "\n",
 		})
 		acceptance.Sees(t, out, code, 1, coverageExcludeRemove(`"src/foo.ts"`))
+	})
+	t.Run("0001.1.1.3.2 it never reports an imported name", func(t *testing.T) {
+		t.Parallel()
 		// An imported name is invisible, so only the quoted path is named.
-		out, code = coverageExclude(t, map[string]string{
+		out, code := coverageExclude(t, map[string]string{
 			"package.json": "{}\n",
 			"vitest.config.mjs": `import { DTS_GLOB } from "./globs.js";` + "\n" +
 				`export default { test: { coverage: { exclude: [DTS_GLOB, "src/foo.ts"] } } };` + "\n",
@@ -53,7 +56,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("an imported name must not be reported:\n%s", out)
 		}
 	})
-	t.Run("0001.1.4 the config file beside a package json field wins", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 the config file is the one judged", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, map[string]string{
 			"package.json":     `{"vitest": {"coverage": {"exclude": ["src/foo.ts"]}}}` + "\n",
@@ -61,16 +64,24 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 with no config the shared config is judged", func(t *testing.T) {
+	t.Run("0001.1.1.5.1 the shared config is judged", func(t *testing.T) {
+		t.Parallel()
+		out, code := coverageExclude(t, map[string]string{"package.json": "{}\n"})
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		acceptance.PassedWith(t, out, "vitest-coverage-exclude", "1")
+	})
+	t.Run("0001.1.1.5.2 one with an exclude fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := coverageExclude(t, map[string]string{
 			"package.json": "{}\n",
 			"node_modules/@mayjournal/fitness-shared/config/vitest.config.js": coverageExcludeConfig(`["src/shared.ts"]`),
 		})
 		acceptance.Sees(t, out, code, 1, coverageExcludeRemove(`"src/shared.ts"`))
-		out, code = coverageExclude(t, map[string]string{"package.json": "{}\n"})
+	})
+	t.Run("0001.1.1.5.3 the built in copy passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := coverageExclude(t, map[string]string{"package.json": "{}\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "vitest-coverage-exclude", "1")
 	})
 }
 

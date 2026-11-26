@@ -24,18 +24,21 @@ const readme = "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n"
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 product code without its test or doc fails naming the file and the missing half", func(t *testing.T) {
+	adder := map[string]string{"adder.go": adderPlus()}
+	t.Run("0001.1.2.1.1 it fails naming the file", func(t *testing.T) {
 		t.Parallel()
-		adder := map[string]string{"adder.go": adderPlus()}
 		out, code := staged(t, acceptance.GoRepo(), adder)
 		acceptance.Sees(t, out, code, 1, "adder.go changed without a test and a requirement doc; change both with it")
-		out, code = staged(t, acceptance.GoRepo(), acceptance.With(adder, map[string]string{"adder_test.go": edited(acceptance.GoRepo()["adder_test.go"])}))
-		acceptance.Sees(t, out, code, 1, "adder.go changed without a requirement doc; change one with it")
 		out, code = pull(t, acceptance.GoRepo(), adder, "feat(adder): double numbers")
 		acceptance.Sees(t, out, code, 1, "adder.go changed without a test and a requirement doc")
 		codeWithComments(t)
 	})
-	t.Run("0001.1.2 product code beside a changed test plus a changed doc passes", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 it names the missing half", func(t *testing.T) {
+		t.Parallel()
+		out, code := staged(t, acceptance.GoRepo(), acceptance.With(adder, map[string]string{"adder_test.go": edited(acceptance.GoRepo()["adder_test.go"])}))
+		acceptance.Sees(t, out, code, 1, "adder.go changed without a requirement doc; change one with it")
+	})
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := staged(t, acceptance.GoRepo(), map[string]string{
 			"adder.go":      adderPlus(),
@@ -44,7 +47,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.3 docs or config or a rename or a comment change passes", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		adder := acceptance.GoRepo()["adder.go"]
 		for _, files := range []map[string]string{
@@ -59,7 +62,7 @@ func Test0001_1(t *testing.T) {
 		}
 		commentOnly(t)
 	})
-	t.Run("0001.1.4 a merge replaying product code is not judged again", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it is not judged again", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
 		acceptance.Git(t, repo, "checkout", "-q", "-b", "side")
@@ -70,22 +73,45 @@ func Test0001_1(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, nil, "requirements-changed")
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.5 a deletion passes unless a doc names the file then it names the file with the doc and its tests", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it passes if no doc names it", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{"three.go": "package adder\n\n// Three is three.\nconst Three = 3\n"})
 		out, code := staged(t, given, map[string]string{"three.go": ""})
 		acceptance.Sees(t, out, code, 0, passed)
-		named := strings.Replace(acceptance.GoRepo()[pairedDoc], "by hand.", "by hand, with `adder.go`.", 1)
-		out, code = staged(t, acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: named}), map[string]string{"adder.go": ""})
-		acceptance.Sees(t, out, code, 1, "adder.go was deleted, leaving requirement doc "+pairedDoc+" and test adder_test.go unchanged; change or delete them with it")
 	})
-	t.Run("0001.1.6 a repo with no requirement doc passes", func(t *testing.T) {
+	named := func(t *testing.T) (string, int) {
+		doc := strings.Replace(acceptance.GoRepo()[pairedDoc], "by hand.", "by hand, with `adder.go`.", 1)
+		return staged(t, acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: doc}), map[string]string{"adder.go": ""})
+	}
+	t.Run("0001.1.2.5.2 it fails naming the file with the doc if a doc names it", func(t *testing.T) {
+		t.Parallel()
+		out, code := named(t)
+		acceptance.Sees(t, out, code, 1, "adder.go was deleted, leaving requirement doc "+pairedDoc)
+	})
+	t.Run("0001.1.2.5.3 it names the tests of that doc", func(t *testing.T) {
+		t.Parallel()
+		out, code := named(t)
+		acceptance.Sees(t, out, code, 1, "and test adder_test.go unchanged; change or delete them with it")
+	})
+	t.Run("0001.1.2.4.2 its pull request diff still is", func(t *testing.T) {
+		t.Parallel()
+		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
+		acceptance.Git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+		acceptance.Git(t, repo, "checkout", "-q", "-b", "side")
+		acceptance.Commit(t, repo, map[string]string{"adder.go": adderPlus()}, "feat(adder): double numbers")
+		acceptance.Git(t, repo, "checkout", "-q", "-")
+		acceptance.Commit(t, repo, map[string]string{"README.md": readme + "\nMore words.\n"}, "docs(readme): add words")
+		acceptance.Git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "-m", "Merge side", "side")
+		out, code := acceptance.Fitness(t, repo, acceptance.PullRequestEnv, "requirements-changed")
+		acceptance.Sees(t, out, code, 1, "adder.go changed without a test and a requirement doc")
+	})
+	t.Run("0001.1.2.6.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: ""})
 		out, code := staged(t, given, map[string]string{"adder.go": adderPlus()})
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.7 a commit message cannot turn the check off", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it still fails since no trailer or flag or setting turns it off", func(t *testing.T) {
 		t.Parallel()
 		message := "feat(adder): double numbers\n\nRequirements: none, a helper no user calls yet"
 		out, code := pull(t, acceptance.GoRepo(), map[string]string{"adder.go": adderPlus()}, message)
@@ -95,7 +121,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 vendored or fixture or generated files are not product code", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 it passes since they are not product code", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{".gitattributes": "*.gen linguist-generated\n"})
 		for _, files := range []map[string]string{
@@ -109,12 +135,21 @@ func Test0001_2(t *testing.T) {
 			acceptance.Sees(t, out, code, 0, passed)
 		}
 	})
-	t.Run("0001.2.2 a full scan judges nothing", func(t *testing.T) {
-		t.Parallel()
+	fullScan := func(t *testing.T) (string, int) {
 		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
 		acceptance.Commit(t, repo, map[string]string{"adder.go": adderPlus()}, "feat(adder): double numbers")
-		out, code := acceptance.Fitness(t, repo, nil, "requirements-changed")
+		return acceptance.Fitness(t, repo, nil, "requirements-changed")
+	}
+	t.Run("0001.2.2.2.2 it passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := fullScan(t)
 		acceptance.Sees(t, out, code, 0, passed)
+	})
+	t.Run("0001.2.2.2.1 it judges nothing", func(t *testing.T) {
+		t.Parallel()
+		out, code := fullScan(t)
+		acceptance.Sees(t, out, code, 0, passed)
+		acceptance.PassedWithNoFiles(t, out, "requirements-changed")
 	})
 }
 

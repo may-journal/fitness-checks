@@ -18,38 +18,55 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a final always summary step passes", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(reportStep)})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-reporting", "1")
 	})
-	t.Run("0001.1.2 a job with no reporting step fails naming file then line with the step to add", func(t *testing.T) {
+	noStep := func(t *testing.T) (string, int) {
+		return reportingCheck(t, map[string]string{".github/workflows/build.yaml": reportingJob("")})
+	}
+	t.Run("0001.1.1.2.1 it fails naming the file", func(t *testing.T) {
 		t.Parallel()
-		out, code := reportingCheck(t, map[string]string{".github/workflows/build.yaml": reportingJob("")})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY",
-			"add a last step with `if: ${{ always() }}` whose run writes the job's status to \"$GITHUB_STEP_SUMMARY\"")
+		out, code := noStep(t)
+		acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml:")
 	})
-	t.Run("0001.1.3 a summary step that skips failure fails", func(t *testing.T) {
+	t.Run("0001.1.1.2.2 it fails naming the job's line", func(t *testing.T) {
+		t.Parallel()
+		out, code := noStep(t)
+		acceptance.Sees(t, out, code, 1, "build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY")
+	})
+	t.Run("0001.1.1.2.3 it names the step to add", func(t *testing.T) {
+		t.Parallel()
+		out, code := noStep(t)
+		acceptance.Sees(t, out, code, 1, "add a last step with `if: ${{ always() }}` whose run writes the job's status to \"$GITHUB_STEP_SUMMARY\"")
+	})
+	t.Run("0001.1.1.3.1 it fails naming that step's line", func(t *testing.T) {
 		t.Parallel()
 		onSuccess := strings.Replace(reportStep, "        if: ${{ always() }}\n", "", 1)
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(onSuccess)})
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job build writes $GITHUB_STEP_SUMMARY only when earlier steps pass, at line 9",
 			"add `if: ${{ always() }}` to the step at line 9")
 	})
-	t.Run("0001.1.4 a job calling a reusable workflow passes", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": "name: CI\non: push\njobs:\n" +
 			"  fitness:\n    uses: may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1\n    secrets: inherit\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-reporting", "1")
 	})
-	t.Run("0001.1.5 a matrix job is judged and named once", func(t *testing.T) {
+	matrix := "name: CI\non: push\njobs:\n  test:\n    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest, windows-latest]\n" +
+		"    runs-on: ${{ matrix.os }}\n    steps:\n      - run: make test\n"
+	t.Run("0001.1.1.5.1 it is judged once", func(t *testing.T) {
 		t.Parallel()
-		matrix := "name: CI\non: push\njobs:\n  test:\n    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest, windows-latest]\n" +
-			"    runs-on: ${{ matrix.os }}\n    steps:\n      - run: make test\n"
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": matrix})
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job test has no step")
+	})
+	t.Run("0001.1.1.5.2 it is named once", func(t *testing.T) {
+		t.Parallel()
+		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": matrix})
+		acceptance.Sees(t, out, code, 1)
 		if n := strings.Count(out, "job test has no step"); n != 1 {
 			t.Errorf("a matrix job must be named once, got %d times:\n%s", n, out)
 		}
@@ -58,31 +75,50 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 YAML GitHub rejects fails at its line then its column", func(t *testing.T) {
-		t.Parallel()
+	rejected := func(t *testing.T) (string, int) {
 		files := runsOnWorkflows(rejectedRunsOn)
 		files[".github/workflows/ci.yml"] = "name: CI\non: push\njobs:\n  build:\n\truns-on: ubuntu-latest\n"
-		out, code := reportingCheck(t, files)
-		const bad = ": this workflow is not valid YAML: "
+		return reportingCheck(t, files)
+	}
+	const bad = ": this workflow is not valid YAML: "
+	t.Run("0001.2.1.1.1 it fails naming the line", func(t *testing.T) {
+		t.Parallel()
+		out, code := rejected(t)
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:5"+bad+"a tab indents this line",
-			".github/workflows/fork.yml:5:116"+bad+"a `: ` inside a plain value starts a mapping",
-			".github/workflows/reserved.yml:5:14"+bad+"a plain value cannot start with '@'",
-			".github/workflows/key-line.yml:5:14"+bad+"'-' opens a list item on its key's line",
+			".github/workflows/fork.yml:5:", ".github/workflows/reserved.yml:5:", ".github/workflows/key-line.yml:5:",
+			".github/workflows/continued.yml:6:", ".github/workflows/colon-end.yml:5:", ".github/workflows/flow-trailing.yml:5:",
+			".github/workflows/wide.yml:5:",
+			"not valid YAML: a `: ` inside a plain value starts a mapping",
+			"not valid YAML: a plain value cannot start with '@'",
+			"not valid YAML: '-' opens a list item on its key's line",
 			"move it onto its own line, indented under the key",
-			".github/workflows/continued.yml:6:13"+bad+"a `: ` inside a plain value",
-			".github/workflows/colon-end.yml:5:27"+bad+"a plain value ends in `:`",
-			".github/workflows/flow-trailing.yml:5:27"+bad+"text follows the closing bracket",
-			".github/workflows/wide.yml:5:18"+bad+"a `: ` inside a plain value")
-		out, code = reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
+			"not valid YAML: a plain value ends in `:`",
+			"not valid YAML: text follows the closing bracket")
+	})
+	t.Run("0001.2.1.1.2 it fails naming the column", func(t *testing.T) {
+		t.Parallel()
+		out, code := rejected(t)
+		acceptance.Sees(t, out, code, 1,
+			".github/workflows/fork.yml:5:116"+bad,
+			".github/workflows/reserved.yml:5:14"+bad,
+			".github/workflows/key-line.yml:5:14"+bad,
+			".github/workflows/continued.yml:6:13"+bad,
+			".github/workflows/colon-end.yml:5:27"+bad,
+			".github/workflows/flow-trailing.yml:5:27"+bad,
+			".github/workflows/wide.yml:5:18"+bad)
+	})
+	t.Run("0001.2.1.1.3 the quoted or reshaped forms pass", func(t *testing.T) {
+		t.Parallel()
+		out, code := reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.2 a repo with no workflows passes with no files", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "workflow-reporting")
 	})
-	t.Run("0001.2.3 this repo's own workflows pass", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 they pass", func(t *testing.T) {
 		t.Parallel()
 		own, err := filepath.Glob(filepath.Join("..", "..", "..", ".github", "workflows", "*.y*ml"))
 		acceptance.MustDo(t, err)

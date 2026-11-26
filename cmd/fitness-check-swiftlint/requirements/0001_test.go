@@ -23,47 +23,56 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a violation fails naming file, line, column and rule", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming each as `file:line[:col] - reason (rule_id)`", func(t *testing.T) {
 		t.Parallel()
 		repo := swiftlintRepo(t, map[string]string{"Short.swift": "let ab = 1\n", "NoNewline.swift": "let value = 1"})
 		short := filepath.Join(repo, "Short.swift")
 		rp, out, code := swiftlintRun(t, repo, swiftlintFindings(swiftlintShort, short))
-		swiftlintAsked(t, rp)
-		swiftlintSees(t, out, code, 1, short+
+		assertSwiftlintAsked(t, rp)
+		assertSwiftlintSees(t, out, code, 1, short+
 			":1:5 - Variable name 'ab' should be between 3 and 40 characters long (identifier_name)")
 		// A whole-file finding has no column.
 		whole := filepath.Join(repo, "NoNewline.swift")
 		rp, out, code = swiftlintRun(t, repo, swiftlintFindings(swiftlintNoNewline, whole))
-		swiftlintAsked(t, rp)
-		swiftlintSees(t, out, code, 1, whole+":1 - Files should have a single trailing newline (trailing_newline)")
+		assertSwiftlintAsked(t, rp)
+		assertSwiftlintSees(t, out, code, 1, whole+":1 - Files should have a single trailing newline (trailing_newline)")
 	})
-	t.Run("0001.1.2 clean Swift files pass, counting the files", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		repo := swiftlintRepo(t, map[string]string{"Clean.swift": "let value = 1\n"})
 		rp, out, code := swiftlintRun(t, repo, swiftlintClean)
-		swiftlintAsked(t, rp)
+		assertSwiftlintAsked(t, rp)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.2.2.2 it counts the files SwiftLint was asked to lint", func(t *testing.T) {
+		t.Parallel()
+		repo := swiftlintRepo(t, map[string]string{"Clean.swift": "let value = 1\n"})
+		_, out, code := swiftlintRun(t, repo, swiftlintClean)
+		acceptance.Sees(t, out, code, 0)
 		acceptance.PassedWith(t, out, "swiftlint", "1")
 	})
-	t.Run("0001.1.3 the repo's own config judges", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 that config judges", func(t *testing.T) {
 		t.Parallel()
 		repo := swiftlintRepo(t, map[string]string{
 			".swiftlint.yml": "disabled_rules:\n  - identifier_name\n",
 			"Short.swift":    "let ab = 1\n",
 		})
 		rp, out, code := swiftlintRun(t, repo, swiftlintClean)
-		swiftlintAsked(t, rp)
+		assertSwiftlintAsked(t, rp)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	})
+	t.Run("0001.1.2.3.2 a config excluding every file passes", func(t *testing.T) {
+		t.Parallel()
 		// A config excluding every file leaves SwiftLint nothing to lint.
-		repo = swiftlintRepo(t, map[string]string{
+		repo := swiftlintRepo(t, map[string]string{
 			".swiftlint.yml": "excluded:\n  - Short.swift\n",
 			"Short.swift":    "let ab = 1\n",
 		})
-		rp, out, code = swiftlintRun(t, repo, swiftlintNothingLeft)
-		swiftlintAsked(t, rp)
+		rp, out, code := swiftlintRun(t, repo, swiftlintNothingLeft)
+		assertSwiftlintAsked(t, rp)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 a pull request lints only its changed files", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 SwiftLint lints only those unless the config lists what to include", func(t *testing.T) {
 		t.Parallel()
 		for config, want := range map[string]string{
 			"":                     "lint --strict --reporter json --quiet --force-exclude Other.swift",
@@ -85,27 +94,32 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.5 a repo with no Swift files passes with no files and never runs SwiftLint", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
-		rp, out, code := swiftlintRun(t, swiftlintRepo(t, nil))
+		_, out, code := swiftlintRun(t, swiftlintRepo(t, nil))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "swiftlint")
+	})
+	t.Run("0001.1.2.5.2 it never runs SwiftLint", func(t *testing.T) {
+		t.Parallel()
+		rp, out, code := swiftlintRun(t, swiftlintRepo(t, nil))
+		acceptance.Sees(t, out, code, 0)
 		if calls := rp.Calls("swiftlint"); len(calls) != 0 {
 			t.Errorf("swiftlint ran with no Swift files: %q", calls)
 		}
 	})
-	t.Run("0001.1.6 a missing SwiftLint shows the install hint", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it reports info with the hint `brew install swiftlint`", func(t *testing.T) {
 		t.Parallel()
 		repo := swiftlintRepo(t, map[string]string{"Clean.swift": "let value = 1\n"})
 		out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "swiftlint")}, "swiftlint")
 		acceptance.ShowsInfo(t, out, code, "swiftlint", "SwiftLint not installed: brew install swiftlint")
 	})
-	t.Run("0001.1.7 a run that fails without a finding shows why", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it reports info quoting what went wrong", func(t *testing.T) {
 		t.Parallel()
 		repo := swiftlintRepo(t, map[string]string{"Clean.swift": "let value = 1\n"})
 		rp, out, code := swiftlintRun(t, repo, acceptance.Response{Match: []string{swiftlintArgs}, Stderr: "Fatal error: SourceKit crashed\n", Exit: 1})
 		acceptance.ShowsInfo(t, out, code, "swiftlint", "swiftlint lint --strict exited 1 without a finding: Fatal error: SourceKit crashed")
-		swiftlintAsked(t, rp)
+		assertSwiftlintAsked(t, rp)
 		out, code = acceptance.Fitness(t, repo, []string{swiftlintScript(t, "kill -9 $$\n")}, "swiftlint")
 		acceptance.ShowsInfo(t, out, code, "swiftlint", "swiftlint was stopped by a signal: signal: killed")
 		out, code = acceptance.Fitness(t, repo, []string{swiftlintScript(t, "")}, "swiftlint")
@@ -192,17 +206,17 @@ func swiftlintScript(t *testing.T, body string) string {
 	return "PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH")
 }
 
-// swiftlintAsked asserts fitness ran SwiftLint's strict JSON lint once.
-func swiftlintAsked(t *testing.T, rp acceptance.Replays) {
+// assertSwiftlintAsked asserts fitness ran SwiftLint's strict JSON lint once.
+func assertSwiftlintAsked(t *testing.T, rp acceptance.Replays) {
 	t.Helper()
 	if calls := rp.Calls("swiftlint"); len(calls) != 1 || calls[0] != swiftlintArgs {
 		t.Errorf("swiftlint calls = %q, want one %q", calls, swiftlintArgs)
 	}
 }
 
-// swiftlintSees asserts out shows want and exit code code. The table wraps
+// assertSwiftlintSees asserts out shows want and exit code code. The table wraps
 // long absolute paths mid-word, so spaces are ignored when comparing.
-func swiftlintSees(t *testing.T, out string, gotCode, code int, want string) {
+func assertSwiftlintSees(t *testing.T, out string, gotCode, code int, want string) {
 	t.Helper()
 	acceptance.Sees(t, out, gotCode, code)
 	if !strings.Contains(swiftlintSquash(out), swiftlintSquash(want)) {

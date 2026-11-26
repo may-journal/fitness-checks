@@ -27,37 +27,49 @@ const prStructureChangelog = "## Changelog\n\n- Feat: the new behavior\n"
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a summary plus background plus changelog bullet passes", func(t *testing.T) {
+	t.Run("0001.1.1.1.1 `pr-structure` passes it", func(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog)
 		acceptance.Sees(t, out, code, 0, "pr-structure")
 	})
-	t.Run("0001.1.2 no blockquote summary fails", func(t *testing.T) {
+	noSummary := prStructureBackground + prStructureChangelog
+	t.Run("0001.1.1.2.1 it fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := prStructure(t, prStructureBackground+prStructureChangelog)
+		out, code := prStructure(t, noSummary)
+		acceptance.Sees(t, out, code, 1)
+	})
+	t.Run("0001.1.1.2.2 it asks for a one-line summary", func(t *testing.T) {
+		t.Parallel()
+		out, code := prStructure(t, noSummary)
 		acceptance.Sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
 	})
-	t.Run("0001.1.3 a placeholder summary fails", func(t *testing.T) {
+	placeholder := "> REPLACE-ME\n\n" + prStructureBackground + prStructureChangelog
+	t.Run("0001.1.1.3.1 it fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := prStructure(t, "> REPLACE-ME\n\n"+prStructureBackground+prStructureChangelog)
+		out, code := prStructure(t, placeholder)
+		acceptance.Sees(t, out, code, 1)
+	})
+	t.Run("0001.1.1.3.2 it asks for the real summary", func(t *testing.T) {
+		t.Parallel()
+		out, code := prStructure(t, placeholder)
 		acceptance.Sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
 	})
-	t.Run("0001.1.4 no Background section fails", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it fails naming the missing section", func(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, prStructureSummary+prStructureChangelog)
 		acceptance.Sees(t, out, code, 1, "Missing `## Background` section")
 	})
-	t.Run("0001.1.5 a Changelog with no bullet fails", func(t *testing.T) {
+	t.Run("0001.1.1.5.1 it fails naming the empty section", func(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, prStructureSummary+prStructureBackground+"## Changelog\n\nNothing yet.\n")
 		acceptance.Sees(t, out, code, 1, "`## Changelog` has no list item (- …)")
 	})
-	t.Run("0001.1.6 an extra section fails", func(t *testing.T) {
+	t.Run("0001.1.1.6.1 it fails naming the unexpected section", func(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, prStructureSummary+prStructureBackground+prStructureChangelog+"\n## Testing\n\nRan it.\n")
 		acceptance.Sees(t, out, code, 1, "Unexpected `## Testing` section — a PR has only Background and Changelog")
 	})
-	t.Run("0001.1.7 an extra heading inside fenced code passes", func(t *testing.T) {
+	t.Run("0001.1.1.7.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		fence := strings.Repeat("`", 3)
 		sample := "\n" + fence + "markdown\n## Testing\n" + fence + "\n"
@@ -68,9 +80,20 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "pr-structure")
-	acceptance.Sees(t, out, code, 0, "pr-structure")
-	acceptance.PassedWithNoFiles(t, out, "pr-structure")
+	run := func(t *testing.T) (string, int) {
+		return acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "pr-structure")
+	}
+	t.Run("0001.2.1.1.1 it passes", func(t *testing.T) {
+		t.Parallel()
+		out, code := run(t)
+		acceptance.Sees(t, out, code, 0, "pr-structure")
+	})
+	t.Run("0001.2.1.1.2 it judges zero files", func(t *testing.T) {
+		t.Parallel()
+		out, code := run(t)
+		acceptance.Sees(t, out, code, 0)
+		acceptance.PassedWithNoFiles(t, out, "pr-structure")
+	})
 }
 
 // prStructure runs `fitness-install -- pr-structure --body-file pr.md` on

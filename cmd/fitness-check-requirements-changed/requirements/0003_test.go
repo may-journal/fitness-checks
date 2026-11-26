@@ -17,15 +17,20 @@ func Test0003_1(t *testing.T) {
 		syncedScript:                "echo one\n",
 		".github/synced-files.json": syncRecord("echo one\n"),
 	})
-	t.Run("0003.1.1 a synced script matching its hash passes with no test or doc", func(t *testing.T) {
+	t.Run("0003.1.2.1.1 it passes with no changed test or requirement doc", func(t *testing.T) {
 		t.Parallel()
 		out, code := staged(t, given, map[string]string{syncedScript: "echo two\n", ".github/synced-files.json": syncRecord("echo two\n")})
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0003.1.2 a synced script edited by hand fails naming the file and its source", func(t *testing.T) {
+	t.Run("0003.1.2.2.1 it fails naming the file", func(t *testing.T) {
 		t.Parallel()
 		out, code := staged(t, given, map[string]string{syncedScript: "echo by hand\n"})
-		acceptance.Sees(t, out, code, 1, syncedScript+" is synced from may-journal/.github and was edited by hand; change it there instead")
+		acceptance.Sees(t, out, code, 1, syncedScript+" is synced from")
+	})
+	t.Run("0003.1.2.2.2 it names the source repo to change", func(t *testing.T) {
+		t.Parallel()
+		out, code := staged(t, given, map[string]string{syncedScript: "echo by hand\n"})
+		acceptance.Sees(t, out, code, 1, "is synced from may-journal/.github and was edited by hand; change it there instead")
 	})
 }
 
