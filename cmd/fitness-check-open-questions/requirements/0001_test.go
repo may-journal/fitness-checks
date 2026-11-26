@@ -17,17 +17,23 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a heading or bold line fails naming the file with its line", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 `open-questions` fails naming the file with its line", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\n## Open Questions\n\n- Which wins?\n\n**unresolved questions**\n\n- When?\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
 		acceptance.Sees(t, out, code, 1,
-			`docs/sync.md:3: a heading opens a list of open questions: "## Open Questions" — `+askInChat,
+			`docs/sync.md:3: a heading opens a list of open questions: "## Open Questions"`,
 			`docs/sync.md:7: a bold line opens a list of open questions: "**unresolved questions**"`)
 		out, code = openQuestions(t, map[string]string{"docs/sync.md": "# Sync\n\n## Decisions\n\n- The server wins.\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.2 a label line fails naming the file with its line", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 it gives the fix to ask in chat", func(t *testing.T) {
+		t.Parallel()
+		doc := "# Sync\n\n## Open Questions\n\n- Which wins?\n"
+		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
+		acceptance.Sees(t, out, code, 1, `"## Open Questions" — `+askInChat)
+	})
+	t.Run("0001.1.2.2.1 it fails naming the file with its line", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\nQuestions for the owner: which store?\n\n- **Open questions:** none yet\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
@@ -35,13 +41,13 @@ func Test0001_1(t *testing.T) {
 			`docs/sync.md:3: a label line opens a list of open questions: "Questions for the owner: which store?"`,
 			`docs/sync.md:5: a label line opens a list of open questions: "- **Open questions:** none yet"`)
 	})
-	t.Run("0001.1.3 a sentence mentioning open questions passes", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\nOpen questions go to chat, and we have no open questions left.\n\n**No open questions remain**\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 code and a comment pass", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\nUse `## Open questions` nowhere.\n\n```\nOpen questions:\n```\n\n<!-- Open questions: none -->\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
@@ -49,7 +55,7 @@ func Test0001_1(t *testing.T) {
 		out, code = openQuestions(t, map[string]string{"docs/sync.md": doc + "\n" + questionsLabel})
 		acceptance.Sees(t, out, code, 1, "docs/sync.md:11: "+questionsFinding)
 	})
-	t.Run("0001.1.5 an HTML heading fails naming file and line", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it fails naming the file with its line", func(t *testing.T) {
 		t.Parallel()
 		page := "<!doctype html>\n<main>\n  <h1>Sync</h1>\n  <h2 class=\"x\">Open <em>questions</em></h2>\n  <ul><li>Which wins?</li></ul>\n</main>\n"
 		out, code := openQuestions(t, map[string]string{"site/index.html": page})
@@ -57,7 +63,7 @@ func Test0001_1(t *testing.T) {
 		out, code = openQuestions(t, map[string]string{"site/index.html": "<main>\n  <h1>Sync</h1>\n  <p>We have no open questions.</p>\n  <pre>Open questions:</pre>\n</main>\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.6 a body label line fails naming the body", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it fails naming the body", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"body.md": "> Pitch.\n\n" + questionsLabel})
 		out, code := acceptance.Fitness(t, repo, nil, "open-questions", "--body-file", "body.md")
