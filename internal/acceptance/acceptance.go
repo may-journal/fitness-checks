@@ -267,9 +267,30 @@ func KeepHostGitOut() {
 	_ = os.Setenv("GIT_CONFIG_COUNT", fmt.Sprint(len(repoGitConfig)))
 }
 
+// Remote gives repo an empty bare origin to push to, so no test needs GitHub.
+func Remote(t *testing.T, repo string) {
+	t.Helper()
+	bare := t.TempDir()
+	Git(t, bare, "init", "-q", "--bare")
+	Git(t, repo, "remote", "add", "origin", bare)
+}
+
+// User runs git in repo as a person at the terminal does, with hooks,
+// returning its output and exit code.
+func User(t *testing.T, repo string, env []string, args ...string) (string, int) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...)
+	cmd.Dir, cmd.Env = repo, append(UserEnv(), env...)
+	out, _ := cmd.CombinedOutput()
+	return ANSI.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
+}
+
 // Main runs a requirements package's tests with the host's git config kept
-// out. Each folder's TestMain calls it, so none repeats its body.
-func Main(m *testing.M) {
+// out, serving the named stand-ins when run under their names.
+func Main(m *testing.M, standIns ...string) {
+	if len(standIns) > 0 {
+		ServeStandIns(standIns)
+	}
 	KeepHostGitOut()
 	os.Exit(m.Run())
 }

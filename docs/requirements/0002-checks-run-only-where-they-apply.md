@@ -26,7 +26,6 @@ Checks
       1. WHEN the installed checks run in that repo
          1. THEN each passes with zero files
          2. THEN every check is listed once
-         3. THEN `local-branch` declares itself and runs only inside fitness
 3. Unreadable inputs are skipped
    1. GIVEN Developer has files a check cannot read
    2. GIVEN it has unreadable history

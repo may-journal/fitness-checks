@@ -30,17 +30,9 @@ docs, bodies and comments the writing checks judge
       1. WHEN the comment checks read the repo
          1. THEN each fails naming the comment and rule
          2. THEN why comments pass
-4. Markdown links work
-   1. GIVEN Developer has Markdown files with wrong name case or dead links
-      1. WHEN the file name and link checks read the repo
-         1. THEN each fails naming the file
-         2. THEN real links pass
+4. Removed in 2026.11.26.0200: moved to the markdown-filename-camel-case and markdown-filename-kebab-case and markdown-links docs
 5. Removed in 2026.11.26.0100: moved to the `doc-template` and `adr-as-issue` docs
-6. Issues are ticked
-   1. GIVEN Developer has an issue body with unchecked items
-      1. WHEN the issue checklist check reads the body
-         1. THEN it fails naming the item
-         2. THEN bodies with every item ticked pass
+6. Removed in 2026.11.26.0200: moved to the issue-checklist doc
 7. Removed in 2026.11.26.0000: moved to the pr-closes-issue and pr-structure checks' own requirements
 8. Comments stay short
    1. GIVEN Developer has a comment that lists open questions

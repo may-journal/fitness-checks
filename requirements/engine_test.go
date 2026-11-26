@@ -138,14 +138,6 @@ func prClosing(n int) string {
 // readme is happyRepo's README, for Givens that add to it.
 const readme = "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n"
 
-// remote gives repo an empty bare origin to push to, so no test needs GitHub.
-func remote(t *testing.T, repo string) {
-	t.Helper()
-	bare := t.TempDir()
-	git(t, bare, "init", "-q", "--bare")
-	git(t, repo, "remote", "add", "origin", bare)
-}
-
 // exampleRepo is the repository the Actions event comes from.
 const exampleRepo = "may-journal/example"
 
@@ -192,16 +184,6 @@ func timedCheck(name string, args []string) int {
 // name, this test binary is that check, and logs when each step starts and
 // ends.
 const timedPrefix = "fitness-check-slow-"
-
-// user runs git in repo as a person at the terminal does, with hooks, returning
-// its output and exit code.
-func user(t *testing.T, repo string, env []string, args ...string) (string, int) {
-	t.Helper()
-	cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...)
-	cmd.Dir, cmd.Env = repo, append(userEnv(), env...)
-	out, _ := cmd.CombinedOutput()
-	return ansi.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
-}
 
 // bodyEdit is the event GitHub delivers when issue's body is edited: its
 // changes name the body's earlier text.

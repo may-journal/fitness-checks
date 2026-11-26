@@ -49,3 +49,8 @@ var (
 
 // upstreamChangelog is a CHANGELOG.md as an upstream project keeps it.
 const upstreamChangelog = acceptance.UpstreamChangelog
+
+var (
+	remote = acceptance.Remote
+	user   = acceptance.User
+)

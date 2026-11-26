@@ -22,12 +22,8 @@ A toolchain that sets `vendor` or J9 needs an installed JDK from it, else the ch
 
 ## Behavior
 
-- Pass: the running JDK's feature release is at least each pinned one, since a newer JDK builds for an older release.
-- Fail: no pin anywhere, with the snippets that add one.
-- Fail: a pin above the running JDK, naming the file and the release it needs.
-- Fail: a pin that names no release.
-- The running JDK is `JAVA_HOME`'s, as the build tools pick it, else `java` on `PATH`.
-- With no running JDK, the check fails with an install hint.
-- No Maven or Gradle build in the repo: passes clean with `filesChecked: 0`.
+[Requirement 0001](docs/requirements/0001-java-builds-pin-a-jdk-the-machine-has.md) states what this check does, and a test case named for each step proves it.
+
+The running JDK is `JAVA_HOME`'s, as the build tools pick it, else `java` on `PATH`.
 
 <!-- cspell:ignore sdkmanrc jdks sdkman jabba libexec foojay -->

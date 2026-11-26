@@ -2,11 +2,8 @@
 
 Fails an issue body whose task list still has unchecked items, so closing it would close unfinished work.
 
-It reads the body from a `--body-file` path, `-` meaning stdin, or from the runner's context-inline `--body` value. With no input it passes with zero files checked. `fitness close-check` runs it on a closed issue, and `fitness pr-check` on each issue a pull request closes.
+It reads the body from a `--body-file` path, `-` meaning stdin, or from the runner's context-inline `--body` value. `fitness close-check` runs it on a closed issue, and `fitness pr-check` on each issue a pull request closes.
 
 ## Behavior
 
-- Pass: every `- [ ]` item is ticked, or the body has no task list.
-- Fail: one error per unchecked item, quoting its text.
-
-Items inside fenced code are examples, so they never count.
+[Requirement 0001](docs/requirements/0001-closed-issues-have-no-open-tasks.md) states what this check does, and a test case named for each step proves it.
