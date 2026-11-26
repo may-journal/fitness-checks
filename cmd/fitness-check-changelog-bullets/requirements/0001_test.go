@@ -39,7 +39,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0, "All 1 checks passed")
 		passedWith(t, out, "changelog-bullets", "3")
 	})
-	t.Run("0001.1.2 too few or too many bullets fail", func(t *testing.T) {
+	t.Run("0001.1.2 too few or too many bullets fail naming the file, section or count", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogBullets(t, changelogBulletsDoc("Docs: add the readme.", "Docs: add the changelog."))
 		sees(t, out, code, 1, bulletsFile+` section "2026.10.08.1400" has 2 bullets; keep entries to 3-5 bullets`)
@@ -48,7 +48,7 @@ func Test0001_1(t *testing.T) {
 		out, code = changelogBullets(t, "### 2026.10.08.1400\n\n* Fix: one.\n* Fix: two.\n* Fix: three.\n")
 		sees(t, out, code, 1, `"2026.10.08.1400" has 0 bullets`)
 	})
-	t.Run("0001.1.3 a bullet over the length limit fails", func(t *testing.T) {
+	t.Run("0001.1.3 a bullet over the length limit fails naming the file, line or length", func(t *testing.T) {
 		t.Parallel()
 		long := "Feat: " + strings.Repeat("x", 359)
 		wrapped := "Fix: " + strings.Repeat("x", 200) + "\n  " + strings.Repeat("y", 200)

@@ -25,7 +25,7 @@ func Test0005_1(t *testing.T) {
 		out, code := suite(t, acceptance.With(acceptance.GoRepo(), map[string]string{"more/more_test.go": acceptance.TestFile("more", "Test0001_1")}))
 		acceptance.Sees(t, out, code, 1, "0001.1 is owned by 2 tests")
 	})
-	t.Run("0005.1.3 a test named for an undefined acceptance fails", func(t *testing.T) {
+	t.Run("0005.1.3 a test named for an undefined acceptance fails naming the test then the ID", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": acceptance.TestFile("adder", "Test0001_1", "Test0001_2")}))
 		acceptance.Sees(t, out, code, 1, "Test0001_2 names 0001.2, which no requirement defines")
@@ -59,7 +59,7 @@ func Test0005_3(t *testing.T) {
 		out, code := checked(t, named("0001.2.1 adds", "0001.2.2 doubles", "edge"))
 		acceptance.Sees(t, out, code, 0)
 	})
-	t.Run("0005.3.2 a step with no case fails naming the step and the test", func(t *testing.T) {
+	t.Run("0005.3.2 a step with no case fails naming the step then the test", func(t *testing.T) {
 		t.Parallel()
 		out, code := checked(t, named("0001.2.1 adds"))
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":25: step 0001.2.2 has no test case; add a case to Test0001_2 whose name opens with 0001.2.2")

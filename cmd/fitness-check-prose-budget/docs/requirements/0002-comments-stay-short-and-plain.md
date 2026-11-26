@@ -24,7 +24,7 @@ comments the check judges
          1. THEN it fails with the `comment-fragment` rule
       4. WHEN a comment holds three sentences
          1. THEN it fails with the `comment-one-statement` rule
-      5. WHEN a comment is short and plain
+      5. WHEN a comment is short as well as plain
          1. THEN it passes
 2. A hook judges only changed comments
    1. GIVEN Developer stages a change beside comments that already break a rule

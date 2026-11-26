@@ -46,7 +46,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aaCheck, "1")
 	})
-	t.Run("0001.1.2 a Given opening with no declared actor fails", func(t *testing.T) {
+	t.Run("0001.1.2 a Given opening with no declared actor fails naming the line and the actors", func(t *testing.T) {
 		t.Parallel()
 		for _, given := range []string{"no network", "Users open the app", "Admin" + aaOpens, "USER" + aaOpens, "a user" + aaOpens} {
 			out, code := aaRun(t, aaFixture(given))
@@ -68,7 +68,7 @@ func Test0001_1(t *testing.T) {
 		out, code := aaRun(t, aaWith("User"+aaOpens, aaRel, aaRel+"\nPerson(User, \"4 Host\")"))
 		sees(t, out, code, 1, aaGiven+"actor \"User\" is ambiguous: user at "+aaContext+":5 and User at "+aaContext+":8")
 	})
-	t.Run("0001.1.5 only a context view's C4 people are actors", func(t *testing.T) {
+	t.Run("0001.1.5 only a context view's C4 Person or Person_Ext are actors", func(t *testing.T) {
 		t.Parallel()
 		out, code := aaRun(t, aaWith("Guest"+aaOpens, aaRel, aaRel+"\nPerson_Ext(guest, \"4 Guest\")"))
 		sees(t, out, code, 0)

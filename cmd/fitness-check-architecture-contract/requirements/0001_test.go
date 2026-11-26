@@ -46,7 +46,7 @@ func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 no views pass unless product code needs them", func(t *testing.T) {
+	t.Run("0001.1.1 no views pass for tests, tool configs or generated files unless product code needs them", func(t *testing.T) {
 		t.Parallel()
 		for _, files := range []map[string]string{nil, {
 			"vite.config.ts":                        "export default {};\n",
@@ -83,7 +83,7 @@ func Test0001_1(t *testing.T) {
 		out, code = acRun(t, files)
 		sees(t, out, code, 1, "architecture/04-code.md:1: view has no diagram outside its legends")
 	})
-	t.Run("0001.1.3 views under both roots pass as one model", func(t *testing.T) {
+	t.Run("0001.1.3 views under either root pass as one model", func(t *testing.T) {
 		t.Parallel()
 		for _, root := range []string{acRoot, "docs/architecture/"} {
 			out, code := acRun(t, acFixture(root))

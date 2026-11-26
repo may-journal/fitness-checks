@@ -42,17 +42,17 @@ func finding(file, line string) string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a paragraph between diagram and table fails", func(t *testing.T) {
+	t.Run("0001.1.1 a paragraph in the gap from diagram to table fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, prose, table)})
 		acceptance.Sees(t, out, code, 1, finding("doc.md", "8"))
 	})
-	t.Run("0001.1.2 a paragraph between legend and table fails", func(t *testing.T) {
+	t.Run("0001.1.2 a paragraph in the gap from legend to table fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, legend, prose, table)})
 		acceptance.Sees(t, out, code, 1, finding("doc.md", "13"))
 	})
-	t.Run("0001.1.3 a matching caption alone passes", func(t *testing.T) {
+	t.Run("0001.1.3 a caption starting with Numbers then matching the table passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{
 			"a.md": doc(diagram, legend, caption, table),

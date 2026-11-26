@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repo that adopted no trailers passes without files", func(t *testing.T) {
+	t.Run("0001.1.1 a repo that adopted neither trailer passes without files", func(t *testing.T) {
 		t.Parallel()
 		out, code := commitAttribution(t, []string{"feat(api): add endpoint\n\nNo trailers here.\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")

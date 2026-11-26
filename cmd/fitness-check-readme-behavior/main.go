@@ -66,6 +66,7 @@ func run(root string, _ []string) (checkkit.Result, error) {
 func judge(root, rel, text string) (errs, info []string) {
 	lines := strings.Split(text, "\n")
 	errs = behaviorErrors(root, rel, lines)
+	errs = append(errs, stepErrors(rel, lines)...)
 	m := checkReadme.FindStringSubmatch(rel)
 	if m == nil {
 		return errs, nil
@@ -140,6 +141,28 @@ func linkErrors(root, rel string, n int, line string) []string {
 		return []string{fmt.Sprintf("%s:%d: the link %s names nothing that exists", rel, n, m[1])}
 	}
 	return nil
+}
+
+// stepItem matches a list item, bulleted or numbered, that opens with a Gherkin
+// keyword in any case, with the keyword in group 1.
+var stepItem = regexp.MustCompile(`(?i)^\s*(?:[-*+]|\d+[.)])\s+(given|when|then)\b`)
+
+// stepErrors fails each GIVEN, WHEN or THEN list item outside a code fence. A
+// README keeps its requirements in docs/requirements, so such an item hides
+// them where no check reads them.
+func stepErrors(rel string, lines []string) []string {
+	var errs []string
+	fenced := false
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			fenced = !fenced
+			continue
+		}
+		if m := stepItem.FindStringSubmatch(line); !fenced && m != nil {
+			errs = append(errs, fmt.Sprintf("%s:%d: the README holds a %s step; move it to this folder's docs/requirements as a numbered acceptance", rel, i+1, strings.ToUpper(m[1])))
+		}
+	}
+	return errs
 }
 
 // configKey is one key of a check's --describe config list.

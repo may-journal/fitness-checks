@@ -21,7 +21,8 @@ commit subjects judged
          2. THEN only the first line is judged
       2. WHEN the subject has no scope
          1. THEN it fails quoting the subject
-         2. THEN it gives the suggested format and the allowed types
+         2. THEN it gives the suggested format
+         3. THEN it gives the allowed types
       3. WHEN the subject has an unlisted type or a breaking mark
          1. THEN it fails quoting the subject
       4. WHEN the message is empty or no repo can be read

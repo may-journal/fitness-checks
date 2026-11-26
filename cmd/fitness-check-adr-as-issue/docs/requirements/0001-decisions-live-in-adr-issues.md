@@ -16,17 +16,19 @@ repos checked
 
 1. ADR files stay out of the repo
    1. GIVEN Developer has a repo
-   2. GIVEN it holds Markdown files and check READMEs
-   3. GIVEN it may hold `adrAsIssue.allow` entries
+   2. GIVEN it holds Markdown files
+   3. GIVEN it holds check READMEs
+   4. GIVEN it may hold `adrAsIssue.allow` entries
       1. WHEN a Markdown file sits in a folder named `adr` in any case
-         1. THEN it fails naming the file and its rule
-         2. THEN it names `fitness adr-migrate`
-         3. THEN the folder's README passes
+         1. THEN it fails naming the file
+         2. THEN it names the rule it broke
+         3. THEN it names `fitness adr-migrate`
+         4. THEN the folder's README passes
       2. WHEN a file's first top-level heading starts with the word ADR
          1. THEN it fails
          2. THEN a later ADR heading passes
          3. THEN a word such as `adr-checks` passes
-      3. WHEN a file holds `## Context` and `## Decision` and `## Consequences` sections
+      3. WHEN a file holds the three sections `## Context` `## Decision` `## Consequences`
          1. THEN it fails
          2. THEN the same sections in a code block pass
       4. WHEN a file only points at an issue

@@ -18,8 +18,9 @@ Go functions
    1. GIVEN Developer has a repo with Go files
       1. WHEN a function has more branches than the ceiling allows
          1. THEN it fails naming `file:line`
-         2. THEN it names its complexity and the maximum allowed
-      2. WHEN a function holds `if` and `for` and `range` and `switch` and `select` cases and `&&` and `||`
+         2. THEN it names its complexity
+         3. THEN it names the maximum allowed
+      2. WHEN a function holds `if` or `for` or `range` or `switch` or `select` cases or `&&` or `||`
          1. THEN each adds one point to a start of 1
          2. THEN default cases add none
       3. WHEN a function literal sits in another function

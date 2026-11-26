@@ -22,8 +22,9 @@ Givens in repos with architecture views
          2. THEN it passes though some actors start no Given
       2. WHEN a Given starts with no declared actor
          1. THEN it fails naming the Given line
-         2. THEN it names the context line and the declared actors
-         3. THEN a plural or another case or an undeclared name fails the same way
+         2. THEN it names the context line
+         3. THEN it names the declared actors
+         4. THEN a plural or another case or an undeclared name fails the same way
       3. WHEN several actors start a Given joined by `and`
          1. THEN it passes
          2. THEN it fails at a word after `and` that names no actor
@@ -34,15 +35,16 @@ Givens in repos with architecture views
          1. THEN a system or a legend fails
          2. THEN a flowchart `person` node fails
          3. THEN another view's person fails
-         4. THEN only the context's C4 `Person` and `Person_Ext` are actors
+         4. THEN only the context's C4 `Person` or `Person_Ext` are actors
       6. WHEN the repo has no architecture views
          1. THEN it passes with no files
       7. WHEN a doc's shape is wrong or it holds bullet acceptances or a view other than the context is missing
          1. THEN it reports none of them
-         2. THEN it leaves them to `requirements` and `architecture-contract`
+         2. THEN it leaves them to `requirements`
+         3. THEN it leaves them to `architecture-contract`
 2. A dropped actor fails every Given naming it
    1. GIVEN Developer has a Given naming an actor the system context no longer declares
-      1. WHEN a pull request changes only tests and changelogs
+      1. WHEN a pull request changes only tests or changelogs
          1. THEN it passes with no files
          2. THEN such changes cannot move the views
       2. WHEN any other run changes even an unrelated file

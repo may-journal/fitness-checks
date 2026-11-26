@@ -40,7 +40,7 @@ func Test0001_1(t *testing.T) {
 		out, code := vcfRun(t, vcfRepo(t, map[string]string{shared: vcfConfig("90")}), nil)
 		acceptance.Sees(t, out, code, 1, "Fitness-runner package must have Vitest coverage thresholds set to 100 for branches, functions, lines, and statements.")
 	})
-	t.Run("0001.1.4 fully tested code passes with the local config", func(t *testing.T) {
+	t.Run("0001.1.4 full thresholds with all code covered pass with the local config", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
 		out, code := vcfRun(t, vcfRepo(t, nil), rp.Env)
@@ -64,7 +64,7 @@ func Test0001_2(t *testing.T) {
 		out, code := vcfRun(t, vcfRepo(t, nil), nil)
 		acceptance.ShowsInfo(t, out, code, "vitest-coverage-full", "vitest not found in node_modules/.bin (walking up from root) or on PATH. Install it (npm install -D vitest)")
 	})
-	t.Run("0001.2.3 Vitest on PATH replaces a broken binary", func(t *testing.T) {
+	t.Run("0001.2.3 Vitest on PATH stands in while the binary is broken", func(t *testing.T) {
 		t.Parallel()
 		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"vitest": {vcfFullRun}})
 		repo := vcfRepo(t, map[string]string{"node_modules/.bin/vitest": "#!/bin/sh\nexit 1\n"})

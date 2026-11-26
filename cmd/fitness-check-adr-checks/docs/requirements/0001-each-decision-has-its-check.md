@@ -33,9 +33,10 @@ ADR checks
          1. THEN it fails as a broken scan
 2. Changed links need changed checks
    1. GIVEN Developer has a commit or pull request changing an ADR check's files
-      1. WHEN its README links another `ADR` issue and no other file of its check changed
-         1. THEN it fails naming the README and the check
-         2. THEN it fails the same way staged or in a pull request
+      1. WHEN its README links another `ADR` issue with no other file of its check changed
+         1. THEN it fails naming the README
+         2. THEN it fails naming the check
+         3. THEN it fails the same way staged or in a pull request
       2. WHEN only the check's code changes
          1. THEN it passes
          2. THEN a change to only the README's own text passes too

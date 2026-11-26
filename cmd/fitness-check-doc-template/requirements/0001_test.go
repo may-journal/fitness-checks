@@ -46,7 +46,7 @@ func Test0001_1(t *testing.T) {
 			"docs/views/notes.md: Missing `## Context` section",
 			"docs/views/notes.md: Unexpected `## Open threads` section")
 	})
-	t.Run("0001.1.3 doc matching neither of two templates", func(t *testing.T) {
+	t.Run("0001.1.3 doc matching none of several templates", func(t *testing.T) {
 		t.Parallel()
 		out, code := docTemplate(t, map[string]string{
 			"docs/adr/adr.template.md":  docTemplateADR,
@@ -142,7 +142,7 @@ func Test0001_3(t *testing.T) {
 			dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtShippedName(acJourney)+" does",
 			`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtShippedName(acCode)+" has")
 	})
-	t.Run("0001.3.3 view styles differ from template", func(t *testing.T) {
+	t.Run("0001.3.3 view styles differ from template naming the element and palette", func(t *testing.T) {
 		t.Parallel()
 		files := dtShipped(t)
 		dtEdit(t, files, acContext, "    UpdateElementStyle(user,",

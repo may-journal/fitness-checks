@@ -19,7 +19,7 @@ const catalogFix = ` skips the String Catalog; add it to the String Catalog and 
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a literal in a text view fails naming the call and the entry", func(t *testing.T) {
+	t.Run("0001.1.1 a literal in a text view fails naming the file with its line then the literal then the call then the entry", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{
 			"App/ShareView.swift": localizedView,
@@ -84,7 +84,7 @@ struct PhotoView: View {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a test typing a catalog label fails naming the reference", func(t *testing.T) {
+	t.Run("0001.2.1 a test typing a catalog label fails naming the file with its line then the literal then the entry then the reference", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{"Tests/Requirements/ShareTests.swift": `import Testing
 

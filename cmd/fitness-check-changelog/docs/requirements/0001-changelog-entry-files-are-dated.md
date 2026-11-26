@@ -18,11 +18,11 @@ entry files
    1. GIVEN Developer has a repo
    2. GIVEN it may hold `changelog/` entry files
    3. GIVEN it may hold a `CHANGELOG.md`
-      1. WHEN each entry file holds one `### yyyy.mm.dd.HHMM` heading and its bullets and that date in its name
+      1. WHEN each entry file holds one `### yyyy.mm.dd.HHMM` heading with its bullets under a name that carries that date
          1. THEN it passes counting the entry files
          2. THEN front matter is optional
       2. WHEN an entry file holds two dated headings
-         1. THEN it fails asking for one `### yyyy.mm.dd.HHMM` heading and its bullets
+         1. THEN it fails asking for one `### yyyy.mm.dd.HHMM` heading with its bullets
          2. THEN an undated heading fails the same way
       3. WHEN an entry file's name lacks its heading's date
          1. THEN it fails naming the file it should be `changelog/<yyyy-mm-dd-HHMM>-<change>.md`

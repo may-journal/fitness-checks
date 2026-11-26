@@ -20,7 +20,7 @@ changes to product code
       1. WHEN product code changes without a changed test or a changed requirement doc
          1. THEN it fails naming the file
          2. THEN it names the missing half
-      2. WHEN product code changes beside a changed test and a changed requirement doc
+      2. WHEN product code changes beside a changed test plus a changed requirement doc
          1. THEN it passes
       3. WHEN only docs or config or the changelog change or a file is renamed or reformatted or only its comments change
          1. THEN it passes
@@ -29,7 +29,8 @@ changes to product code
          2. THEN its pull request diff still is
       5. WHEN product code is deleted
          1. THEN it passes when no doc names it
-         2. THEN it fails naming the file and the doc and its tests when a doc names it
+         2. THEN it fails naming the file with the doc when a doc names it
+         3. THEN it names the tests of that doc
       6. WHEN the repo has no requirement doc yet
          1. THEN it passes
       7. WHEN a commit message asks to skip the check

@@ -36,7 +36,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("gradle calls = %q, want both Checkstyle tasks forced to rerun", rp.Calls("gradle"))
 		}
 	})
-	t.Run("0001.1.2 clean sources pass checkstyle", func(t *testing.T) {
+	t.Run("0001.1.2 clean sources pass checkstyle, counting the Java files", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{
 			checkstyleConfig:                    checkstyleCeiling,
@@ -65,7 +65,7 @@ func Test0001_2(t *testing.T) {
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
 		acceptance.Sees(t, out, code, 1, "no Checkstyle config sets a complexity ceiling; add "+checkstyleConfig+" holding")
 	})
-	t.Run("0001.2.3 config without complexity ceiling fails", func(t *testing.T) {
+	t.Run("0001.2.3 config without complexity ceiling fails naming the config", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleNoCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})

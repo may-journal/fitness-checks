@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a heading or bold line fails naming file and line", func(t *testing.T) {
+	t.Run("0001.1.1 a heading or bold line fails naming the file with its line", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\n## Open Questions\n\n- Which wins?\n\n**unresolved questions**\n\n- When?\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})
@@ -27,7 +27,7 @@ func Test0001_1(t *testing.T) {
 		out, code = openQuestions(t, map[string]string{"docs/sync.md": "# Sync\n\n## Decisions\n\n- The server wins.\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.2 a label line fails naming file and line", func(t *testing.T) {
+	t.Run("0001.1.2 a label line fails naming the file with its line", func(t *testing.T) {
 		t.Parallel()
 		doc := "# Sync\n\nQuestions for the owner: which store?\n\n- **Open questions:** none yet\n"
 		out, code := openQuestions(t, map[string]string{"docs/sync.md": doc})

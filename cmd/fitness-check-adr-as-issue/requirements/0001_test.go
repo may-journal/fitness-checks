@@ -17,7 +17,7 @@ func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a file in an adr folder fails", func(t *testing.T) {
+	t.Run("0001.1.1 a file in an adr folder fails naming the file and the rule", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, map[string]string{
 			"docs/architecture/adr/0001-use-sqlite.md": adrFile,
@@ -43,7 +43,7 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.3 a file holding the decision sections fails", func(t *testing.T) {
+	t.Run("0001.1.3 a file holding the three decision sections fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, acceptance.With(acceptance.HeldCheck(), map[string]string{
 			"docs/writing-checks.md": "# Writing checks\n\n```markdown\n" + acceptance.HeldDecision + "```\n",

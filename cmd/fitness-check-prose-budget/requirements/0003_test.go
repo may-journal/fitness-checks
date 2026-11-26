@@ -9,7 +9,7 @@ import (
 
 func Test0003_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0003.1.1 a section past its word limit fails", func(t *testing.T) {
+	t.Run("0003.1.1 a section past its word limit fails naming the section with its word count", func(t *testing.T) {
 		t.Parallel()
 		body := readme + "\n## Notes\n"
 		for i := 0; i < 16; i++ {
@@ -35,7 +35,7 @@ func Test0003_1(t *testing.T) {
 		out, code := proseBudget(t, map[string]string{"README.md": nested})
 		acceptance.Sees(t, out, code, 1, "README.md: a list has more than 4 items at level 2")
 	})
-	t.Run("0003.1.5 a long sentence or paragraph fails", func(t *testing.T) {
+	t.Run("0003.1.5 a long sentence or paragraph fails with the count and the limit", func(t *testing.T) {
 		t.Parallel()
 		out, code := proseBudget(t, map[string]string{"README.md": readme + "\n" + acceptance.LongSentence})
 		acceptance.Sees(t, out, code, 1, "README.md: a sentence has 30 words (max 23)")

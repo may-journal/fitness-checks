@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a comment over the word budget fails", func(t *testing.T) {
+	t.Run("0001.1.1 a comment over the word budget fails naming the count and the budget", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, overBudget, nil)
 		acceptance.Sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams; the budget is 100")
@@ -53,7 +53,7 @@ func Test0001_2(t *testing.T) {
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 a change-log note fails", func(t *testing.T) {
+	t.Run("0001.3.1 a change-log note fails naming the line and the note", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, "The parser works.\n\nEdit 2: it handles tabs too.\n", nil)
 		acceptance.Sees(t, out, code, 1, `(comment): line 3: "Edit 2:": change-log note; edit the text in place and drop the note`)

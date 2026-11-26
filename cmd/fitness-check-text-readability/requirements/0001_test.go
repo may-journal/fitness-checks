@@ -25,7 +25,7 @@ var hardToRead = strings.Repeat("Configuration interdependencies necessitate com
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 long words in one endless sentence fail with guidance", func(t *testing.T) {
+	t.Run("0001.1.1 long words in one endless sentence fail with each piece of guidance", func(t *testing.T) {
 		t.Parallel()
 		out, code := textReadability(t, map[string]string{"dense.md": dense})
 		acceptance.Sees(t, out, code, 1,
@@ -75,7 +75,7 @@ func Test0001_2(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 1, "plain.md: readability alarm on 140 prose words", "(grade bands, alarm at 5)")
 	})
-	t.Run("0001.2.3 the report flag prints word counts and leaves the verdict", func(t *testing.T) {
+	t.Run("0001.2.3 the report flag prints word counts with scores and leaves the verdict", func(t *testing.T) {
 		t.Parallel()
 		out, code := textReadability(t, map[string]string{"plain.md": plain}, "--report")
 		acceptance.Sees(t, out, code, 0, "README.md 3 words (below 100 — not judged)", "plain.md 140 words", "All 1 checks passed")

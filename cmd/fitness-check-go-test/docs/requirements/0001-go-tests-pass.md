@@ -18,20 +18,25 @@ repos with Go modules
    1. GIVEN Developer has a repo with Go modules
    2. GIVEN the repo may have none
       1. WHEN a test fails
-         1. THEN it fails naming the test and its `file.go:line` message
+         1. THEN it fails naming the test
+         2. THEN it fails naming its `file.go:line` message
       2. WHEN the failing test sits in a module below the repo root
          1. THEN each line is prefixed with that module's folder
       3. WHEN a test does not compile
-         1. THEN it fails with the build error and its `file.go:line:col`
+         1. THEN it fails with the build error
+         2. THEN it fails with its `file.go:line:col`
       4. WHEN every test passes
-         1. THEN it passes and counts the modules tested
+         1. THEN it passes
+         2. THEN it counts the modules tested
       5. WHEN the repo has no Go module to test
-         1. THEN it passes with no files and never runs `go test`
-         2. THEN a `testdata` module counts as none
-         3. THEN a `vendor` module counts as none
-         4. THEN a change touching no Go file counts as none
+         1. THEN it passes with no files
+         2. THEN it never runs `go test`
+         3. THEN a `testdata` module counts as none
+         4. THEN a `vendor` module counts as none
+         5. THEN a change touching no Go file counts as none
       6. WHEN Go is not on PATH
          1. THEN it reports info with the hint `see https://go.dev/dl`
       7. WHEN `go test` fails without a finding
          1. THEN it reports info quoting what went wrong
-         2. THEN a failure to start and a kill count the same
+         2. THEN a failure to start counts the same
+         3. THEN a kill counts the same

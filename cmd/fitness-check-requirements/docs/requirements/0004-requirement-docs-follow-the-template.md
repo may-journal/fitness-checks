@@ -16,7 +16,7 @@ requirement docs
 
 1. Docs are named and numbered
    1. GIVEN Developer has a repo with requirement docs
-      1. WHEN a file name and its title ID differ
+      1. WHEN a file name differs from its title ID
          1. THEN it fails telling the file name to use
       2. WHEN two docs share an ID
          1. THEN it fails naming the docs
@@ -29,7 +29,7 @@ requirement docs
    1. GIVEN Developer has a repo with requirement docs
       1. WHEN a section is extra or missing or empty
          1. THEN it fails naming the sections
-      2. WHEN the Measurement is not a numerator and a dash and a denominator
+      2. WHEN the Measurement is not a numerator line followed by a dash line followed by a denominator line
          1. THEN it fails naming the three lines
       3. WHEN a doc keeps a `Source:` line
          1. THEN it fails naming the line

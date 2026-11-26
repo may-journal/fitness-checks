@@ -24,11 +24,12 @@ repos with Java builds
       3. WHEN a pin is at or below the running JDK
          1. THEN it passes since a newer JDK builds for an older release
       4. WHEN a pin is above the running JDK
-         1. THEN it fails naming the file and the release it needs
+         1. THEN it fails naming the file
+         2. THEN it fails naming the release it needs
       5. WHEN a pin names no release
          1. THEN it fails quoting the pin
       6. WHEN a pom names no release
-         1. THEN it takes one from its properties and its parents in the repo
+         1. THEN it takes one from its properties or its parents in the repo
          2. THEN it takes one from a parent in the local Maven repository
       7. WHEN there is no running JDK
          1. THEN it fails with an install hint

@@ -28,10 +28,12 @@ repos with a components view
       4. WHEN two diagrams of one view claim the same source
          1. THEN it fails naming both claims
       5. WHEN a reference between owners has no edge drawn between them
-         1. THEN it fails naming the view and any reverse edge
+         1. THEN it fails naming the view
+         2. THEN it fails naming any reverse edge
       6. WHEN a reference sits in a comment or string or generated source
          1. THEN it does not count
-         2. THEN only a build condition counts and is named after `under`
+         2. THEN only a build condition counts
+         3. THEN that condition is named after `under`
       7. WHEN a product source cannot be parsed
          1. THEN it fails naming the source
 2. Edges follow the references
@@ -47,7 +49,8 @@ repos with a components view
       4. WHEN a runtime reaches a component under another runtime's container boundary
          1. THEN it fails naming that boundary
          2. THEN components outside every container are shared
-      5. WHEN a scoped run changes only tests and changelog and docs
+      5. WHEN a scoped run changes only tests or changelog or docs
          1. THEN it passes with zero files
       6. WHEN a scoped run changes a view or a product source
-         1. THEN it reads the whole model and every product source
+         1. THEN it reads the whole model
+         2. THEN it reads every product source

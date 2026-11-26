@@ -15,20 +15,24 @@ repos with checked files
 ## Requirements
 
 1. Unknown words fail
-   1. GIVEN Developer has a repo with tracked files and an optional `cspell.json`
+   1. GIVEN Developer has a repo with tracked files
+   2. GIVEN it may hold a `cspell.json`
       1. WHEN a checked file holds an unknown word
          1. THEN it fails naming each as `path:line:col - Unknown word (word)`
       2. WHEN a file is over 64 KB
          1. THEN it is checked in line-aligned chunks
          2. THEN its `cspell:` directives apply to the whole file
 2. The repo's word list wins
-   1. GIVEN Developer has a repo with tracked files and a `cspell.json`
-      1. WHEN the repo's own list holds a word and an installed shared package holds another
+   1. GIVEN Developer has a repo with tracked files
+   2. GIVEN it has a `cspell.json`
+      1. WHEN the repo's own list holds a word while an installed shared package holds another
          1. THEN the repo's list wins
-         2. THEN the owner and agent names pass
+         2. THEN the owner names pass
+         3. THEN the agent names pass
       2. WHEN the resolved `cspell.json` sets `ignorePaths`
          1. THEN it fails before any scan
-         2. THEN it tells Developer to remove it and fix the words
+         2. THEN it tells Developer to remove it
+         3. THEN it tells Developer to fix the words
 3. Only the right files are read
    1. GIVEN Developer has a repo with tracked files
       1. WHEN files are binary or marked `linguist-generated` or are lockfiles or build wrapper files

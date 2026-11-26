@@ -16,18 +16,21 @@ repos with architecture views or product code
 
 1. Missing views fail product code
    1. GIVEN Developer has a repo
-   2. GIVEN it may hold product code and architecture views
+   2. GIVEN it may hold product code
+   3. GIVEN it may hold architecture views
       1. WHEN it has no views
          1. THEN product code fails asking for all five
-         2. THEN tests and tool configs and generated files pass with no files
+         2. THEN tests pass with no files
+         3. THEN tool configs pass with no files
+         4. THEN generated files pass with no files
       2. WHEN a view is missing
          1. THEN it fails naming the view
          2. THEN a view with no diagram outside its legends fails the same way
-      3. WHEN the views sit under `architecture/` and `docs/architecture/`
+      3. WHEN some views sit under `architecture/` or `docs/architecture/`
          1. THEN they pass as one model
       4. WHEN callouts are renumbered
          1. THEN diagram IDs keep their identity
-      5. WHEN a pull request changes only tests and changelog and docs
+      5. WHEN a pull request changes only tests or changelog or docs
          1. THEN it passes with no files
       6. WHEN a pull request changes another file while a view stays broken
          1. THEN the broken view stays reported

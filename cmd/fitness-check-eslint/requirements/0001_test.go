@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 clean files pass eslint", func(t *testing.T) {
+	t.Run("0001.1.1 every tracked file clean passes eslint", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintSorted, "src/b.ts": eslintTyped}))
 		out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs src/b.ts", 0,
@@ -110,7 +110,7 @@ func Test0001_3(t *testing.T) {
 		out, code = acceptance.Fitness(t, repo, crashed.Env, "eslint")
 		acceptance.ShowsInfo(t, out, code, "eslint", "TypeError: Cannot read properties of undefined (reading 'rules')")
 	})
-	t.Run("0001.3.2 lints when eslint is absent", func(t *testing.T) {
+	t.Run("0001.3.2 a biome.json plus the biome dependency lints when eslint is absent", func(t *testing.T) {
 		t.Parallel()
 		var source, report strings.Builder
 		for i := 1; i <= biomeMany; i++ {

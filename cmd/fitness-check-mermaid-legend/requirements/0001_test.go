@@ -32,7 +32,7 @@ func Test0001_1(t *testing.T) {
 		out, code := legend(t, doc(diagram("flowchart TB", "persona((1 Persona))", "classDef persona fill:#eef")))
 		acceptance.Sees(t, out, code, 1, "README.md: callout 1 (persona) has no style class (diagram at line 9)")
 	})
-	t.Run("0001.1.2 numbered callouts with no classDef legend fail", func(t *testing.T) {
+	t.Run("0001.1.2 a diagram with numbered callouts has no classDef legend and fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := legend(t, doc(diagram("flowchart TB", "persona((1 Persona)):::persona")))
 		acceptance.Sees(t, out, code, 1, "README.md: diagram at line 9 has numbered callouts but no classDef legend")

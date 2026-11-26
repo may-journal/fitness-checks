@@ -15,10 +15,11 @@ repos with JavaScript or TypeScript sources
 ## Requirements
 
 1. A string used three times fails
-   1. GIVEN Developer has JavaScript and TypeScript sources
+   1. GIVEN Developer has JavaScript or TypeScript sources
       1. WHEN a value appears three times across files
          1. THEN `repeated-string-literals` fails with one error for the value
-         2. THEN it lists each location and asks for a shared constant
+         2. THEN it lists each location
+         3. THEN it asks for a shared constant
       2. WHEN a value appears only twice
          1. THEN it passes
       3. WHEN a value is shorter than three characters
@@ -28,7 +29,8 @@ repos with JavaScript or TypeScript sources
       5. WHEN several values repeat
          1. THEN the errors list the most repeated first
       6. WHEN a value repeats in more than five places
-         1. THEN the error lists five locations and counts the rest
+         1. THEN the error lists five locations
+         2. THEN the error counts the rest
       7. WHEN the repo has no source files
          1. THEN it passes with zero files
 2. Spellings with no shared constant pass

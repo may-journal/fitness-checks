@@ -35,7 +35,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, "adder.go changed without a test and a requirement doc")
 		codeWithComments(t)
 	})
-	t.Run("0001.1.2 product code beside its test and doc passes", func(t *testing.T) {
+	t.Run("0001.1.2 product code beside a changed test plus a changed doc passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := staged(t, acceptance.GoRepo(), map[string]string{
 			"adder.go":      adderPlus(),
@@ -70,7 +70,7 @@ func Test0001_1(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, nil, "requirements-changed")
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.5 a deletion passes unless a doc names the file", func(t *testing.T) {
+	t.Run("0001.1.5 a deletion passes unless a doc names the file then it names the file with the doc and its tests", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{"three.go": "package adder\n\n// Three is three.\nconst Three = 3\n"})
 		out, code := staged(t, given, map[string]string{"three.go": ""})

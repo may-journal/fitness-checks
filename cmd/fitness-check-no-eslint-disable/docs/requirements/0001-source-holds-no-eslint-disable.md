@@ -19,8 +19,11 @@ JS and TS source files
    2. GIVEN some hold ESLint directives
       1. WHEN a file holds an `eslint-disable` directive
          1. THEN it fails once per hit
-         2. THEN each hit names the file and the line and the directive
-         3. THEN `eslint-disable-line` and `eslint-disable-next-line` count as hits
+         2. THEN each hit names the file
+         3. THEN each hit names the line
+         4. THEN each hit names the directive
+         5. THEN `eslint-disable-line` counts as a hit
+         6. THEN `eslint-disable-next-line` counts as a hit
       2. WHEN no file holds a directive
          1. THEN it passes
          2. THEN it counts the files scanned
@@ -33,7 +36,7 @@ JS and TS source files
       6. WHEN `node_modules` or `dist` holds a directive
          1. THEN it fails like any other folder
 2. Only tracked files are scanned
-   1. GIVEN Developer has a repo with staged and untracked files
+   1. GIVEN Developer has a repo with staged or untracked files
       1. WHEN a file holding a directive is untracked
          1. THEN it passes
       2. WHEN only one file is staged

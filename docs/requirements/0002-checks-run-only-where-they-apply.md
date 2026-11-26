@@ -18,8 +18,10 @@ Checks
    1. GIVEN Developer has every check program the repo builds
    2. GIVEN a release is built
       1. WHEN each program declares the files it judges
-         1. THEN its patterns compile and require only known things
-         2. THEN it reaches the files it judges in any folder and no others
+         1. THEN its patterns compile
+         2. THEN its patterns require only known things
+         3. THEN it reaches the files it judges in any folder
+         4. THEN it reaches no other files
 2. Empty repos pass
    1. GIVEN Developer has a repo a check cannot judge
    2. GIVEN no checks are chosen
@@ -30,13 +32,14 @@ Checks
    1. GIVEN Developer has files a check cannot read
    2. GIVEN it has unreadable history
       1. WHEN fitness runs that check
-         1. THEN it skips them and names them as info
-         2. THEN it judges the rest
+         1. THEN it skips them
+         2. THEN it names them as info
+         3. THEN it judges the rest
 4. Removed in 2026.11.26.0000: moved to the read-repo-first check's own requirement
 5. Removed in 2026.11.26.0400: moved to the no-fitness-front-matter check's own requirement
 6. Large repos stay fast
    1. GIVEN Developer has a large tree with a long branch
-   2. GIVEN the tree has hundreds of docs and changed files
+   2. GIVEN the tree has hundreds of docs plus changed files
       1. WHEN the repo checks judge it
          1. THEN each gives its verdict with only a few git calls in all
 7. Removed in 2026.11.26.0400: moved to the requirements and requirements-changed checks' own requirements

@@ -41,7 +41,7 @@ func Test0002_1(t *testing.T) {
 		want := "comment-one-statement: a comment has 3 sentences (max 2); condense it to one statement"
 		acceptance.Sees(t, out, code, 1, append(append(atEachBody(want), acceptance.AtEachFile(want)...), "app/tail.go:3: "+want)...)
 	})
-	t.Run("0002.1.5 short comments and Markdown pass", func(t *testing.T) {
+	t.Run("0002.1.5 a comment short as well as plain passes with Markdown", func(t *testing.T) {
 		t.Parallel()
 		files := acceptance.InComments(threeSentences[:2]...)
 		for path, src := range inBodies("Retries the request once, since the first call after a deploy warms the cache that every later call reads from.") {

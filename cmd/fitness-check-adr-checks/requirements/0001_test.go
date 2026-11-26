@@ -71,7 +71,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a README pointed at another issue alone fails", func(t *testing.T) {
+	t.Run("0001.2.1 a README pointed at another issue alone fails naming the README and the check", func(t *testing.T) {
 		t.Parallel()
 		want := adrPath + " changed its ADR issue without its check fitness/adr-0001; change both together"
 		repo := acceptance.Example(t, "happyRepo", adrRepo())

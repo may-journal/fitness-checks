@@ -67,7 +67,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 levels one and three sharing text pass", func(t *testing.T) {
+	t.Run("0001.1.4 level one sharing text with level three passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/01-context.md":    doc("Shared line"),
@@ -76,7 +76,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 levels two and ten compare as adjacent", func(t *testing.T) {
+	t.Run("0001.1.5 level two sharing text with level ten compares as adjacent", func(t *testing.T) {
 		t.Parallel()
 		out, code := bleed(t, map[string]string{
 			"architecture/2-app.md":   doc("The engine"),

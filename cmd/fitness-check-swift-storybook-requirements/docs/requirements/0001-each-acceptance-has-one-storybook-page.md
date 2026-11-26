@@ -24,11 +24,13 @@ acceptances in Storybook apps
          1. THEN it passes
          2. THEN it reads every Swift file
       4. WHEN a page has no name or a name that is not a plain literal
-         1. THEN it fails naming the file and line
-         2. THEN it says how to name the page
+         1. THEN it fails naming the file
+         2. THEN it fails naming the line
+         3. THEN it says how to name the page
       5. WHEN a page name does not start with a defined acceptance ID or starts with a chained step
-         1. THEN it fails naming the file and line
-         2. THEN it names the page name to use
+         1. THEN it fails naming the file
+         2. THEN it fails naming the line
+         3. THEN it names the page name to use
       6. WHEN two pages repeat a name or an acceptance ID
          1. THEN it fails naming both places
          2. THEN a `maxPagesPerAcceptance` setting allows more pages per acceptance

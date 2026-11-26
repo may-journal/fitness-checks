@@ -57,7 +57,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 links to a file and a folder and a heading pass", func(t *testing.T) {
+	t.Run("0001.2.1 links to a file or a folder or a heading pass with the fragment stripped", func(t *testing.T) {
 		t.Parallel()
 		files := readmeWith("See [guide](./docs/guide.md#setup), [docs](docs/), and [home](docs/../README.md).\n")
 		files["docs/guide.md"] = "# Guide\n\n## Setup\n\nBack to [the readme](../README.md).\n"
@@ -75,7 +75,7 @@ func Test0001_2(t *testing.T) {
 		out, code := markdownLinks(t, readmeWith("Write `[text](gone.md)` like this.\n\n```\n[text](gone.md)\n```\n"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.4 a percent-encoded space resolves", func(t *testing.T) {
+	t.Run("0001.2.4 a percent-encoded space is decoded then resolves", func(t *testing.T) {
 		t.Parallel()
 		files := readmeWith("See [notes](docs/release%20notes.md).\n")
 		files["docs/release notes.md"] = "# Release Notes\n"

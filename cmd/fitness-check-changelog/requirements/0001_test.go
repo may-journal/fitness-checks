@@ -28,7 +28,7 @@ var (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 dated, well-named entry files pass, counting them", func(t *testing.T) {
+	t.Run("0001.1.1 entry files with a dated heading under a dated name pass, counting them", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogRun(t, withEntries(map[string]string{
 			"2026-10-10-0900-older-change": entryFileText("2026.10.10.0900", "Fix: older change."),

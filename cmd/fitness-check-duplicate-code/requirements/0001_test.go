@@ -40,7 +40,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("a staged doc copying a tracked doc must fail duplicate-code over the 4 docs, got row %q\n%s", acceptance.Row(out, "duplicate-code"), out)
 		}
 	})
-	t.Run("0001.1.3 compares every tracked text file", func(t *testing.T) {
+	t.Run("0001.1.3 compares every tracked text file including Markdown or JSON", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{".gitignore": "conf/\n"})
 		acceptance.Write(t, repo, dupPair("docs/a.md", "conf/b.json", dupClone))
@@ -89,7 +89,7 @@ func Test0001_2(t *testing.T) {
 	})
 	// The case wraps the block in current markers in one pair and deprecated
 	// jscpd ones in the other, so older repos keep passing.
-	t.Run("0001.2.3 skips blocks inside ignore markers", func(t *testing.T) {
+	t.Run("0001.2.3 skips blocks between ignore markers including the deprecated ones", func(t *testing.T) {
 		t.Parallel()
 		current := "// duplicate-code:ignore-start\n" + dupClone + "// duplicate-code:ignore-end\n"
 		deprecated := "/* jscpd:ignore-start */\n" + dupBlock("j", 6, 10) + "/* jscpd:ignore-end */\n"

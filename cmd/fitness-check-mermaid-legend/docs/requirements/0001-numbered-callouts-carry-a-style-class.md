@@ -19,7 +19,7 @@ Mermaid diagrams with numbered callouts
       1. WHEN a numbered callout node has no style class
          1. THEN it fails naming the callout
          2. THEN it names the diagram line
-      2. WHEN a diagram has numbered callouts and no `classDef` legend
+      2. WHEN a diagram with numbered callouts has no `classDef` legend
          1. THEN it fails naming the diagram line
       3. WHEN a node is styled by `:::` or `class` or `style`
          1. THEN the diagram passes

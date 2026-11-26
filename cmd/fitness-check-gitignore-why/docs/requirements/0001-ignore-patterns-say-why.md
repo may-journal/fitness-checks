@@ -24,10 +24,11 @@ repos with a `.gitignore`
 2. Patterns without their own comment fail
    1. GIVEN Developer has a repo with a `.gitignore`
       1. WHEN a pattern has no comment above it
-         1. THEN it fails naming the line and the pattern as `.gitignore:<line>: pattern "<text>" has no explanatory # comment on the line above`
+         1. THEN it fails naming the line
+         2. THEN it fails naming the pattern as `.gitignore:<line>: pattern "<text>" has no explanatory # comment on the line above`
       2. WHEN one comment sits above two patterns
          1. THEN it fails naming the second pattern
-      3. WHEN a blank line sits between the comment and its pattern
+      3. WHEN a blank line sits after the comment above a pattern
          1. THEN it fails naming the pattern
       4. WHEN the comment above a pattern is a bare `#`
          1. THEN it fails naming the pattern

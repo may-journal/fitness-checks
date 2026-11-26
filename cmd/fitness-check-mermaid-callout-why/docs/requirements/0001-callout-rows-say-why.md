@@ -19,7 +19,7 @@ Callout tables
       1. WHEN a table has no Why column
          1. THEN it fails naming the table line
       2. WHEN a numbered row has an empty Why cell
-         1. THEN it fails naming the row and its line
+         1. THEN it fails naming the row with its line
          2. THEN a row with no Why cell fails the same way
       3. WHEN every numbered row has a Why in any header case
          1. THEN the table passes
@@ -27,6 +27,6 @@ Callout tables
          1. THEN the row passes
       5. WHEN a PR body table has no Why column
          1. THEN it fails naming `(description)`
-      6. WHEN a file has no diagram and no callout table
+      6. WHEN a file has neither a diagram nor a callout table
          1. THEN it is skipped
          2. THEN it is not counted

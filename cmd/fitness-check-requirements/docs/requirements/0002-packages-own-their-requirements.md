@@ -22,9 +22,10 @@ package requirement docs
          2. THEN each package keeps its own deleted IDs
 2. Each package owns its docs and tests
    1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names its package folders
-      1. WHEN `requirements` judges its docs and tests
-         1. THEN each package with code owns its docs and tests
-         2. THEN a package without code needs none
+      1. WHEN `requirements` judges its docs plus tests
+         1. THEN each package with code owns its docs
+         2. THEN each package with code owns its tests
+         3. THEN a package without code needs none
       2. WHEN two packages number a doc alike
          1. THEN the number repeats only across packages
       3. WHEN `.fitnessrc.json` names no packages
@@ -32,6 +33,6 @@ package requirement docs
 3. The repo root keeps only monorepo promises
    1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names its package folders
       1. WHEN a root doc acceptance names a single fitness-check package
-         1. THEN it fails naming the acceptance and the check
+         1. THEN it fails naming the acceptance with the check
       2. WHEN a package doc or a Removed line names a check
          1. THEN it passes

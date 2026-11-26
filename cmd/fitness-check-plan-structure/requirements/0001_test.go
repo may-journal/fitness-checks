@@ -19,7 +19,7 @@ const planStructurePitch = "> Offline edits survive the next sync."
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a pitch and background and checklist pass", func(t *testing.T) {
+	t.Run("0001.1.1 a pitch plus background plus checklist passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Write the tests."))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")

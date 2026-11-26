@@ -23,7 +23,7 @@ func Test0001_1(t *testing.T) {
 		out, code := goComplexity(t, map[string]string{"a.go": complexityFile("func f()", 6)})
 		acceptance.Sees(t, out, code, 1, "a.go:5: func f has a complexity of 7; maximum allowed is 5")
 	})
-	t.Run("0001.1.2 each branch construct adds one point", func(t *testing.T) {
+	t.Run("0001.1.2 each of if or for or range or switch or select or && or || adds one point", func(t *testing.T) {
 		t.Parallel()
 		body := "package p\n\nfunc f(n int, ch chan int, a, b bool) bool {\n" +
 			"\tswitch n {\n\tcase 1:\n\tcase 2:\n\tdefault:\n\t}\n" +

@@ -16,7 +16,7 @@ PR bodies
 
 1. A PR body follows the template
    1. GIVEN Developer has a PR body
-      1. WHEN it holds a summary and a Background section and a Changelog bullet
+      1. WHEN it holds a summary plus a Background section plus a Changelog bullet
          1. THEN `pr-structure` passes it
       2. WHEN it has no blockquote summary
          1. THEN it fails

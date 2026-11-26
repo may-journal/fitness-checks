@@ -43,7 +43,7 @@ func Test0001_2(t *testing.T) {
 		out, code := gitignoreWhy(t, "# deps\nnode_modules/\ndist\n")
 		acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "dist" `+noComment)
 	})
-	t.Run("0001.2.3 a blank line before the pattern fails", func(t *testing.T) {
+	t.Run("0001.2.3 a blank line after the comment above a pattern fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := gitignoreWhy(t, "# deps\n\nnode_modules/\n")
 		acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "node_modules/" `+noComment)

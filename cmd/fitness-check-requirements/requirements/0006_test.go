@@ -180,7 +180,7 @@ func Test0006_1(t *testing.T) {
 	// The commit hook marks an amend this way, as it finds git running with --amend.
 	amending := []string{"FITNESS_COMMIT_AMEND=1"}
 	unpairedDoc := pairedTest + " changed without its requirement doc " + acceptance.PairedDoc + "; change both together"
-	t.Run("0006.1.1 a test or a doc changed without its partner fails naming both files", func(t *testing.T) {
+	t.Run("0006.1.1 a test or a doc changed without its partner fails naming both files of the pair", func(t *testing.T) {
 		t.Parallel()
 		repo := hooked(t, acceptance.PairedRepo())
 		acceptance.Write(t, repo, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))})

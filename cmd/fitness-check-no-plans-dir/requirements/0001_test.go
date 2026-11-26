@@ -52,7 +52,7 @@ func inOrder(t *testing.T, out string, want ...string) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a file in a plans folder fails at any depth", func(t *testing.T) {
+	t.Run("0001.1.1 a file in a plans folder at any depth fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := plans(t, map[string]string{"docs/plans/03-publish.md": "# Publish\n"})
 		acceptance.Sees(t, out, code, 1, inPlansFolder("docs/plans/03-publish.md"))

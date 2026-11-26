@@ -20,7 +20,8 @@ repos with Go files
       1. WHEN a Go file is not formatted
          1. THEN it fails as `path: not gofmt-formatted (run: gofmt -w path)`
       2. WHEN every Go file is formatted
-         1. THEN it passes and counts the files checked
+         1. THEN it passes
+         2. THEN it counts the files checked
       3. WHEN Go files sit where gofmt is not asked to look
          1. THEN a file in `testdata` is not judged
          2. THEN a file in `vendor` is not judged

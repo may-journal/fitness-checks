@@ -24,14 +24,14 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-scripts", "2")
 	})
-	t.Run("0001.1.2 several lines of shell fail with the fix", func(t *testing.T) {
+	t.Run("0001.1.2 several lines of shell fail naming file then line with the fix", func(t *testing.T) {
 		t.Parallel()
 		steps := "      - name: Tag\n        run: |\n          git fetch\n          git tag v1\n"
 		out, code := scriptsCheck(t, map[string]string{".github/workflows/ci.yml": stepsWorkflow(steps)})
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:8: this run step holds 2 lines of shell",
 			"move it into a checked-in script such as scripts/<name>.sh, and call that script")
 	})
-	t.Run("0001.1.3 a pipe or a chain or control flow fails", func(t *testing.T) {
+	t.Run("0001.1.3 a pipe or a chain or control flow fails naming file then line then what it holds", func(t *testing.T) {
 		t.Parallel()
 		action := "name: A\nruns:\n  using: composite\n  steps:\n    - shell: bash\n      run: cat out | grep ok\n    - shell: bash\n      run: make && make test\n" +
 			"    - shell: bash\n      run: if true; then make; fi\n    - shell: bash\n      run: \"make build && make test\"\n"

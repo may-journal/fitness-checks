@@ -20,7 +20,7 @@ import (
 func Test0002_1(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"describe patterns compile for every check", func(t *testing.T) {
+		{"describe patterns compile then require only known things for every check", func(t *testing.T) {
 			t.Parallel()
 			all, err := describedChecks()
 			mustDo(t, err)
@@ -154,7 +154,7 @@ func Test0002_2(t *testing.T) {
 func Test0002_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"unreadable file is skipped and named as info", func(t *testing.T) {
+		{"unreadable file is skipped then named as info", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", map[string]string{
 				"README.md": readme + "\nSee [the guide](gone.md).\n",

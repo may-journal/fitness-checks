@@ -18,9 +18,10 @@ labels in SwiftUI views and requirement tests
    1. GIVEN Developer has an app that tracks a `.xcstrings` file
    2. GIVEN the app has SwiftUI views
       1. WHEN a literal goes to a text view such as `Text`
-         1. THEN it fails naming file and line
-         2. THEN it names the literal and the call
-         3. THEN it names the entry or reference to use
+         1. THEN it fails naming the file with its line
+         2. THEN it names the literal
+         3. THEN it names the call
+         4. THEN it names the entry or reference to use
       2. WHEN a literal goes to a modifier such as `navigationTitle`
          1. THEN it fails naming that modifier
       3. WHEN a literal is a branch of a ternary or `??` expression
@@ -37,9 +38,10 @@ labels in SwiftUI views and requirement tests
    1. GIVEN Developer has an app with a String Catalog
    2. GIVEN the app has requirement tests
       1. WHEN a test types a literal equal to a catalog entry
-         1. THEN it fails naming file and line
-         2. THEN it names the literal and the entry
-         3. THEN it names the reference to read it through
+         1. THEN it fails naming the file with its line
+         2. THEN it names the literal
+         3. THEN it names the entry
+         4. THEN it names the reference to read it through
       2. WHEN a test types a caption
          1. THEN it passes
          2. THEN a price passes alike

@@ -22,7 +22,7 @@ repos with tracked text files
       2. WHEN a pull request changes some files
          1. THEN it reads the changed files
          2. THEN it reads the tracked files sharing their endings
-      3. WHEN Markdown and JSON files share a block
+      3. WHEN Markdown or JSON files share a block
          1. THEN they count like any other tracked text file
       4. WHEN shared blocks stay under 5 lines or 50 tokens even with a table separator row in them
          1. THEN it passes
@@ -32,9 +32,11 @@ repos with tracked text files
          1. THEN they are left out
       2. WHEN a binary or untracked file shares a block
          1. THEN it is left out
-      3. WHEN a block sits between `duplicate-code:ignore-start` and `duplicate-code:ignore-end` markers
+      3. WHEN a block sits between the markers `duplicate-code:ignore-start` `duplicate-code:ignore-end`
          1. THEN it never counts
-         2. THEN the deprecated `jscpd:ignore-start` and `jscpd:ignore-end` markers work the same
+         2. THEN the deprecated marker `jscpd:ignore-start` works the same
+         3. THEN the deprecated marker `jscpd:ignore-end` works the same
       4. WHEN docs repeat a doc template or a legend diagram or a style statement
-         1. THEN the template and those lines are left out
-         2. THEN the other docs are still compared
+         1. THEN the template is left out
+         2. THEN those lines are left out
+         3. THEN the other docs are still compared

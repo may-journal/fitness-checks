@@ -68,7 +68,7 @@ func numbered() map[string]string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 matched callouts in every diagram kind pass and count the file", func(t *testing.T) {
+	t.Run("0001.1.1 callouts mapping to rows in both directions pass in every diagram kind", func(t *testing.T) {
 		t.Parallel()
 		out, code := callouts(t, doc(
 			diagram(
@@ -111,7 +111,7 @@ func Test0001_1(t *testing.T) {
 			"docs/plain.md: line 1: mermaid diagram has no numbered callouts; number its nodes, as in A[1 Step]",
 			"docs/plain.md: line 16: mermaid diagram has no numbered callouts")
 	})
-	t.Run("0001.1.3 missing repeated and unpaired callouts fail", func(t *testing.T) {
+	t.Run("0001.1.3 a callout that does not pair with its row fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := callouts(t, map[string]string{
 			"docs/flow.md": strings.Join([]string{

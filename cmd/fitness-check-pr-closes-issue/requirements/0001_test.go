@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 any closing keyword and reference form passes", func(t *testing.T) {
+	t.Run("0001.1.1 any closing keyword in any reference form passes", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{}
 		for _, keyword := range prClosesKeywords {

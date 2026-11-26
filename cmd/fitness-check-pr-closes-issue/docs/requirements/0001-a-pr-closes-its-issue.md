@@ -16,7 +16,7 @@ PR bodies
 
 1. A PR body closes its issue
    1. GIVEN Developer has a PR body
-      1. WHEN it closes an issue with any GitHub closing keyword and any reference form
+      1. WHEN it closes an issue with any GitHub closing keyword in any reference form
          1. THEN `pr-closes-issue` passes it
       2. WHEN it only references an issue or spaces the number
          1. THEN it fails for lack of a closing keyword

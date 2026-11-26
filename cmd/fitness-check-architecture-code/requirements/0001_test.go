@@ -34,7 +34,7 @@ const (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 classes matching their declarations pass", func(t *testing.T) {
+	t.Run("0001.1.1 a class matching its source declaration passes", func(t *testing.T) {
 		t.Parallel()
 		for _, files := range []map[string]string{cvFixture(), cvNative(), cvScript(), cvJava()} {
 			out, code := cvRun(t, files)
@@ -85,7 +85,7 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, cvEdit(cvScript(), cvView, "disk, in [disk.ts](../src/store/disk.ts)", "disk, in [store.ts](../src/store/store.ts)"))
 		sees(t, out, code, 1, cvView+":13: DiskStore: DiskStore is declared at "+cvTSDisk+":3, not in the linked "+cvTSStore)
 	})
-	t.Run("0001.1.3 a kind, signature, member or field type that differs fails", func(t *testing.T) {
+	t.Run("0001.1.3 a kind, signature, member or field type that differs fails naming both lines", func(t *testing.T) {
 		t.Parallel()
 		cases := []struct{ file, old, new, want string }{
 			{cvStore, "Save(id string) Record {", "Save(id string, force bool) Record {", ":8: save: store.Save at src/store/store.go:9 has signature (string, bool) Record, not store.Save(id string) Record"},

@@ -35,7 +35,7 @@ func uses(values ...string) string {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a value used three times fails", func(t *testing.T) {
+	t.Run("0001.1.1 a value used three times fails listing each location and asking for a shared constant", func(t *testing.T) {
 		t.Parallel()
 		out, code := repeated(t, map[string]string{
 			"src/a.ts": "if (order.status === 'active') setStatus('active');\n",
@@ -69,7 +69,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("the more repeated value must come first:\n%s", out)
 		}
 	})
-	t.Run("0001.1.6 locations stop at five", func(t *testing.T) {
+	t.Run("0001.1.6 locations stop at five then the rest are counted", func(t *testing.T) {
 		t.Parallel()
 		out, code := repeated(t, map[string]string{"src/a.ts": uses("'many'", "'many'", "'many'", "'many'", "'many'", "'many'", "'many'")})
 		acceptance.Sees(t, out, code, 1, `"many" appears 7 times (src/a.ts:1, src/a.ts:2, src/a.ts:3, src/a.ts:4, src/a.ts:5, +2 more)`)

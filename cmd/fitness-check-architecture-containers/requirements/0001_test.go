@@ -113,7 +113,7 @@ func Test0001_1(t *testing.T) {
 		out, code = accRun(t, files)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.4 a technology differing from the language fails", func(t *testing.T) {
+	t.Run("0001.1.4 a technology differing from the language fails naming the line", func(t *testing.T) {
 		t.Parallel()
 		out, code := accRun(t, acEdit(acContainer, "\"Go\", \"src/cmd/service\"", "\"Node\", \"src/cmd/service\""))
 		sees(t, out, code, 1, "architecture/02-containers.md:7: container service says \"Node\" but Go command service at src/cmd/service/main.go:1 is Go")
@@ -226,7 +226,7 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, accCheck)
 	})
-	t.Run("0001.2.5 a scoped run of a view or product reads every view and product", func(t *testing.T) {
+	t.Run("0001.2.5 a scoped run of a view or product reads every view or product", func(t *testing.T) {
 		t.Parallel()
 		for _, change := range []map[string]string{
 			{"src/cmd/service/main.go": "package main\n\nfunc main() { run() }\n\nfunc run() {}\n"},
