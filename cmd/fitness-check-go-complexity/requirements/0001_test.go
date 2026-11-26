@@ -18,12 +18,25 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a function over the branch ceiling fails naming file, line and score", func(t *testing.T) {
+	over := func(t *testing.T) (string, int) {
+		return goComplexity(t, map[string]string{"a.go": complexityFile("func f()", 6)})
+	}
+	t.Run("0001.1.1.1.1 it fails naming `file:line`", func(t *testing.T) {
 		t.Parallel()
-		out, code := goComplexity(t, map[string]string{"a.go": complexityFile("func f()", 6)})
-		acceptance.Sees(t, out, code, 1, "a.go:5: func f has a complexity of 7; maximum allowed is 5")
+		out, code := over(t)
+		acceptance.Sees(t, out, code, 1, "a.go:5: func f")
 	})
-	t.Run("0001.1.2 each of if or for or range or switch or select or && or || adds one point", func(t *testing.T) {
+	t.Run("0001.1.1.1.2 it names its complexity", func(t *testing.T) {
+		t.Parallel()
+		out, code := over(t)
+		acceptance.Sees(t, out, code, 1, "has a complexity of 7")
+	})
+	t.Run("0001.1.1.1.3 it names the maximum allowed", func(t *testing.T) {
+		t.Parallel()
+		out, code := over(t)
+		acceptance.Sees(t, out, code, 1, "maximum allowed is 5")
+	})
+	t.Run("0001.1.1.2.1 each adds one point to a start of 1", func(t *testing.T) {
 		t.Parallel()
 		body := "package p\n\nfunc f(n int, ch chan int, a, b bool) bool {\n" +
 			"\tswitch n {\n\tcase 1:\n\tcase 2:\n\tdefault:\n\t}\n" +
@@ -34,16 +47,32 @@ func Test0001_1(t *testing.T) {
 		out, code := goComplexity(t, map[string]string{"a.go": body})
 		acceptance.Sees(t, out, code, 1, "a.go:3: func f has a complexity of 8; maximum allowed is 5")
 	})
-	t.Run("0001.1.3 a function literal is scored alone", func(t *testing.T) {
+	t.Run("0001.1.1.2.2 default cases add none", func(t *testing.T) {
 		t.Parallel()
-		body := "package p\n\nvar ok bool\n\nfunc outer() {\n\tg := func() {\n" + complexityIfs(5) + "\t}\n\tg()\n}\n"
+		body := "package p\n\nvar ok bool\n\nfunc f(n int, ch chan int) {\n" +
+			"\tswitch n {\n\tdefault:\n\t}\n" +
+			"\tselect {\n\tdefault:\n\t}\n" + complexityIfs(5) + "}\n"
 		out, code := goComplexity(t, map[string]string{"a.go": body})
+		acceptance.Sees(t, out, code, 1, "a.go:5: func f has a complexity of 6; maximum allowed is 5")
+	})
+	literal := func(t *testing.T) (string, int) {
+		body := "package p\n\nvar ok bool\n\nfunc outer() {\n\tg := func() {\n" + complexityIfs(5) + "\t}\n\tg()\n}\n"
+		return goComplexity(t, map[string]string{"a.go": body})
+	}
+	t.Run("0001.1.1.3.1 it scores alone", func(t *testing.T) {
+		t.Parallel()
+		out, code := literal(t)
 		acceptance.Sees(t, out, code, 1, "a.go:6: function literal has a complexity of 6; maximum allowed is 5")
+	})
+	t.Run("0001.1.1.3.2 the enclosing function does not carry its branches", func(t *testing.T) {
+		t.Parallel()
+		out, code := literal(t)
+		acceptance.Sees(t, out, code, 1)
 		if strings.Contains(out, "func outer") {
 			t.Errorf("outer must not carry the literal's branches:\n%s", out)
 		}
 	})
-	t.Run("0001.1.4 a method with too many branches fails", func(t *testing.T) {
+	t.Run("0001.1.1.4.1 it fails reported as `method <name>`", func(t *testing.T) {
 		t.Parallel()
 		file := "package p\n\ntype T struct{}\n\n" + strings.TrimPrefix(complexityFile("func (T) m()", 5), "package p\n\n")
 		out, code := goComplexity(t, map[string]string{"a.go": file})
@@ -53,12 +82,12 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a test file is judged like any file", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it fails like any other Go file", func(t *testing.T) {
 		t.Parallel()
 		out, code := goComplexity(t, map[string]string{"a_test.go": complexityFile("func TestF()", 5)})
 		acceptance.Sees(t, out, code, 1, "a_test.go:5: func TestF has a complexity of 6; maximum allowed is 5")
 	})
-	t.Run("0001.2.2 the repo config sets the ceiling", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 that ceiling judges instead of 5", func(t *testing.T) {
 		t.Parallel()
 		out, code := goComplexity(t, map[string]string{
 			".fitnessrc.json": `{"goComplexity": {"max": 2}}` + "\n",
@@ -66,7 +95,7 @@ func Test0001_2(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 1, "a.go:5: func f has a complexity of 3; maximum allowed is 2")
 	})
-	t.Run("0001.2.3 a Go file that does not parse fails with the parser's error", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 it fails with the parser's error", func(t *testing.T) {
 		t.Parallel()
 		out, code := goComplexity(t, map[string]string{"bad.go": "package p\nfunc {"})
 		acceptance.Sees(t, out, code, 1, "✖ bad.go:")
@@ -74,7 +103,7 @@ func Test0001_2(t *testing.T) {
 			t.Errorf("output is missing the parser's error:\n%s", out)
 		}
 	})
-	t.Run("0001.2.4 a repo with no Go files passes without files", func(t *testing.T) {
+	t.Run("0001.2.1.4.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := goComplexity(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
