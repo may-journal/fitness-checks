@@ -42,4 +42,10 @@ var (
 	with              = acceptance.With
 	loggedGit         = acceptance.LoggedGit
 	occurrences       = acceptance.Occurrences
+	verdictScript     = acceptance.VerdictScript
+	entryFileText     = acceptance.EntryFileText
+	bareEntryText     = acceptance.BareEntryText
 )
+
+// upstreamChangelog is a CHANGELOG.md as an upstream project keeps it.
+const upstreamChangelog = acceptance.UpstreamChangelog

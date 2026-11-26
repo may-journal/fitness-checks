@@ -19,13 +19,11 @@ repos with code or requirement docs
       1. WHEN the requirement doc checks run
          1. THEN each fails naming the doc and rule
 2. Each requirement has one proof
-   1. GIVEN Developer has requirements with missing proof
-   2. GIVEN it has doubled proof
-   3. GIVEN it has misnamed proof
-   4. GIVEN steps have no case
+   1. GIVEN Developer has unproven or doubly proven requirements
+   2. GIVEN a proof is misnamed or a step has no case
+   3. GIVEN a check judges no files
       1. WHEN the ownership checks run on the repo
-         1. THEN each fails naming the requirement or step
-         2. THEN each says the fix
+         1. THEN each fails naming its requirement or step and fix
 3. Changes come paired
    1. GIVEN Developer has an unpaired change
    2. GIVEN a commit reuses an ID

@@ -2,7 +2,7 @@
 
 ## Why
 
-I review real source only. Build output, plan files, copied code, repeated values, stale pins, unexplained ignore lines and broken workflows never land in the repo.
+I review real source only. Plan files, copied code, repeated values, stale pins, unexplained ignore lines and broken workflows never land in the repo.
 
 ## Measurement
 
@@ -14,11 +14,7 @@ repo files and settings checked
 
 ## Requirements
 
-1. Build output stays out
-   1. GIVEN Developer has tracked `dist` or Maven or Gradle output
-   2. GIVEN it has unignored or imported output
-      1. WHEN the source checks look for build output
-         1. THEN each fails with a fix
+1. Removed in 2026.11.25.0800: moved to the `build-output-untracked` doc
 2. Design scraps stay out
    1. GIVEN Developer has plan files and mockups
       1. WHEN the source checks look for temporary design work
