@@ -94,6 +94,7 @@ func numberedChild(l line) bool {
 // parseGherkin checks each numbered acceptance and reads it as Gherkin
 // through the Cucumber parser.
 func parseGherkin(p *problems, docID string, s section) []IDLine {
+	checkBlockKeywords(p, s)
 	groups := groupItems(p, s.lines, topLevelMessage)
 	kinds := map[int]kind{}
 	doc := parsed(p, s.n, gherkinText(p, s.n, groups, kinds))
@@ -359,4 +360,18 @@ func numberSteps(a IDLine, thens [][]string) IDLine {
 		}
 	}
 	return a
+}
+
+// blockKeyword matches a Gherkin block keyword and its colon opening a line of
+// a Requirements section, after any list number. Group 1 is the keyword.
+var blockKeyword = regexp.MustCompile(`(?i)^\s*(?:\d+\.\s+|[-*+]\s+)?(feature|rule|background|scenario outline|scenario|examples|example):`)
+
+// checkBlockKeywords fails each Gherkin block keyword that opens a line and
+// is not in caps. It is the caps rule for the keywords no step opens with.
+func checkBlockKeywords(p *problems, s section) {
+	for _, l := range s.lines {
+		if m := blockKeyword.FindStringSubmatch(l.text); m != nil && m[1] != strings.ToUpper(m[1]) {
+			p.add(l.n, "write the keyword "+strings.ToUpper(m[1])+" in caps")
+		}
+	}
 }

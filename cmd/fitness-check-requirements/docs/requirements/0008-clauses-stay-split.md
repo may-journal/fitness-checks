@@ -20,3 +20,9 @@ steps in numbered acceptances
          1. THEN it asks to split at the word
       2. WHEN the word sits in code or in quotes
          1. THEN it passes
+2. Block keywords stay in caps
+   1. GIVEN Developer has numbered acceptances `requirements` reads
+      1. WHEN a block keyword with its colon opens a line in mixed case
+         1. THEN it asks for the keyword in caps
+      2. WHEN the keyword is in caps or no colon follows
+         1. THEN it passes
