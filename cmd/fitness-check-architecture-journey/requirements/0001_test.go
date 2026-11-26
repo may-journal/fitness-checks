@@ -35,7 +35,7 @@ func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 labels naming every doc pass", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := ajRun(t, ajFixture())
 		sees(t, out, code, 0)
@@ -55,7 +55,7 @@ func Test0001_1(t *testing.T) {
 			sees(t, out, code, 0)
 		}
 	})
-	t.Run("0001.1.2 a doc no diagram label names fails at the fence", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it fails at the diagram's fence line", func(t *testing.T) {
 		t.Parallel()
 		out, code := ajRun(t, acFixture(acRoot))
 		sees(t, out, code, 1, ajMissingDoc("0001"))
@@ -72,7 +72,7 @@ func Test0001_1(t *testing.T) {
 		out, code = ajRun(t, files)
 		sees(t, out, code, 1, ajMissingDoc("0001"), "journey node open names no requirement", "journey node done names no requirement")
 	})
-	t.Run("0001.1.3 a label naming an acceptance, unknown ID or nine IDs fails", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it fails at its line", func(t *testing.T) {
 		t.Parallel()
 		for label, want := range map[string]string{
 			"open(2 Open the app<br/>Req 0001.1)":     "architecture/05-user-journey.md:18: 0001.1 is an acceptance ID; name requirement doc 0001",
@@ -97,6 +97,9 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		out, code = ajRun(t, ajEdit(files, "Req 0001.1.2", "Req 0001.1.3"))
 		sees(t, out, code, 1, "architecture/05-user-journey.md:19: no step 0001.1.3 in docs/requirements")
+	})
+	t.Run("0001.1.2.3.2 a label over eight IDs fails too", func(t *testing.T) {
+		t.Parallel()
 		nine, eight := ajFixture(), ajFixture()
 		for _, id := range []string{"0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009"} {
 			nine[strings.Replace(ajDoc2, "0002", id, 1)] = strings.ReplaceAll(nine[ajDoc], "0001", id)
@@ -105,12 +108,12 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 		ids := "0001, 0002, 0003, 0004, 0005, 0006, 0007, 0008"
-		out, code = ajRun(t, ajEdit(nine, ajTagOpen, "open(2 Open the app<br/>Req "+ids+", 0009)"))
+		out, code := ajRun(t, ajEdit(nine, ajTagOpen, "open(2 Open the app<br/>Req "+ids+", 0009)"))
 		sees(t, out, code, 1, "architecture/05-user-journey.md:18: label names 9 requirements; split the step so each names at most 8")
 		out, code = ajRun(t, ajEdit(eight, ajTagOpen, "open(2 Open the app<br/>Req "+ids+")"))
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.4 a behavior node naming no ID fails at its line", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it fails at its line", func(t *testing.T) {
 		t.Parallel()
 		// An edge label naming 0001 still leaves the done node naming none.
 		for want, files := range map[string]map[string]string{
@@ -127,7 +130,7 @@ func Test0001_1(t *testing.T) {
 		out, code := ajRun(t, ajEdit(ajFixture(), ajTagDone, ajDone))
 		sees(t, out, code, 1, "architecture/05-user-journey.md:19: journey node done names no requirement")
 	})
-	t.Run("0001.1.5 steps reading as each other's docs fail and one alone adds a note", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 both fail", func(t *testing.T) {
 		t.Parallel()
 		crossed := ajEdit(ajEdit(ajSecondDoc(ajFixture()), ajTagOpen, "open(2 Open the app<br/>Req 0002)"), ajTagDone, "done[3 Save the record<br/>Req 0001]")
 		out, code := ajRun(t, crossed)
@@ -146,18 +149,21 @@ func Test0001_1(t *testing.T) {
 		out, code = ajNoNote(t, both, "a step naming the doc it reads as must add no note")
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.6 no views or an unmoving scoped run passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := ajRun(t, map[string]string{"src/main.go": "package main\n"})
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, ajCheck)
+	})
+	t.Run("0001.1.2.6.2 a pull request changing only tests passes too", func(t *testing.T) {
+		t.Parallel()
 		for _, changed := range []string{"src/store/store_test.go", "CHANGELOG.md", "docs/guide.md"} {
 			out, code := ajPullRequest(t, ajSecondDoc(ajFixture()), map[string]string{changed: "// Changed.\n"})
 			sees(t, out, code, 0)
 			passedWithNoFiles(t, out, ajCheck)
 		}
 	})
-	t.Run("0001.1.7 a missing doc stays reported when another file changes", func(t *testing.T) {
+	t.Run("0001.1.2.7.1 it stays reported", func(t *testing.T) {
 		t.Parallel()
 		repo := example(t, "happyRepo", ajSecondDoc(ajFixture()))
 		for _, changed := range []string{"src/store/store.go", ajDoc, ajView} {
@@ -174,7 +180,7 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 regions holding their listed docs pass", func(t *testing.T) {
+	t.Run("0001.2.1.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := ajRun(t, ajRegion(acFixture(acRoot), "0001", ajNode1))
 		sees(t, out, code, 0)
@@ -186,7 +192,7 @@ func Test0001_2(t *testing.T) {
 		out, code = ajRun(t, ajFixture())
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.2.2 a region differing from its docs fails naming the fix", func(t *testing.T) {
+	t.Run("0001.2.1.2.1 it fails at its start marker naming `fitness architecture-journey --fix`", func(t *testing.T) {
 		t.Parallel()
 		stale := ajSecondDoc(ajRegion(acFixture(acRoot), "0001 0002", ajNode1))
 		out, code := ajRun(t, stale)
@@ -198,19 +204,22 @@ func Test0001_2(t *testing.T) {
 		out, code = ajRun(t, swapped)
 		sees(t, out, code, 1, "the generated journey nodes differ")
 	})
-	t.Run("0001.2.3 a doc listed in no region or two, or an unknown ID, fails", func(t *testing.T) {
+	t.Run("0001.2.1.3.1 it fails at the marker", func(t *testing.T) {
 		t.Parallel()
 		unlisted := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", ajNode1))
 		out, code := ajRun(t, unlisted)
 		sees(t, out, code, 1, "requirement doc 0002 is listed in no journey-nodes region")
-		twice := ajEdit(ajRegion(acFixture(acRoot), "0001", ajNode1), ajEnd, ajEnd+"    %% journey-nodes:start 0001\n"+ajNode1+"\n"+ajEnd)
-		out, code = ajRun(t, twice)
-		sees(t, out, code, 1, "requirement doc 0001 is listed in two journey-nodes regions")
 		unknown := ajRegion(acFixture(acRoot), "0001 0009", ajNode1)
 		out, code = ajRun(t, unknown)
 		sees(t, out, code, 1, "lists 0009, which is no requirement doc")
 	})
-	t.Run("0001.2.4 broken markers fail at their line", func(t *testing.T) {
+	t.Run("0001.2.1.3.2 a doc listed in two regions fails the same way", func(t *testing.T) {
+		t.Parallel()
+		twice := ajEdit(ajRegion(acFixture(acRoot), "0001", ajNode1), ajEnd, ajEnd+"    %% journey-nodes:start 0001\n"+ajNode1+"\n"+ajEnd)
+		out, code := ajRun(t, twice)
+		sees(t, out, code, 1, "requirement doc 0001 is listed in two journey-nodes regions")
+	})
+	t.Run("0001.2.1.4.1 it fails at that marker's line", func(t *testing.T) {
 		t.Parallel()
 		open := ajRegion(acFixture(acRoot), "0001", "")
 		open[ajView] = strings.Replace(open[ajView], ajEnd, "", 1)
@@ -223,17 +232,32 @@ func Test0001_2(t *testing.T) {
 		out, code = ajRun(t, stray)
 		sees(t, out, code, 1, "architecture/05-user-journey.md:20: journey view has `%% journey-nodes:end` with no start marker")
 	})
-	t.Run("0001.2.5 fix rewrites every region and nothing else", func(t *testing.T) {
-		t.Parallel()
+	// fixed runs --fix on two stale regions and returns the repo, the view
+	// before and the view it should become.
+	fixed := func(t *testing.T) (repo, before, want, out string, code int) {
 		files := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    stale"))
 		files = ajEdit(files, ajEnd, ajEnd+"    %% journey-nodes:start 0002\n    stale\n"+ajEnd)
-		repo := example(t, "happyRepo", files)
-		out, code := fitness(t, repo, nil, ajCheck, "--fix")
+		repo = example(t, "happyRepo", files)
+		out, code = fitness(t, repo, nil, ajCheck, "--fix")
+		want = strings.Replace(files[ajView], "    stale\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale", "req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    req0002[(3 Open<br/>Req 0002)]:::system", 1)
+		return repo, files[ajView], want, out, code
+	}
+	t.Run("0001.2.1.5.1 it rewrites every region from the docs", func(t *testing.T) {
+		t.Parallel()
+		repo, _, _, out, code := fixed(t)
 		sees(t, out, code, 0)
-		want := strings.Replace(files[ajView], "    stale\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    stale", "req0001[(2 Open<br/>Req 0001)]:::system\n    %% journey-nodes:end\n    %% journey-nodes:start 0002\n    req0002[(3 Open<br/>Req 0002)]:::system", 1)
+		body, err := os.ReadFile(filepath.Join(repo, ajView))
+		if err != nil || !strings.Contains(string(body), "req0001[(2 Open<br/>Req 0001)]:::system") || !strings.Contains(string(body), "req0002[(3 Open<br/>Req 0002)]:::system") || strings.Contains(string(body), "stale") {
+			t.Errorf("--fix left a region stale: %v\n%s", err, body)
+		}
+	})
+	t.Run("0001.2.1.5.2 it leaves other lines alone", func(t *testing.T) {
+		t.Parallel()
+		repo, _, want, out, code := fixed(t)
+		sees(t, out, code, 0)
 		ajViewIs(t, repo, want)
 	})
-	t.Run("0001.2.6 fix writes nothing while a doc lacks its title", func(t *testing.T) {
+	t.Run("0001.2.1.6.1 it writes nothing", func(t *testing.T) {
 		t.Parallel()
 		files := ajSecondDoc(ajRegion(acFixture(acRoot), "0001", "    stale"))
 		files[ajDoc2] = strings.Replace(files[ajDoc2], "# 0002 Open\n", "", 1)
