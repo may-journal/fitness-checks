@@ -40,9 +40,10 @@ flowchart TB
     dev((1 Developer or agent)):::persona
 
     subgraph get["Get the checks"]
-        %% journey-nodes:start 0001 0002
+        %% journey-nodes:start 0001 0002 0009
         req0001[(2 Checks Release And Install On Their Own<br/>Req 0001)]:::system
         req0002[(3 Checks Run Only Where They Apply<br/>Req 0002)]:::system
+        req0009[(5 Releases Wake The Org Rerun<br/>Req 0009)]:::system
         %% journey-nodes:end
     end
 
@@ -52,11 +53,12 @@ flowchart TB
         %% journey-nodes:end
     end
 
-    red[5 Finding names the file, the line and the fix<br/>Req 0002, 0008]:::blocked
+    red[6 Finding names the file, the line and the fix<br/>Req 0002, 0008]:::blocked
 
     dev -->|A| req0001
     req0001 --> req0002
-    req0002 -->|B| judge
+    req0002 --> req0009
+    req0009 -->|B| judge
     judge --> red
     red -->|C| req0002
     judge -->|D| req0001
@@ -79,7 +81,8 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 2   | Each check builds, tests, releases and installs.   | System    | A person takes one check's fix without the others.                     |
 | 3   | Each check judges only the files it fits.          | System    | Any repo runs every check with nothing to configure, fast at any size. |
 | 4   | Check docs and their move to Markdown.             | System    | People edit each rule as Markdown that GitHub renders.                 |
-| 5   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
+| 5   | A published check wakes the org's fitness rerun.   | System    | No open pull request keeps a green from before the release.            |
+| 6   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
 | A   | Run `fitness`, a hook or one check in any repo.    | Connector | The engine installs the latest release first.                          |
 | B   | Every check that fits the change runs.             | Connector | A check that does not fit passes with zero files.                      |
 | C   | Fix the code, not the check, and rerun.            | Connector | The check measures the real code, so the code changes.                 |
