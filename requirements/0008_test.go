@@ -49,7 +49,7 @@ func Test0008_1(t *testing.T) {
 				t.Errorf("doc.go does not just embed the README:\n%s", doc)
 			}
 		}},
-		{"the described summary stays", func(t *testing.T) {
+		{"the described summary stays as it was", func(t *testing.T) {
 			t.Parallel()
 			folder := demoFolder(t, demoDoc)
 			const want = "Fails a Zork file."

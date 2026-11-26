@@ -12,7 +12,7 @@ import (
 func Test0003_1(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"semantic-commit rejects a subject with no scope", func(t *testing.T) {
+		{"semantic-commit passes only a listed type and scope, so a subject with no scope fails", func(t *testing.T) {
 			t.Parallel()
 			out, code := semanticCommit(t, "--message", "feat: add endpoint")
 			sees(t, out, code, 1, `Commit message: "feat: add endpoint" — use type(scope): description `+semanticCommitTypes)

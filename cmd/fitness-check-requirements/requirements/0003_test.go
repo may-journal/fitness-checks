@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -113,62 +112,6 @@ func Test0003_1(t *testing.T) {
 	})
 }
 
-func Test0003_2(t *testing.T) {
-	t.Parallel()
-	t.Run("0003.2.1 fix or up turns bullets into numbered items", func(t *testing.T) {
-		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", acceptance.With(acceptance.GoRepo(), map[string]string{
-			".fitnessrc.json": `{"policy": "external", "checks": ["requirements"]}` + "\n",
-		}))
-		out, code := judged(t, repo, "--fix")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		docHolds(t, repo, "## Requirements\n\n"+strings.Replace(sum, "Adds", "I add them", 1))
-		// A chain keeps its step numbers, and each ID its acceptance number.
-		chained := gherkinRepo(t, acceptance.Acceptances("0001.1")+acceptance.Chain("0001.2", 2), provingTests("0001.2.1 add", "0001.2.2 double"))
-		out, code = judged(t, chained, "--up", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		// A name an acceptance before took adds the first THEN.
-		docHolds(t, chained, "2. I add them then I get their sum\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN ")
-		docHolds(t, chained, "      2. WHEN I double that sum\n         1. THEN ")
-		// An acceptance commented out stays out of the list.
-		commented := acceptance.Example(t, "happyRepo", acceptance.With(acceptance.GoRepo(), map[string]string{
-			".fitnessrc.json": `{"policy": "external", "checks": ["requirements"]}` + "\n",
-			rootDoc:           "<!-- kept -->\n" + acceptance.RequirementDoc("0001.1") + "<!--\n- 0001.9\n  - Given two numbers\n    - When I add them\n      - Then I get their sum\n-->\n",
-		}))
-		out, code = judged(t, commented, "--fix")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		docHolds(t, commented, "         1. THEN I get their sum\n")
-		// A comment outside the Requirements section stays.
-		docHolds(t, commented, "<!-- kept -->\n")
-		if b, _ := os.ReadFile(filepath.Join(commented, rootDoc)); strings.Contains(string(b), "0001.9") {
-			t.Errorf("--fix brought back a commented-out acceptance:\n%s", b)
-		}
-	})
-	t.Run("0003.2.2 down turns numbered items back into bullets", func(t *testing.T) {
-		t.Parallel()
-		repo := gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double"))
-		out, code := judged(t, repo, "--down", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		docHolds(t, repo, "- 0001.1\n  - Given two numbers and a calculator\n    - When I add them\n      - Then I get their sum\n"+
-			"- 0001.2\n  - Given two numbers\n    1. When I add them\n       - Then I get their sum and it is a number\n    2. When I double it\n       - Then it is even\n")
-	})
-	t.Run("0003.2.3 a flag naming no migration fails listing them", func(t *testing.T) {
-		t.Parallel()
-		repo := gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double"))
-		out, code := judged(t, repo, "--down")
-		acceptance.Sees(t, out, code, 1, "name the migration --down runs, one of [0003.2-gherkin]")
-		out, code = judged(t, repo, "--up", "0003.9-gherkin")
-		acceptance.Sees(t, out, code, 1, "no migration \"0003.9-gherkin\"; run one of [0003.2-gherkin]")
-		out, code = judged(t, repo, "--fix", "--up", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 1, "run --up or --fix alone")
-		out, code = judged(t, repo, "--up=0003.2-gherkin")
-		acceptance.Sees(t, out, code, 1, "write --up 0003.2-gherkin, with a space")
-		out, code = judged(t, repo, "--up", "0003.2-gherkin", "--down", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 1, "run one migration at a time")
-	})
-}
-
-// docHolds fails unless repo's root requirement doc holds want.
 func docHolds(t *testing.T, repo, want string) {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join(repo, rootDoc))
@@ -289,32 +232,7 @@ func Test0003_5(t *testing.T) {
 		out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved, back)
 		acceptance.Sees(t, out, code, 1, rootDoc+":17: 0001.1 was deleted before; IDs are never reused")
 	})
-	t.Run("0003.5.5 up writes a Removed line for each skipped ID", func(t *testing.T) {
-		t.Parallel()
-		repo := gherkinRepo(t, acceptance.Acceptances("0001.2"), acceptance.TestFile("adder", "Test0001_2"))
-		out, code := judged(t, repo, "--up", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		// With no new changelog entry, the line carries the run's time.
-		b, err := os.ReadFile(filepath.Join(repo, rootDoc))
-		acceptance.MustDo(t, err)
-		if !regexp.MustCompile(`## Requirements\n\n1\. Removed in \d{4}\.\d{2}\.\d{2}\.\d{4}: absent before the move to numbered steps\n2\. I add them\n`).Match(b) {
-			t.Errorf("%s has no Removed line with the run's version:\n%s", rootDoc, b)
-		}
-		// A new changelog entry lends the line its version.
-		entry := gherkinRepo(t, acceptance.Acceptances("0001.2"), acceptance.TestFile("adder", "Test0001_2"))
-		acceptance.Write(t, entry, map[string]string{"changelog/2026-12-01-0930-numbered.md": "### 2026.12.01.0930\n\n> Numbered.\n"})
-		out, code = judged(t, entry, "--up", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		docHolds(t, entry, "1. Removed in 2026.12.01.0930: absent before the move to numbered steps\n")
-	})
-	t.Run("0003.5.6 down skips a Removed ID", func(t *testing.T) {
-		t.Parallel()
-		repo := gherkinRepo(t, firstRemoved, onlySecond)
-		out, code := judged(t, repo, "--down", "0003.2-gherkin")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		docHolds(t, repo, "## Requirements\n\n- 0001.2\n  - Given two numbers\n    1. When I add them\n")
-	})
-	t.Run("0003.5.7 a Removed acceptance appended again is no move", func(t *testing.T) {
+	t.Run("0003.5.5 a Removed acceptance appended again is no move", func(t *testing.T) {
 		t.Parallel()
 		appended := firstRemoved + "3. Adds on a calculator\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
 		tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {}\n\nfunc Test0001_2", 1)
@@ -350,4 +268,11 @@ func Test0003_6(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, nil, check)
 		acceptance.Sees(t, acceptance.Read(out), code, 0, check+" passed")
 	}
+}
+
+func Test0003_7(t *testing.T) {
+	t.Parallel()
+	repo := gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double"))
+	out, code := judged(t, repo, "--up", "0003.2-gherkin")
+	acceptance.Sees(t, out, code, 1, "unknown flag --up; the only flag is --fix")
 }

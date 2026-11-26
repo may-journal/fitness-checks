@@ -14,35 +14,42 @@ commits and entry files checked
 
 ## Requirements
 
-- 0003.1
-  - Given Developer has commit subjects with and without a type and scope
-    - When the commit checks read the subject line
-      - Then only subjects with a listed type and scope pass, and each failure quotes the subject
-- 0003.2
-  - Given Developer has commit messages with correct and misspelled `Plan` references
-    - When the commit checks read the Plan trailer
-      - Then every misspelled trailer fails with the fix, and prose, other repos and absent trailers pass
-- 0003.3
-  - Given Developer has commits with and without the AI tool and model trailers
-    - When the commit checks read the attribution trailers
-      - Then an adopting repo fails naming each missing trailer, and merges and reverts pass
-- 0003.4
-  - Given Developer has a branch and open PR that already link some issues
-    - When the commit checks look for repeated issue links
-      - Then a second link to the same issue fails naming the earlier commit or PR
-- 0003.5
-  - Given Developer has changelog entry files with good and bad names and headings
-    - When the changelog checks read each entry file
-      - Then each file needs one dated heading matching its name, and upstream `CHANGELOG.md` history passes as it is
-- 0003.6
-  - Given Developer has changelog entry files with different bullet counts, lengths and types
-    - When the changelog checks read the bullets
-      - Then an entry with fewer than three or more than five bullets, a long bullet, or an untyped bullet fails naming it
-- 0003.7
-  - Given Developer has staged commits with and without a new or edited entry file
-    - When the changelog checks read the staged commit
-      - Then the branch's one entry must name the change, and published entries stay as released
-- 0003.8
-  - Given Developer has release manifests and version files that agree or differ
-    - When the changelog checks read the release versions
-      - Then a mismatched or missing version fails naming it, and repos with no manifest pass
+1. Subjects carry type and scope
+   1. GIVEN Developer has commit subjects with and without a type
+      1. WHEN the commit checks read the subject line
+         1. THEN only subjects with a listed type and scope pass
+         2. THEN each failure quotes the subject
+2. Plan references are spelled right
+   1. GIVEN Developer has commits with correct and misspelled `Plan` references
+      1. WHEN the commit checks read the Plan trailer
+         1. THEN a misspelled trailer fails with the fix
+         2. THEN prose and absent trailers pass
+3. Attribution trailers are present
+   1. GIVEN Developer has commits with and without the AI tool and model trailers
+      1. WHEN the commit checks read the attribution trailers
+         1. THEN an adopting repo fails naming each missing one
+         2. THEN merges and reverts pass
+4. Issue links are not repeated
+   1. GIVEN Developer has a branch and PR linking issues
+      1. WHEN the commit checks look for repeated issue links
+         1. THEN a second link fails naming the earlier commit or PR
+5. Changelog files are dated
+   1. GIVEN Developer has changelog entry files with good and bad names and headings
+      1. WHEN the changelog checks read each entry file
+         1. THEN it needs one dated heading matching its name
+         2. THEN `CHANGELOG.md` history passes
+6. Changelog bullets are short
+   1. GIVEN Developer has entry files with different bullets
+      1. WHEN the changelog checks read the bullets
+         1. THEN fewer than three or more than five fails
+         2. THEN a long or untyped bullet fails
+7. Each branch adds one entry
+   1. GIVEN Developer has staged commits with and without an entry file
+      1. WHEN the changelog checks read the staged commit
+         1. THEN the branch's one entry must name the change
+         2. THEN published entries stay as released
+8. Release versions agree
+   1. GIVEN Developer has release manifests and version files
+      1. WHEN the changelog checks read the versions
+         1. THEN a mismatched or missing version fails naming it
+         2. THEN repos with no manifest pass

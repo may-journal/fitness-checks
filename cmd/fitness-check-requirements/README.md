@@ -6,21 +6,18 @@ A requirement says why the requirement matters, how to measure it, and which acc
 
 ## Template
 
-Copy this into `docs/requirements/NNNN-kebab-title.md`. The comments explain each rule.
+Copy this into `docs/requirements/NNNN-kebab-title.md`. Each rule is under Rules.
 
-Write it as Biome formats Markdown: blank lines around the `-`, so it never underlines the numerator as a heading, and two-space nesting.
+Write it as Biome formats Markdown: blank lines around the `-`, so it never underlines the numerator as a heading. Nest by three spaces.
 
 ```
-<!-- File name is NNNN-kebab-title.md. NNNN matches the title ID, is unique in docs/requirements, and is never reused after deletion. -->
 # 0001 Offline Sync
 
 ## Why
-<!-- One sentence: what a person can do once this holds. -->
 
 I can keep writing when signal drops or is lost
 
 ## Measurement
-<!-- Numerator line, a "-" line, denominator line, each set apart by blank lines. Nothing else: no "Source:" line, since a code line number goes stale when the code moves. -->
 
 users who save locally
 
@@ -29,42 +26,37 @@ users who save locally
 users who have lost connection
 
 ## Requirements
-<!-- Top-level bullets are IDs: title ID + ".N", unique, never reused. -->
-<!-- Each ID nests exactly one Given, one When, one Then, one level (two spaces) deeper each, each line starting with its keyword. A second Given is a new ID. -->
-<!-- One Given may chain 2 to `requirements.maxSteps` steps as a numbered list from `1.`, each a When with one Then nested under it, as 0001.2 does. A single step stays a plain bullet. -->
-<!-- Cite step 2 of 0001.2 as `0001.2.2`; one test still proves the whole acceptance. -->
-<!-- A Given starts with an actor the system context declares, by name or Mermaid ID; see the architecture-actors check. -->
-<!-- Exactly one test is named for each ID, the way its language module names tests; the check's error names the test it expects. Delete the test when you delete the ID. -->
-- 0001.1
-  - Given Writer has no network
-    - When I edit an entry
-      - Then it is saved locally
-- 0001.2
-  - Given Writer has edits saved while offline
-    1. When the network returns
-       - Then the edits upload
-    2. When another device opens the entry
-       - Then it shows the uploaded edits
+
+1. Saves offline
+   1. GIVEN Writer has no network
+      1. WHEN I edit an entry
+         1. THEN it is saved locally
+2. Keeps uploaded edits
+   1. GIVEN Writer has edits saved while offline
+      1. WHEN the network returns
+         1. THEN the edits upload
+      2. WHEN another device opens the entry
+         1. THEN it shows the uploaded edits
 ```
 
 ## Rules
 
-- IDs: the file name's `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
+- IDs: the file is `NNNN-kebab-title.md`, its `NNNN` matches the title, and no two docs share it or one area, per [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 - Acceptance IDs: the title ID plus `.N`, unique in its doc, at most `requirements.maxAcceptances` per doc; the first one past fails.
 - Reuse: an ID git history shows removed fails if brought back; a commit removing every existing doc restarts that history.
-- Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty.
-- Measurement: numerator, `-`, denominator. A `Source:` line fails; `fitness requirements --fix` deletes every one.
-- Acceptance: one Given, then one When with one Then or a chain of steps, nested in order; the Given starts with an [actor](../fitness-check-architecture-actors/README.md).
+- Sections: exactly `## Why`, `## Measurement`, `## Requirements`, in that order, none empty. Why is one sentence on what a person can do once it holds.
+- Measurement: numerator, `-`, denominator, set apart by blank lines, nothing else. A `Source:` line fails; `fitness requirements --fix` deletes every one.
+- Acceptance: GIVENs, then WHENs with THENs or a chain of steps, numbered in order; the first GIVEN starts with an [actor](../fitness-check-architecture-actors/README.md).
 - Ownership: exactly one test named for each acceptance owns it. A test named for an undefined acceptance fails.
 - Every test: each top-level test in the repository must be named for an acceptance. Setup functions and helpers are not tests.
 
-Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
+The error for a missing test names the one it expects, and deleting an ID deletes its test. Each language module finds its tests and names the test that owns an ID, as its package documents. A comment or string never counts as a test. Run `fitness explain requirements` for the cap key and its default.
 
 ## Steps
 
-An acceptance may chain 2 to `requirements.maxSteps` When and Then steps under its one Given, as 0001.2 in the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
+An acceptance may chain 2 to `requirements.maxSteps` WHENs under its last GIVEN, as item 2 of the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
 
-- Numbering: a chain numbers its steps in order from `1.`, each a When with one Then nested under it.
+- Numbering: a chain numbers its WHENs in order from `1.`, each with its THENs numbered under it.
 - Failures: more steps than `requirements.maxSteps`, a gap, an unnumbered step or a numbered single step fail, naming the line.
 - Citing: step 2 of 0001.2 is `0001.2.2`; a test named for a step, such as `Test0001_2_2`, fails.
 - Checks: overlap reads every step, a deleted step brought back fails, and a chain counts once toward the cap.
@@ -79,7 +71,7 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 
 ## Gherkin
 
-[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) lets a doc number its acceptances instead of using bullets. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects.
+[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) lets a doc number its acceptances instead of using bullets. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects. Shared context sits in the GIVENs once, each WHEN says only what differs and each THEN gives its own result.
 
 ```markdown
 1. Opens to photos
@@ -105,25 +97,13 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Steps: two WHENs or more chain as steps `NNNN.N.K`, at most `requirements.maxSteps`.
 - Parser: it reads a second GIVEN or THEN in a row as And.
 
-## Migrations
-
-Each format change ships as a migration named by the acceptance that states it, so a repo moves either way. Each lives in its own folder under [migrations](migrations), named as the migration and holding its `up.go` and `down.go`. The registry there lists them oldest first.
-
-- `fitness requirements --fix` runs every migration up, after deleting `Source:` lines.
-- A migration rewrites only the Requirements section, dropping its HTML comments, so a commented-out acceptance stays out.
-- `fitness requirements --up 0003.2-gherkin` numbers bullets, naming each acceptance for its first WHEN.
-- A name an earlier acceptance took adds the first THEN. Commas stay to split, and names to reword.
-- Up writes a `Removed` line for each ID a bullet doc skips, and down drops them.
-- Up's version is the newest changelog entry the change adds, else the time of the run.
-- `fitness requirements --down 0003.2-gherkin` turns numbered items back into bullets without names.
-- Down joins extra GIVENs and THENs with "and".
-
 Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
 
 ## Behavior
 
 [Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.
 
+- Flags: any flag but `--fix`, such as the removed `--up` or `--down`, fails naming it.
 - No code: a repo with no file in a module's language passes with `filesChecked: 0`.
 - Not code: a file a module names a tool config, or a file `.gitattributes` marks `linguist-generated`.
 - Missing docs: a repo with such code and none in `docs/requirements` fails.

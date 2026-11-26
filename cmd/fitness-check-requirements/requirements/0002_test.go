@@ -48,6 +48,9 @@ func Test0002_1(t *testing.T) {
 			t.Errorf("%s never held 0001.2, so pkgs/a's deletion must not count against it:\n%s", doc, out)
 		}
 	}
+	if n := strings.Count(acceptance.Read(out), "0001.2 was deleted before"); n != 1 {
+		t.Errorf("only pkgs/a held 0001.2, so one doc must fail, got %d:\n%s", n, out)
+	}
 	if n := acceptance.Occurrences(calls, "-U100000"); n != 1 {
 		t.Errorf("requirements read the ID history of 3 package roots with %d git log calls, want 1", n)
 	}

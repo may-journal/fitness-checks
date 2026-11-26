@@ -14,57 +14,50 @@ Numbered acceptances
 
 ## Requirements
 
-- 0003.1
-  - Given Developer has numbered acceptances `requirements` reads
-    1. When each level numbers from 1 with keywords in caps
-       - Then it pairs steps with tests
-    2. When a keyword is not in caps
-       - Then it names the keyword
-    3. When an item is an AND or BUT
-       - Then it asks for the next GIVEN or THEN
-    4. When an item holds a comma outside code
-       - Then it asks to split it
-    5. When an item is misnumbered or misnamed or misplaced
-       - Then it names what it needs
-    6. When the parser rejects an item
-       - Then it fails at that line
-- 0003.2
-  - Given Developer runs migration `0003.2-gherkin`
-    1. When `--fix` or `--up` runs on bullets
-       - Then each acceptance is named for its first WHEN
-    2. When `--down` runs
-       - Then extra GIVENs and THENs join with and
-    3. When a flag names no migration
-       - Then it lists the migrations
-- 0003.3
-  - Given Developer moves a bullet doc to numbered items
-    - When `requirements` judges it
-      - Then its tests need no change
-- 0003.4
-  - Given Developer has committed numbered acceptances
-    1. When one is renamed in place
-       - Then it passes
-    2. When a commit moves one
-       - Then it names both IDs
-    3. When it moves back
-       - Then it passes
-- 0003.5
-  - Given Developer has committed numbered acceptances
-    1. When a commit removes one with its test
-       - Then it passes
-    2. When a `Removed` line holds items or lacks a version or reason
-       - Then it fails
-    3. When a test names a `Removed` acceptance
-       - Then it fails
-    4. When it is restored
-       - Then it fails as a reused ID
-    5. When `--up` meets a skipped ID
-       - Then it writes a versioned `Removed` line
-    6. When `--down` meets a `Removed` line
-       - Then the bullets skip its ID
-    7. When one commit removes one and appends it
-       - Then it passes
-- 0003.6
-  - Given Developer has a doc at the acceptance cap with `Removed` lines
-    - When `requirements` and `prose-budget` read it
-      - Then both pass
+1. Caps keywords
+   1. GIVEN Developer has numbered acceptances `requirements` reads
+      1. WHEN each level numbers from 1
+         1. THEN it pairs steps with tests
+      2. WHEN a keyword is not in caps
+         1. THEN it names the keyword
+      3. WHEN an item is an AND or BUT
+         1. THEN it asks for the next GIVEN or THEN
+      4. WHEN an item holds a comma outside code
+         1. THEN it asks to split
+      5. WHEN an item is misnumbered or misnamed
+         1. THEN it names the need
+      6. WHEN the parser rejects an item
+         1. THEN it fails at that line
+2. Removed in 2026.11.25.1830: the check no longer converts bullet docs
+3. Tests need no change
+   1. GIVEN Developer moves a bullet doc to numbered items
+      1. WHEN `requirements` judges it
+         1. THEN its tests need no change
+4. Renames and moves
+   1. GIVEN Developer has numbered acceptances
+      1. WHEN one is renamed in place
+         1. THEN it passes
+      2. WHEN a commit moves one
+         1. THEN it names both IDs
+      3. WHEN it moves back
+         1. THEN it passes
+5. Removed lines
+   1. GIVEN Developer has numbered acceptances
+      1. WHEN a commit removes one with its test
+         1. THEN it passes
+      2. WHEN a `Removed` line holds items or lacks a version or reason
+         1. THEN it fails
+      3. WHEN a test names a `Removed` acceptance
+         1. THEN it fails
+      4. WHEN it is restored
+         1. THEN it fails as reused
+      5. WHEN one commit removes one and appends it
+         1. THEN it passes
+6. Removed lines uncapped
+   1. GIVEN Developer has a doc at the cap with `Removed` lines
+      1. WHEN `requirements` and `prose-budget` read it
+         1. THEN both pass
+7. Unknown flags fail
+   1. GIVEN Developer runs `requirements` with a flag it does not have
+      1. WHEN the flag is a removed `--up` or `--down`
+         1. THEN it fails naming the flag

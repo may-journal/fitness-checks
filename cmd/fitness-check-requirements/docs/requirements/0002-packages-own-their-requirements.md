@@ -14,7 +14,9 @@ package requirement docs
 
 ## Requirements
 
-- 0002.1
-  - Given Developer has a monorepo whose `.fitnessrc.json` names package roots that each hold their own requirement docs
-    - When `requirements` reads their ID history
-      - Then one git log serves them all and each package keeps its own deleted IDs
+1. One log serves every package
+   1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names package roots
+   2. GIVEN each package root holds its own requirement docs
+      1. WHEN `requirements` reads their ID history
+         1. THEN one git log serves them all
+         2. THEN each package keeps its own deleted IDs

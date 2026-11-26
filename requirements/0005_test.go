@@ -119,7 +119,7 @@ func Test0005_2(t *testing.T) {
 				t.Errorf("mermaid-callouts must pass judging 1 file, got row %q", row(out, "mermaid-callouts"))
 			}
 		}},
-		{"missing repeated or unpaired callouts fail", func(t *testing.T) {
+		{"a missing or repeated callout fails, and so does an unpaired one", func(t *testing.T) {
 			t.Parallel()
 			out, code := mermaidCallouts(t, map[string]string{
 				"docs/flow.md": strings.Join([]string{

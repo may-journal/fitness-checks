@@ -14,35 +14,42 @@ repo files and settings checked
 
 ## Requirements
 
-- 0007.1
-  - Given Developer has tracked, ignored and imported `dist`, Maven and Gradle output
-    - When the source checks look for build output
-      - Then tracked, unignored or imported output fails with a fix
-- 0007.2
-  - Given Developer has plan files, mockups and review artifacts in folders, names and checklists
-    - When the source checks look for temporary design work
-      - Then each such file fails naming its rule, and maintained docs pass
-- 0007.3
-  - Given Developer has tracked text files that share blocks of lines
-    - When the source checks measure duplicated code
-      - Then a share past the limit fails naming each file, and generated or marked blocks pass
-- 0007.4
-  - Given Developer has string values used twice, three times or more across source and test files
-    - When the source checks count repeated values
-      - Then a value used three or more times fails with its count and places
-- 0007.5
-  - Given Developer has declared dependencies at, behind or missing from their latest versions
-    - When the source checks compare the pins with the registry
-      - Then each stale or missing one fails as `name: current → latest`, and an unreachable registry only adds info
-- 0007.6
-  - Given Developer has `.gitignore` patterns with and without a comment right above
-    - When the source checks read the ignore file
-      - Then each pattern without its own non-empty comment fails naming the line, and a repo with no file passes
-- 0007.7
-  - Given Developer has workflow `uses:` lines for may-journal paths at tags and shas
-    - When the source checks look up each pinned path
-      - Then a path missing at its ref fails naming file, line and ref, and other calls pass
-- 0007.8
-  - Given Developer has workflow jobs with or without a summary step, and inline shell in steps
-    - When the source checks read each workflow job
-      - Then a job with no `always()` summary step, an inline script, or invalid YAML fails naming the line
+1. Build output stays out
+   1. GIVEN Developer has tracked `dist` or Maven or Gradle output
+   2. GIVEN it has unignored or imported output
+      1. WHEN the source checks look for build output
+         1. THEN each fails with a fix
+2. Design scraps stay out
+   1. GIVEN Developer has plan files and mockups
+      1. WHEN the source checks look for temporary design work
+         1. THEN each such file fails naming its rule
+         2. THEN maintained docs pass
+3. Duplicates stay small
+   1. GIVEN Developer has text files that share blocks of lines
+      1. WHEN the source checks measure duplicated code
+         1. THEN a share past the limit fails naming each file
+         2. THEN generated or marked blocks pass
+4. Repeated strings get names
+   1. GIVEN Developer has string values used several times
+      1. WHEN the source checks count repeated values
+         1. THEN a value used three or more times fails with its count and places
+5. Dependencies stay current
+   1. GIVEN Developer has dependencies behind their latest versions
+      1. WHEN the source checks compare the pins with the registry
+         1. THEN a stale or missing one fails as `name: current → latest`
+         2. THEN an unreachable registry only adds info
+6. Ignores say why
+   1. GIVEN Developer has `.gitignore` patterns with and without a comment right above
+      1. WHEN the source checks read the ignore file
+         1. THEN a pattern without its own comment fails naming the line
+         2. THEN a repo with no file passes
+7. Workflow calls resolve
+   1. GIVEN Developer has workflow `uses:` lines at tags and shas
+      1. WHEN the source checks look up each pinned path
+         1. THEN a path missing at its ref fails naming file and line and ref
+         2. THEN other calls pass
+8. Workflow jobs stay clean
+   1. GIVEN Developer has workflow jobs with or without a summary step
+      1. WHEN the source checks read each workflow job
+         1. THEN a job with no `always()` summary fails naming the line
+         2. THEN an inline script or invalid YAML fails naming the line
