@@ -10,117 +10,6 @@ import (
 	"time"
 )
 
-func Test0007_2(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"no-plans-dir rejects a plan file in docs plans", func(t *testing.T) {
-			t.Parallel()
-			out, code := noPlansDir(t, map[string]string{"docs/plans/03-publish.md": "# Publish\n"})
-			sees(t, out, code, 1, inPlansFolder("docs/plans/03-publish.md"))
-		}},
-		{"no-plans-dir rejects nested plan files", func(t *testing.T) {
-			t.Parallel()
-			out, code := noPlansDir(t, map[string]string{"docs/plans/archive/old.md": "# Old\n"})
-			sees(t, out, code, 1, inPlansFolder("docs/plans/archive/old.md"))
-		}},
-		{"no-plans-dir passes maintained docs and shipped images", func(t *testing.T) {
-			t.Parallel()
-			files := map[string]string{
-				"docs/notes.md":         "# Notes\n",
-				"assets/screen.png":     "png",
-				"docs/planner-guide.md": "# Planner guide\n\nA Plan lists its steps under a heading.\n",
-				"go/plan_test.go":       "package plan\n\nconst body = \"## What needs to happen\\n\\n- [ ] Ship it.\\n\"\n",
-			}
-			repo := example(t, "happyRepo", files)
-			out, code := fitness(t, repo, nil, "no-plans-dir")
-			sees(t, out, code, 0, "All 1 checks passed")
-			for name := range files {
-				if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(name))); err != nil {
-					t.Errorf("no-plans-dir must leave %s in place: %v", name, err)
-				}
-			}
-		}},
-		{"no-plans-dir rejects files in design artifact folders", func(t *testing.T) {
-			t.Parallel()
-			out, code := noPlansDir(t, map[string]string{
-				"src/Plans/next.md":               "# Next\n",
-				"design/mockups/home.png":         "png",
-				"reports/validation/run.txt":      "ok",
-				"review-artifacts/diff.txt":       "diff",
-				"assets/icons/validation-ok.png":  "png",
-				"docs/validation-checklist.md":    "# Validation\n",
-				"tests/fixtures/review/input.txt": "in",
-			})
-			sees(t, out, code, 1,
-				"design/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-				"reports/validation/run.txt: a `validation` folder holds temporary work; "+toPRComment,
-				"review-artifacts/diff.txt: a `review-artifacts` folder holds temporary work; "+toPRComment,
-				"src/Plans/next.md: a `plans` folder holds temporary work; "+toPlanIssue,
-			)
-			inOrder(t, out, "design/mockups/home.png:", "reports/validation/run.txt:", "review-artifacts/diff.txt:", "src/Plans/next.md:")
-			for _, kept := range []string{"assets/icons/validation-ok.png", "docs/validation-checklist.md", "tests/fixtures/review/input.txt"} {
-				if strings.Contains(out, kept+":") {
-					t.Errorf("%s names no artifact folder, yet it was reported:\n%s", kept, out)
-				}
-			}
-		}},
-		{"no-plans-dir rejects plan and mockup file names", func(t *testing.T) {
-			t.Parallel()
-			out, code := noPlansDir(t, map[string]string{
-				"docs/launch-plan.md":  "# Launch\n",
-				"img/home-mockup.png":  "png",
-				"pr-42-before.png":     "png",
-				"docs/planner.md":      "# Planner\n",
-				"img/print-before.png": "png",
-			})
-			sees(t, out, code, 1,
-				"docs/launch-plan.md: a `*-plan.md` file is a plan; "+toPlanIssue,
-				"img/home-mockup.png: a `*-mockup.*` file is a design mockup; "+toPlanDesign,
-				"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request; "+toPRComment,
-			)
-			for _, kept := range []string{"docs/planner.md", "img/print-before.png"} {
-				if strings.Contains(out, kept+":") {
-					t.Errorf("%s matches no artifact name, yet it was reported:\n%s", kept, out)
-				}
-			}
-		}},
-		{"no-plans-dir rejects a needs checklist outside github", func(t *testing.T) {
-			t.Parallel()
-			out, code := noPlansDir(t, map[string]string{
-				"docs/ship.md":                   planChecklist,
-				".github/ISSUE_TEMPLATE/plan.md": planChecklist,
-				"docs/what-needs-to-happen.md":   "# Notes\n\n## What needs to happen\n\nNothing yet.\n",
-			})
-			sees(t, out, code, 1, "docs/ship.md: a `## What needs to happen` checklist is a plan; "+toPlanIssue)
-			for _, kept := range []string{".github/ISSUE_TEMPLATE/plan.md", "docs/what-needs-to-happen.md"} {
-				if strings.Contains(out, kept+":") {
-					t.Errorf("%s holds no Plan checklist outside .github/, yet it was reported:\n%s", kept, out)
-				}
-			}
-		}},
-		{"no-plans-dir rejects staged and renamed plan files", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{"docs/home.png": "png"})
-			write(t, repo, map[string]string{"docs/plans/next.md": "# Next\n"})
-			git(t, repo, "add", "docs/plans/next.md")
-			mustDo(t, os.MkdirAll(filepath.Join(repo, "docs", "mockups"), 0o755))
-			git(t, repo, "mv", "docs/home.png", "docs/mockups/home.png")
-			out, code := fitness(t, repo, nil, "no-plans-dir")
-			sees(t, out, code, 1,
-				"docs/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-				inPlansFolder("docs/plans/next.md"),
-			)
-		}},
-		{"no-plans-dir fails when the index is unreadable", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", nil)
-			mustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index"), 0o644))
-			out, code := fitness(t, repo, nil, "no-plans-dir")
-			sees(t, out, code, 1, "cannot list the repo's files")
-		}},
-	})
-}
-
 func Test0007_4(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -407,13 +296,6 @@ func Test0007_8(t *testing.T) {
 			}
 		}},
 	})
-}
-
-// noPlansDir runs `fitness-install -- no-plans-dir` on happyRepo with files
-// written over it.
-func noPlansDir(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "no-plans-dir")
 }
 
 // Where the check sends each kind of temporary work.

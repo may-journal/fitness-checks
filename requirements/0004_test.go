@@ -64,95 +64,6 @@ func Test0004_1(t *testing.T) {
 	})
 }
 
-func Test0004_2(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"asterisk bold and italic", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalicReadme(t, "Some **strong** and *soft* words.\n")
-			sees(t, out, code, 1,
-				`README.md: disallowed **bold**`+noBoldItalicRule+`"**strong**"`,
-				`README.md: disallowed *italic*`+noBoldItalicRule+`"*soft*"`)
-		}},
-		{"underscore bold and italic", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalicReadme(t, "Some __strong__ and _soft_ words.\n")
-			sees(t, out, code, 1,
-				`README.md: disallowed __bold__`+noBoldItalicRule+`"__strong__"`,
-				`README.md: disallowed _italic_`+noBoldItalicRule+`"_soft_"`)
-		}},
-		{"emphasis inside code passes", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalicReadme(t, "Use `**strong**` here.\n\n```\n_soft_ and **strong**\n```\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"underscores inside a markdown link", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalicReadme(t, "See [the _dev_ path](https://example.com/_dev_/to_page_).\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"asterisk list item markers pass", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalicReadme(t, "* first item\n* second item\n* third item\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"italic text in a body", func(t *testing.T) {
-			t.Parallel()
-			out, code := noBoldItalic(t, map[string]string{"body.md": "Hello _there_.\n"}, "--body-file", "body.md")
-			sees(t, out, code, 1, `(description): disallowed _italic_`+noBoldItalicRule+`"_there_"`)
-		}},
-		{"changelog bold beside release scopes", func(t *testing.T) {
-			t.Parallel()
-			release := strings.Replace(notesRelease(notesTwo), "change it", "change **everything**", 1)
-			out, code := notesChecks(t, notesHead+release+notesEntry, "markdown-no-bold-italic")
-			sees(t, out, code, 1, `CHANGELOG.md: disallowed **bold**`+noBoldItalicRule+`"**everything**"`)
-			if n := strings.Count(out, "disallowed"); n != 1 {
-				t.Errorf("only the bold outside a scope must fail, got %d findings:\n%s", n, out)
-			}
-		}},
-		{"negated sentence then restating sentence", func(t *testing.T) {
-			t.Parallel()
-			out, code := reframing(t, "It's not a workout. It's a lifestyle.\n\nThey’re not bugs.\n\nThey’re features.\n")
-			sees(t, out, code, 1, reframingHint+`"It's not a workout It's a lifestyle"`,
-				reframingHint+`"They’re not bugs They’re features"`)
-		}},
-		{"single sentence negates then pivots", func(t *testing.T) {
-			t.Parallel()
-			out, code := reframing(t, "This isn't about speed; it's about consistency.\n")
-			sees(t, out, code, 1, reframingHint+`"This isn't about speed; it's about consistency"`)
-		}},
-		{"ordinary negations pass", func(t *testing.T) {
-			t.Parallel()
-			out, code := reframing(t, "It's not ready yet. The file is not found, but the fallback loads.\n\n"+
-				"We should not merge, but wait for review. Not only fast, but also correct.\n\n"+
-				"It's not X. It's not Y.\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"pattern in front matter or code", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{
-				"README.md": "---\ntitle: It's not X. It's Y.\n---\n\n# App\n\n```\nIt's not a workout. It's a lifestyle.\n```\n\n" +
-					"## It's not a workout. It's a lifestyle.\n\n" +
-					"Use `It's not a workout. It's a lifestyle.` verbatim.\n",
-			})
-			out, code := fitness(t, repo, nil, "no-contrastive-reframing")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"pattern inside quotes passes", func(t *testing.T) {
-			t.Parallel()
-			out, code := reframing(t, `The phrase "It's not a workout. It's a lifestyle." is banned.`+"\n\n"+
-				"The phrase “It's not a workout. It's a lifestyle.” is banned.\n")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"long reframed sentence is shortened", func(t *testing.T) {
-			t.Parallel()
-			long := "It's not " + strings.Repeat("a very long clause ", 10) + ", but simple."
-			out, code := reframing(t, long+"\n")
-			sees(t, out, code, 1, reframingHint+`"`+long[:80]+`…"`)
-		}},
-	})
-}
-
 func Test0004_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -218,33 +129,6 @@ func proseBudget(t *testing.T, files map[string]string, args ...string) (string,
 	t.Helper()
 	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"prose-budget"}, args...)...)
 }
-
-// noBoldItalic runs `fitness-install -- markdown-no-bold-italic <args>` on
-// happyRepo with files written over it.
-func noBoldItalic(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"markdown-no-bold-italic"}, args...)...)
-}
-
-// noBoldItalicReadme runs the check with text added to happyRepo's README.
-func noBoldItalicReadme(t *testing.T, text string) (string, int) {
-	t.Helper()
-	return noBoldItalic(t, map[string]string{"README.md": readme + "\n" + text})
-}
-
-// noBoldItalicRule is the advice every finding carries.
-const noBoldItalicRule = " (use only when explicitly required): "
-
-// reframing runs `fitness-install -- no-contrastive-reframing` on happyRepo
-// with prose appended to its README.
-func reframing(t *testing.T, prose string) (string, int) {
-	t.Helper()
-	repo := example(t, "happyRepo", map[string]string{"README.md": readme + "\n" + prose})
-	return fitness(t, repo, nil, "no-contrastive-reframing")
-}
-
-// reframingHint is the start of every failure message.
-const reframingHint = `README.md: rewrite as a direct statement, not the "not X, it's Y" pattern: `
 
 // textReadability runs `fitness-install -- text-readability <args>` on
 // happyRepo with files written over it.

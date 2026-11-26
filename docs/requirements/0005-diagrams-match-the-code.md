@@ -14,24 +14,10 @@ diagrams checked
 
 ## Requirements
 
-1. Diagrams parse
-   1. GIVEN Developer has Mermaid diagrams in docs and PR bodies
-      1. WHEN the Mermaid checks parse each diagram
-         1. THEN a broken one fails naming its line
-2. Callouts pair with rows
-   1. GIVEN Developer has diagrams with callouts and table rows
-      1. WHEN the Mermaid checks match callouts to rows
-         1. THEN a missing or repeated callout fails naming its line
-3. Letters run in order
-   1. GIVEN Developer has connectors with numbers or letters out of order
-      1. WHEN the Mermaid checks read connector labels
-         1. THEN bad letters fail
-         2. THEN `--fix` gives each the next free letter
-4. Tables are complete
-   1. GIVEN Developer has diagrams with callout tables and legends
-      1. WHEN the Mermaid checks read the diagram and its table
-         1. THEN a missing Why or legend fails
-         2. THEN an extra paragraph fails
+1. Removed in 2026.11.26.0300: moved to the mermaid-syntax doc
+2. Removed in 2026.11.26.0300: moved to the mermaid-callouts doc
+3. Removed in 2026.11.26.0300: moved to the mermaid-callouts doc
+4. Removed in 2026.11.26.0300: moved to the mermaid-callout-why and mermaid-legend and mermaid-diagram-table-gap and mermaid-diagram-prose docs
 5. Removed in 2026.11.25.0800: moved to the `architecture-contract` doc
 6. Removed in 2026.11.25.0800: moved to the `architecture-journey` and `architecture-actors` docs
 7. Removed in 2026.11.25.0800: moved to the `architecture-containers` and `architecture-components` docs

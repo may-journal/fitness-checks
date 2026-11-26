@@ -4,6 +4,4 @@ Requires each numbered callout table to carry a "Why" column, and flags numbered
 
 ## Behavior
 
-For each numbered callout table, it requires a `Why` column (case-insensitive) in the header. It warns when a callout row leaves its `Why` cell empty. A callout row opens with a node number, such as `1`, or a connector letter, such as `A`, as [mermaid-callouts](../fitness-check-mermaid-callouts/README.md) reads them.
-
-A file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-callout-why` for the files it reads.
+[Requirement 0001](docs/requirements/0001-callout-rows-say-why.md) states what this check does, and a test case named for each step proves it.

@@ -4,6 +4,4 @@ Warns when a callout description at one C4 level repeats the previous level verb
 
 ## Behavior
 
-Across numbered `architecture/NN-*.md` files, it compares callout descriptions at adjacent levels. It warns when a lower level repeats an upper level verbatim, adding nothing new. It compares only exact, normalized matches, to stay low on false positives.
-
-`filesChecked` counts the numbered level files, whether or not they contain mermaid blocks.
+[Requirement 0001](docs/requirements/0001-lower-levels-add-new-detail.md) states what this check does, and a test case named for each step proves it.

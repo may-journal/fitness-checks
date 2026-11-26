@@ -508,82 +508,6 @@ func Test0006_3(t *testing.T) {
 	})
 }
 
-func Test0006_5(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"disable directives are listed", func(t *testing.T) {
-			t.Parallel()
-			legacy := "export const x = 1;\n" + noEslintDisableNext + "console.log(x);\n" +
-				"const y = 2; // eslint-disable-line\n/* eslint-disable */\n"
-			out, code := noEslintDisableCheck(t, map[string]string{"src/legacy.ts": legacy})
-			sees(t, out, code, 1,
-				"src/legacy.ts:2: eslint-disable-next-line",
-				"src/legacy.ts:4: eslint-disable-line",
-				"src/legacy.ts:5: eslint-disable")
-		}},
-		{"files without directives pass", func(t *testing.T) {
-			t.Parallel()
-			out, code := noEslintDisableCheck(t, map[string]string{
-				"src/a.ts": "export const a = 1;\n",
-				"src/b.js": "export const b = 2;\n",
-			})
-			sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
-		}},
-		{"directive text in strings fails", func(t *testing.T) {
-			t.Parallel()
-			files := map[string]string{}
-			var want []string
-			for _, ext := range noEslintDisableExts {
-				files["src/f"+ext] = "export const hint = 'add eslint-disable-next-line to skip';\n"
-				want = append(want, "src/f"+ext+":1: eslint-disable-next-line")
-			}
-			out, code := noEslintDisableCheck(t, files)
-			sees(t, out, code, 1, append(want, "7 files scanned")...)
-		}},
-		{"directive text in Markdown passes", func(t *testing.T) {
-			t.Parallel()
-			out, code := noEslintDisableCheck(t, map[string]string{
-				"docs/lint.md": "Never write " + noEslintDisableNext,
-				"src/a.ts":     "export const a = 1;\n",
-			})
-			sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
-		}},
-		{"directive scan with no source passes", func(t *testing.T) {
-			t.Parallel()
-			out, code := noEslintDisableCheck(t, nil)
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "no-eslint-disable")
-		}},
-		{"node_modules and dist are scanned", func(t *testing.T) {
-			t.Parallel()
-			out, code := noEslintDisableCheck(t, map[string]string{
-				"node_modules/pkg/index.js": "/* eslint-disable */\n",
-				"dist/out.js":               "/* eslint-disable */\n",
-				"src/clean.ts":              "export const a = 1;\n",
-			})
-			sees(t, out, code, 1,
-				"node_modules/pkg/index.js:1: eslint-disable",
-				"dist/out.js:1: eslint-disable",
-				"3 files scanned")
-		}},
-		{"untracked directive file passes", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{"src/a.ts": "export const a = 1;\n"})
-			write(t, repo, map[string]string{"src/scratch.ts": noEslintDisableNext})
-			out, code := noEslintDisableRun(t, repo)
-			sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
-		}},
-		{"directive scan on staged file only", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{"src/old.ts": noEslintDisableNext})
-			write(t, repo, map[string]string{"src/new.ts": "export const a = 1;\n"})
-			git(t, repo, "add", "src/new.ts")
-			out, code := noEslintDisableRun(t, repo)
-			sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
-		}},
-	})
-}
-
 func Test0006_6(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -1060,24 +984,6 @@ func biomeVersion(v string) response {
 
 // biomeMany is more findings than Biome's default cap of 20 diagnostics.
 const biomeMany = 25
-
-// noEslintDisableRun runs `fitness-install -- no-eslint-disable <args>` in repo.
-func noEslintDisableRun(t *testing.T, repo string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, repo, nil, append([]string{"no-eslint-disable"}, args...)...)
-}
-
-// noEslintDisableCheck runs the check on happyRepo with files written over it.
-func noEslintDisableCheck(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return noEslintDisableRun(t, example(t, "happyRepo", files))
-}
-
-// noEslintDisableNext is a next-line directive comment.
-const noEslintDisableNext = "// eslint-disable-next-line no-console\n"
-
-// noEslintDisableExts are the extensions the check scans.
-var noEslintDisableExts = []string{".cts", ".mts", ".ts", ".cjs", ".js", ".mjs", ".tsx"}
 
 // coverageExclude runs `fitness-install -- vitest-coverage-exclude` on
 // happyRepo with files written over it.

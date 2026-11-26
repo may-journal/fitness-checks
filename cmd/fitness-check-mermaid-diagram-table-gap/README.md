@@ -4,12 +4,4 @@ Flags loose markdown prose wedged between a numbered mermaid diagram (or its leg
 
 ## Behavior
 
-The C4 doc layout is diagram → legend → one caption line → callout table, with every description in the table. This flags any non-blank markdown line in the gap between the table and the last mermaid block before it. That block is the legend when present, else the diagram. Such a paragraph just duplicates the table.
-
-The single caption line is allowed: a line that opens with `Numbers` and states they `match the callout table`. Any wording in between and any trailing clause after is fine. Prose before the diagram and prose after the table are both left alone — only the diagram-to-table gap is policed.
-
-A sibling check, `mermaid-diagram-prose`, owns the different rule of prose inside the diagram's own labels. This check never looks inside a block; it looks at the markdown lines around them.
-
-## Scope
-
-A file with neither a mermaid diagram nor a callout table is skipped and doesn't count toward `filesChecked`. Run `fitness explain mermaid-diagram-table-gap` for the files it reads.
+[Requirement 0001](docs/requirements/0001-no-prose-between-diagram-and-table.md) states what this check does, and a test case named for each step proves it.
