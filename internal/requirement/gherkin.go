@@ -52,7 +52,7 @@ const commaError = "split this item at its comma; an extra condition is the next
 
 // joinsClauses matches a lowercase "and" or "but" that can join two clauses.
 // A step states one condition or result, so each one splits at the word.
-var joinsClauses = regexp.MustCompile(`\b(and|but)\b`)
+var joinsClauses = regexp.MustCompile(`(?:^|\s)(and|but)(?:\s|$)`)
 
 // quoted matches text in straight or curly double quotes, which a step
 // repeats as written.
@@ -251,7 +251,11 @@ func hasComma(text string) bool {
 // joinWord is the lowercase "and" or "but" of text outside code and quotes,
 // or "" when it holds none.
 func joinWord(text string) string {
-	return joinsClauses.FindString(quoted.ReplaceAllString(codeSpan.ReplaceAllString(text, ""), ""))
+	m := joinsClauses.FindStringSubmatch(quoted.ReplaceAllString(codeSpan.ReplaceAllString(text, ""), ""))
+	if m == nil {
+		return ""
+	}
+	return m[1]
 }
 
 // gherkinText is the acceptances as the Cucumber parser reads them, each on

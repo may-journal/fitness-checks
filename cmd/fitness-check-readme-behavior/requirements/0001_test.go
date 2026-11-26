@@ -133,7 +133,7 @@ func Test0001_6(t *testing.T) {
 	})
 	t.Run("0001.6.2 the words in a fence or a plain sentence pass", func(t *testing.T) {
 		t.Parallel()
-		out, code := judged(t, "gofmt", readmeOf(link, command("gofmt"))+"\n## Notes\n\nWhen it runs it formats.\n\n```\n- When it runs\n```\n")
+		out, code := judged(t, "gofmt", readmeOf(link, command("gofmt"))+"\n## Notes\n\nWhen it runs it formats.\n\n```\n- When it runs\n```\n\n~~~\n- When it runs\n~~~\n\n````\n```\n- When it runs\n```\n- Then it passes\n````\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
