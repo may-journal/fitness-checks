@@ -157,3 +157,24 @@ func Reqs(body string) map[string]string {
 func WithSource(doc, cite string) string {
 	return strings.Replace(doc, "## Requirements", "Source: "+cite+"\n\n## Requirements", 1)
 }
+
+// Monorepo is GoRepo with packages pkgs/a and pkgs/b, each with its own
+// requirement 0001 and test, named in .fitnessrc.json when packages is set.
+func Monorepo(packages bool) map[string]string {
+	rc := `{"policy": "external", "checks": ["requirements"]}`
+	if packages {
+		rc = `{"policy": "external", "checks": ["requirements"], "packages": ["pkgs/*"]}`
+	}
+	repo := With(GoRepo(), map[string]string{".fitnessrc.json": rc + "\n"})
+	for _, name := range []string{"a", "b"} {
+		repo["pkgs/"+name+"/"+name+".go"] = "// Package " + name + " adds numbers.\npackage " + name + "\n"
+		repo[PackageDoc(name)] = RequirementDoc("0001.1")
+		repo["pkgs/"+name+"/requirements/0001_test.go"] = TestFile("requirements", "Test0001_1")
+	}
+	return repo
+}
+
+// PackageDoc is the path of requirement 0001 in package pkgs/<name>.
+func PackageDoc(name string) string {
+	return "pkgs/" + name + "/docs/requirements/0001-adds-numbers.md"
+}

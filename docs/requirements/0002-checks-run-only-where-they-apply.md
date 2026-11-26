@@ -33,16 +33,10 @@ Checks
          1. THEN it skips them and names them as info
          2. THEN it judges the rest
 4. Removed in 2026.11.26.0000: moved to the read-repo-first check's own requirement
-5. Removed in 2026.11.26.0300: moved to the no-fitness-front-matter doc
+5. Removed in 2026.11.26.0400: moved to the no-fitness-front-matter check's own requirement
 6. Large repos stay fast
    1. GIVEN Developer has a large tree with a long branch
    2. GIVEN the tree has hundreds of docs and changed files
       1. WHEN the repo checks judge it
          1. THEN each gives its verdict with only a few git calls in all
-7. Monorepos own packages
-   1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names its package folders
-   2. GIVEN another repo names none
-      1. WHEN the requirement checks judge its docs and tests
-         1. THEN each package with code owns its docs and tests
-         2. THEN 0001 repeats only across packages
-         3. THEN a repo naming none is one
+7. Removed in 2026.11.26.0400: moved to the requirements and requirements-changed checks' own requirements

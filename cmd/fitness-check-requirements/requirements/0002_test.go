@@ -55,3 +55,60 @@ func Test0002_1(t *testing.T) {
 		t.Errorf("requirements read the ID history of 3 package roots with %d git log calls, want 1", n)
 	}
 }
+
+func Test0002_2(t *testing.T) {
+	t.Parallel()
+	t.Run("0002.2.1 each package with code owns its docs and tests", func(t *testing.T) {
+		t.Parallel()
+		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.Monorepo(true)), nil, "requirements")
+		acceptance.Sees(t, out, code, 0)
+		out, code = acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Monorepo(true), map[string]string{
+			packageDoc("a"): acceptance.RequirementDoc("0001.1", "0001.2"),
+		})), nil, "requirements")
+		acceptance.Sees(t, out, code, 1, packageDoc("a")+":21: 0001.2 has no test")
+		out, code = acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Monorepo(true), map[string]string{
+			packageDoc("b"): "", "pkgs/b/requirements/0001_test.go": "",
+		})), nil, "requirements")
+		acceptance.Sees(t, out, code, 1, "pkgs/b/docs/requirements/ has no requirement docs")
+		out, code = acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Monorepo(true), map[string]string{"pkgs/c/README.md": "# Shared assets\n"})), nil, "requirements")
+		acceptance.Sees(t, out, code, 0)
+	})
+	t.Run("0002.2.2 a number repeats only across packages", func(t *testing.T) {
+		t.Parallel()
+		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Monorepo(true), map[string]string{
+			"pkgs/a/docs/requirements/0001-other.md": acceptance.RequirementDoc("0001.1"),
+		})), nil, "requirements")
+		acceptance.Sees(t, out, code, 1, "requirement 0001 is used by "+packageDoc("a")+", pkgs/a/docs/requirements/0001-other.md")
+		if strings.Contains(out, "docs/requirements/0001-adds-numbers.md, pkgs/") {
+			t.Errorf("the repo root's 0001 must not clash with a package's:\n%s", out)
+		}
+	})
+	t.Run("0002.2.3 a repo naming no packages is one package", func(t *testing.T) {
+		t.Parallel()
+		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.Monorepo(false)), nil, "requirements")
+		acceptance.Sees(t, out, code, 1, "0001.1 is owned by 3 tests")
+	})
+}
+
+func Test0002_3(t *testing.T) {
+	t.Parallel()
+	named := "1. Adds numbers\n   1. GIVEN Developer has two numbers\n      1. WHEN the `semantic-commit` check reads them\n         1. THEN it gets their sum\n"
+	given := func(rootDoc, packageDoc string) map[string]string {
+		return acceptance.With(acceptance.With(acceptance.Monorepo(true), owning("fitness-check-semantic-commit", "0001.1")), map[string]string{
+			acceptance.PairedDoc: acceptance.DocWith(rootDoc),
+			"pkgs/fitness-check-semantic-commit/docs/requirements/0001-adds-numbers.md": acceptance.DocWith(packageDoc),
+		})
+	}
+	t.Run("0002.3.1 a root acceptance naming a single check fails naming both", func(t *testing.T) {
+		t.Parallel()
+		out, code := checked(t, given(named, acceptance.Acceptances("0001.1")))
+		acceptance.Sees(t, out, code, 1, "acceptance 0001.1 names the semantic-commit check; move it to that check's own requirement doc")
+	})
+	t.Run("0002.3.2 a package doc or a Removed line naming a check passes", func(t *testing.T) {
+		t.Parallel()
+		plain := strings.Replace(named, "the `semantic-commit` check", "he", 1)
+		removed := plain + "2. Removed in 2026.11.26.0400: moved to the semantic-commit check's own requirement\n"
+		out, code := checked(t, given(removed, named))
+		acceptance.Sees(t, out, code, 0)
+	})
+}

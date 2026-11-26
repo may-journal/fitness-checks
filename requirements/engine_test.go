@@ -19,6 +19,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/may-journal/fitness-checks/internal/acceptance"
 )
 
 // allPassedWith is the summary of an all-passing run with extra checks beyond
@@ -413,3 +415,18 @@ func onlyJSON(t *testing.T, out string) {
 		t.Errorf("stdout must hold only the hook's JSON:\n%s", out)
 	}
 }
+
+// edited is body with one more function, a code change that keeps Go and
+// Swift valid.
+func edited(body string) string {
+	return body + "\nfunc oneMore() {}\n"
+}
+
+// reworded is a requirement doc with one more word in its Why, changing what
+// it says, not only its formatting.
+func reworded(doc string) string {
+	return strings.Replace(doc, "by hand.", "by hand at all.", 1)
+}
+
+// pairedDoc is the path of requirement 0001 in goRepo.
+const pairedDoc = acceptance.PairedDoc

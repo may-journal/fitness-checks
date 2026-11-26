@@ -3,54 +3,11 @@ package requirements
 import (
 	"encoding/json"
 	"strconv"
-	"strings"
 	"testing"
 )
 
 // The Given files a user's repo adds to happyRepo. They live here, not as
 // tracked example repos, so this repo's own checks never judge them.
-
-// twoRepo is pairedRepo whose one test file proves requirements 0001 and 0002.
-// Requirement 0002 covers its own area, so the two docs never overlap.
-func twoRepo() map[string]string {
-	doubles := "- 0002.1\n  - Given one number\n    - When I double it\n      - Then I get twice that number\n"
-	return with(pairedRepo(), map[string]string{
-		"reqs/0001_test.go":                    "",
-		"reqs/0001_0002_test.go":               testFile("reqs", "Test0001_1", "Test0002_1"),
-		"docs/requirements/0002-adds-again.md": strings.Replace(docWith(doubles), "0001 Adds Numbers", "0002 Adds Again", 1),
-	})
-}
-
-// swiftRepo is a Swift package whose Swift Testing test test0001_1 owns
-// 0001.1, beside a shared helper that imports apple-ui-testing-library.
-func swiftRepo() map[string]string {
-	return map[string]string{
-		swiftScreens:                             "import UITestingLibrary\n\n/// Screens every test renders.\nenum Screens {}\n",
-		"Package.swift":                          "// swift-tools-version:5.9\nimport PackageDescription\n\nlet package = Package(name: \"Adder\")\n",
-		"Sources/Adder/Adder.swift":              "/// Adds numbers.\npublic enum Adder {\n  /// Returns the sum of a and b.\n  public static func add(_ a: Int, _ b: Int) -> Int { a + b }\n}\n",
-		swiftTest:                                swiftTestingFile("test0001_1"),
-		"docs/requirements/0001-adds-numbers.md": docWith(acceptances("0001.1")),
-	}
-}
-
-// swiftTestingFile is a Swift Testing suite declaring one empty test per
-// name.
-func swiftTestingFile(names ...string) string {
-	body := "import Testing\n\n@MainActor @Suite struct AdderSpec {\n"
-	for _, n := range names {
-		body += "  @Test func " + n + "() async throws {}\n"
-	}
-	return body + "}\n"
-}
-
-// xcTestFile is an XCTest case class declaring one empty test per name.
-func xcTestFile(names ...string) string {
-	body := "import XCTest\n\nfinal class AdderTests: XCTestCase {\n"
-	for _, n := range names {
-		body += "  func " + n + "() {}\n"
-	}
-	return body + "}\n"
-}
 
 // hungTool is a JavaScript repo whose own prettier runs prelude, then hangs
 // after starting a child process. The child names prettier.pid on its command
@@ -112,40 +69,6 @@ func planViewBy(t *testing.T, n int, body string, labels []string, comments ...c
 	})
 	mustDo(t, err)
 	return response{Match: []string{"issue view " + itoa(n) + " ", "--json url,body,labels,comments"}, Stdout: string(out) + "\n"}
-}
-
-// junitRepo is a Maven project whose JUnit test test0001_1 owns 0001.1.
-func junitRepo() map[string]string {
-	return map[string]string{
-		"pom.xml":                                "<project/>\n",
-		"src/main/java/Adder.java":               "/** Adds numbers. */\nclass Adder {\n  static int add(int a, int b) {\n    return a + b;\n  }\n}\n",
-		"src/test/java/AdderTest.java":           junitFile("AdderTest", "test0001_1"),
-		"docs/requirements/0001-adds-numbers.md": docWith(acceptances("0001.1")),
-	}
-}
-
-// junitFile is a JUnit test class declaring one empty test per name.
-func junitFile(class string, names ...string) string {
-	body := "import org.junit.jupiter.api.Test;\n\nclass " + class + " {\n"
-	for _, n := range names {
-		body += "  @Test\n  void " + n + "() {}\n"
-	}
-	return body + "}\n"
-}
-
-// scriptRepo is a TypeScript project whose vitest test titled "0001.1 …"
-// owns 0001.1.
-func scriptRepo() map[string]string {
-	return map[string]string{
-		"src/adder.ts":                           "/** Adds numbers. */\nexport const add = (a: number, b: number): number => a + b;\n",
-		"tests/adder.test.ts":                    vitestFile(`test("0001.1 adds two numbers", () => {});`),
-		"docs/requirements/0001-adds-numbers.md": docWith(acceptances("0001.1")),
-	}
-}
-
-// vitestFile is a vitest test file holding the given statements.
-func vitestFile(statements ...string) string {
-	return "import { describe, expect, it, test } from \"vitest\";\n\n" + strings.Join(statements, "\n") + "\n"
 }
 
 // architectedRepo is a Go service whose requirement, owning test, and five
