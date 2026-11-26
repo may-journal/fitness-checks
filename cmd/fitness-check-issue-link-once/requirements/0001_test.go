@@ -22,27 +22,39 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a repeated link fails naming the earlier commit", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it fails naming the issue", func(t *testing.T) {
+		t.Parallel()
+		repo := onGitHub(t, "topic")
+		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
+		out, code := check(t, repo, "fix(app): more\n\nPlan #12")
+		acceptance.Sees(t, out, code, 1, ghRepo+`#12 is already linked by commit`)
+	})
+	t.Run("0001.1.2.1.2 it fails naming the earlier commit", func(t *testing.T) {
+		t.Parallel()
+		repo := onGitHub(t, "topic")
+		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
+		out, code := check(t, repo, "fix(app): more\n\nPlan #12")
+		acceptance.Sees(t, out, code, 1, `("feat(app): start")`)
+	})
+	t.Run("0001.1.2.1.3 a link by URL fails the same way", func(t *testing.T) {
 		t.Parallel()
 		repo := onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
 		out, code := check(t, repo, "fix(app): more\n\nSee https://github.com/"+ghRepo+"/issues/12")
-		acceptance.Sees(t, out, code, 1, ghRepo+`#12 is already linked by commit`, `("feat(app): start")`)
-		out, code = check(t, repo, "fix(app): more\n\nPlan #12")
 		acceptance.Sees(t, out, code, 1, ghRepo+`#12 is already linked by commit`, `("feat(app): start")`)
 		repo = onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): begin\n\nPlan may-journal/.github#144")
 		out, code = check(t, repo, "fix(app): more\n\nPlan https://github.com/may-journal/.github/issues/144")
 		acceptance.Sees(t, out, code, 1, `may-journal/.github#144 is already linked by commit`, `("feat(app): begin")`)
 	})
-	t.Run("0001.1.2 a link to another repo passes", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		repo := onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
 		out, code := check(t, repo, "fix(app): more\n\nSee may-journal/fitness-runner#12")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 comment and scissors lines are ignored", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it passes since git drops those lines", func(t *testing.T) {
 		t.Parallel()
 		repo := branch(t, "topic")
 		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
@@ -50,7 +62,7 @@ func Test0001_1(t *testing.T) {
 		out, code := check(t, repo, message)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 neither a message nor a pull request passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "issue-link-once")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -60,33 +72,59 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	repo := branch(t, "topic")
-	acceptance.Git(t, repo, "remote", "set-url", "origin", "https://github.com/acme/app.git")
-	rp := acceptance.StandIn(t, map[string][]acceptance.Response{"gh": {
-		{Match: []string{"pr view", "--json number,state,body"}, Stdout: `{"body":"Adds the export screen.\n\nCloses #12","number":7,"state":"OPEN"}` + "\n"},
-	}})
-	out, code := acceptance.Fitness(t, repo, rp.Env, "issue-link-once", "--message", "fix(app): more\n\nFixes #12")
-	acceptance.Sees(t, out, code, 1, "acme/app#12 is already linked by open PR #7")
+	run := func(t *testing.T) (string, int) {
+		repo := branch(t, "topic")
+		acceptance.Git(t, repo, "remote", "set-url", "origin", "https://github.com/acme/app.git")
+		rp := acceptance.StandIn(t, map[string][]acceptance.Response{"gh": {
+			{Match: []string{"pr view", "--json number,state,body"}, Stdout: `{"body":"Adds the export screen.\n\nCloses #12","number":7,"state":"OPEN"}` + "\n"},
+		}})
+		return acceptance.Fitness(t, repo, rp.Env, "issue-link-once", "--message", "fix(app): more\n\nFixes #12")
+	}
+	t.Run("0001.2.2.1.1 it fails naming the issue", func(t *testing.T) {
+		t.Parallel()
+		out, code := run(t)
+		acceptance.Sees(t, out, code, 1, "acme/app#12 is already linked")
+	})
+	t.Run("0001.2.2.1.2 it fails naming the pull request", func(t *testing.T) {
+		t.Parallel()
+		out, code := run(t)
+		acceptance.Sees(t, out, code, 1, "by open PR #7")
+	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 a second commit repeating a link fails", func(t *testing.T) {
-		t.Parallel()
+	repeated := func(t *testing.T) (string, int, string, string) {
 		repo := branch(t, "topic")
 		commitAs(t, repo, "2026-09-30T10:00:00Z", "feat(app): start\n\nPlan #12")
+		first := head(t, repo)
 		commitAs(t, repo, "2026-09-30T11:00:00Z", "fix(app): more\n\nPlan #12")
 		out, code := pullRequest(t, repo)
-		acceptance.Sees(t, out, code, 1, "commit "+head(t, repo)[:7]+` ("fix(app): more"): #12 is already linked by commit`, "--force-with-lease")
+		return out, code, head(t, repo), first
+	}
+	t.Run("0001.3.2.1.1 it fails naming the commit", func(t *testing.T) {
+		t.Parallel()
+		out, code, second, _ := repeated(t)
+		acceptance.Sees(t, out, code, 1, "commit "+second[:7]+` ("fix(app): more"): #12 is already linked by commit`)
 	})
-	t.Run("0001.3.2 a later commit repeating the pull request link fails", func(t *testing.T) {
+	t.Run("0001.3.2.1.2 it fails naming the earlier one", func(t *testing.T) {
+		t.Parallel()
+		out, code, _, first := repeated(t)
+		acceptance.Sees(t, out, code, 1, "already linked by commit "+first[:7])
+	})
+	t.Run("0001.3.2.1.3 it tells how to rewrite with `--force-with-lease`", func(t *testing.T) {
+		t.Parallel()
+		out, code, _, _ := repeated(t)
+		acceptance.Sees(t, out, code, 1, "--force-with-lease")
+	})
+	t.Run("0001.3.2.2.1 it fails naming the pull request", func(t *testing.T) {
 		t.Parallel()
 		repo := branch(t, "topic")
 		commitAs(t, repo, "2026-09-30T13:00:00Z", "fix(app): more\n\nFixes #12")
 		out, code := pullRequest(t, repo)
 		acceptance.Sees(t, out, code, 1, "#12 is already linked by open PR #9", "--force-with-lease")
 	})
-	t.Run("0001.3.3 one early link passes with main merged in", func(t *testing.T) {
+	t.Run("0001.3.2.3.1 it passes counting the files scanned", func(t *testing.T) {
 		t.Parallel()
 		repo := branch(t, "topic")
 		commitAs(t, repo, "2026-09-30T10:00:00Z", "feat(app): start\n\nPlan #12")
