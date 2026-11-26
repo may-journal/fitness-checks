@@ -40,7 +40,7 @@ func Test0001_1(t *testing.T) {
 		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan the rollout in 3 steps.\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 no message reads HEAD", func(t *testing.T) {
+	t.Run("0001.1.5 no message supplied reads HEAD", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", nil)
 		acceptance.Commit(t, repo, nil, "feat(app): add a feature\n\nPlan: 63")
