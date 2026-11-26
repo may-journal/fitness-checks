@@ -4,4 +4,13 @@ Runs `go vet ./...` in every Go module of the repo, catching suspicious code the
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-go-code-passes-vet.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-go-code-passes-vet.md)
+
+## Example
+
+```
+fitness go-vet
+```
+
+It reads no `.fitnessrc.json` key.
+

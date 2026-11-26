@@ -56,4 +56,13 @@ node_modules/
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-ignore-patterns-say-why.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-ignore-patterns-say-why.md)
+
+## Example
+
+```
+fitness gitignore-why
+```
+
+It reads no `.fitnessrc.json` key.
+

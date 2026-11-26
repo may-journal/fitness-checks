@@ -4,7 +4,9 @@ Requires every relative link in every markdown file to resolve to an existing fi
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-relative-links-resolve.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-relative-links-resolve.md)
+
+## Notes
 
 Run `fitness explain markdown-links` for the files it reads.
 
@@ -13,3 +15,12 @@ Run `fitness explain markdown-links` for the files it reads.
 ```
 docs/competition.md:11: broken relative link: ./README.md
 ```
+
+## Example
+
+```
+fitness markdown-links
+```
+
+It reads no `.fitnessrc.json` key.
+

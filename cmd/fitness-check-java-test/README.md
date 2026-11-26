@@ -4,7 +4,9 @@ Runs Java tests once per build root and judges their JUnit XML results and [JaCo
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-java-tests-pass-with-full-coverage.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-java-tests-pass-with-full-coverage.md)
+
+## Notes
 
 The [Java module](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/java/java.go) says what a build root is and which wrapper or tool runs it. A Java repo with no running JDK fails with an install hint.
 
@@ -17,5 +19,13 @@ Coverage reads each report's own totals, never a sum of its classes. An aggregat
 ## Frameworks
 
 The [frameworks](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/java/tests/frameworks) folder holds one commented file per framework, spotted from build files and imports. Each says how its tests reach the JUnit XML. A framework that needs a running service, as Testcontainers needs Docker, fails before the run when the service is down.
+
+## Example
+
+```
+fitness java-test
+```
+
+It reads no `.fitnessrc.json` key.
 
 <!-- cspell:ignore jacoco -->

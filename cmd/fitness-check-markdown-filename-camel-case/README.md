@@ -6,4 +6,13 @@ This flavor pins the camelCase convention: every Markdown basename must match `^
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-markdown-names-follow-camel-case.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-markdown-names-follow-camel-case.md)
+
+## Example
+
+```
+fitness markdown-filename-camel-case
+```
+
+It reads no `.fitnessrc.json` key.
+

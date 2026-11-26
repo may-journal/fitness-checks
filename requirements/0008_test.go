@@ -27,9 +27,7 @@ const demoDoc = "// cspell:ignore zork\n\n" +
 const demoReadme = "# demo\n\n" +
 	"Fails a [Zork](https://example.com/zork) file. It runs on every repo.\n\n" +
 	"## Behavior\n\n" +
-	"- Pass: no file.\n" +
-	"- Fail: a `.zork` file; see [the docs](https://example.com/docs).\n\n" +
-	"Run it as:\n\n```\nfitness demo --all\n```\n\n" +
+	"[Requirement 0001](docs/requirements/0001-zork-files-fail.md)\n\n" +
 	"<!-- cspell:ignore zork -->\n"
 
 func Test0008_1(t *testing.T) {
@@ -102,6 +100,9 @@ func demoFolder(t *testing.T, docGo string) string {
 	folder := filepath.Join(t.TempDir(), "fitness-check-demo")
 	mustDo(t, os.MkdirAll(folder, 0o755))
 	mustDo(t, os.WriteFile(filepath.Join(folder, "doc.go"), []byte(docGo), 0o644))
+	docs := filepath.Join(folder, "docs", "requirements")
+	mustDo(t, os.MkdirAll(docs, 0o755))
+	mustDo(t, os.WriteFile(filepath.Join(docs, "0001-zork-files-fail.md"), []byte("# 0001 Zork Files Fail\n"), 0o644))
 	return folder
 }
 
@@ -135,7 +136,7 @@ var movedChecks = []string{
 	"mermaid-diagram-table-gap", "mermaid-legend", "mermaid-level-bleed", "mermaid-syntax",
 	"no-contrastive-reframing", "no-eslint-disable", "no-fitness-front-matter",
 	"no-plans-dir", "node-version", "open-questions", "plan-structure", "plan-trailer",
-	"pr-closes-issue", "pr-structure", "prettier", "prose-budget", "read-repo-first",
+	"pr-closes-issue", "pr-structure", "prettier", "prose-budget", "read-repo-first", "readme-behavior",
 	"release-changelog", "repeated-string-literals", "requirements", "requirements-changed",
 	"semantic-commit", "spotless", "swift-storybook-requirements", "swiftlint",
 	"text-readability", "vitest-coverage-exclude", "vitest-coverage-full",

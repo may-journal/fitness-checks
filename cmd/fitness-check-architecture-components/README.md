@@ -4,4 +4,13 @@ Gives every product source one owner among the components the components view dr
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-components-own-every-source.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-components-own-every-source.md)
+
+## Example
+
+```
+fitness architecture-components
+```
+
+It reads no `.fitnessrc.json` key.
+

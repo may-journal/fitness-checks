@@ -4,7 +4,7 @@ Fails a repo whose duplicated lines pass 1% of its scanned lines. A native Go cl
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-duplicate-code-stays-under-one-percent.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-duplicate-code-stays-under-one-percent.md)
 
 ## Escape hatch
 
@@ -17,3 +17,12 @@ For duplication that's a real, justified constraint, such as boilerplate a frame
 ```
 
 The older `jscpd:ignore-start` and `jscpd:ignore-end` markers still work as deprecated aliases, so repos that carry them keep passing.
+
+## Example
+
+```
+fitness duplicate-code
+```
+
+It reads no `.fitnessrc.json` key.
+

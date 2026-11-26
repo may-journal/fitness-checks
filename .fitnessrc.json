@@ -60,6 +60,7 @@
     "cmd/fitness-check-prettier",
     "cmd/fitness-check-prose-budget",
     "cmd/fitness-check-read-repo-first",
+    "cmd/fitness-check-readme-behavior",
     "cmd/fitness-check-release-changelog",
     "cmd/fitness-check-repeated-string-literals",
     "cmd/fitness-check-requirements",

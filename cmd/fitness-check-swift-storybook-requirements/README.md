@@ -4,7 +4,7 @@ Fails each Swift Storybook page not named by a requirement acceptance, and each 
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-each-acceptance-has-one-storybook-page.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-each-acceptance-has-one-storybook-page.md)
 
 ## Storybook apps
 
@@ -27,3 +27,20 @@ A repo can allow more pages per acceptance in `.fitnessrc.json`. Run `fitness ex
 ## Apart from other checks
 
 This check owns only the page names and the pages each acceptance needs. It shares helpers, the Swift lexer and the requirement doc reader, and no judgment with any other check.
+
+## Example
+
+```
+fitness swift-storybook-requirements
+```
+
+Run `fitness explain swift-storybook-requirements` for what each key does. This sets each key to its default:
+
+```json
+{
+  "swiftStorybookRequirements": {
+    "maxPagesPerAcceptance": 1
+  }
+}
+```
+

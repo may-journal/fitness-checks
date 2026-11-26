@@ -6,14 +6,23 @@ A comment is not a file in the tree. This check reads it from stdin, a `--body-f
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-comments-stay-short-and-clean.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-comments-stay-short-and-clean.md)
 
-A repo can replace the budget in `.fitnessrc.json`. Run `fitness explain comment-structure` for the keys and defaults:
+## Example
 
 ```
+fitness comment-structure
+fitness comment-structure --body "text"
+```
+
+Run `fitness explain comment-structure` for what each key does. This sets each key to its default:
+
+```json
 {
   "comment": {
-    "maxWords": 120
+    "maxWords": 100,
+    "maxTables": 1
   }
 }
 ```
+

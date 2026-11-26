@@ -98,4 +98,21 @@ fitness --policy=external --checks=go-test-coverage --all
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-entry-code-is-fully-covered.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-entry-code-is-fully-covered.md)
+
+## Example
+
+```
+fitness go-test-coverage
+```
+
+Run `fitness explain go-test-coverage` for what each key does. This sets each key to its default:
+
+```json
+{
+  "goTestCoverage": {
+    "entries": []
+  }
+}
+```
+

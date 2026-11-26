@@ -6,7 +6,7 @@ It runs in [pr-check.yml](https://github.com/may-journal/fitness-runner/blob/mai
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-a-pr-closes-its-issue.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-a-pr-closes-its-issue.md)
 
 ## Unchecked items
 
@@ -17,3 +17,15 @@ Tick each item as it is delivered, or stop closing the issue. After merge, `fitn
 ## Closing keywords
 
 The closing-keyword list is GitHub's fixed set; keep it in sync in `gitx.ClosingKeywords` if GitHub's set ever changes.
+
+## Example
+
+```
+fitness pr-closes-issue
+fitness pr-closes-issue --body "text"
+fitness pr-closes-issue --body-file body.md --emit-closed
+fitness pr-closes-issue --body-file body.md --require-close 12
+```
+
+It reads no `.fitnessrc.json` key.
+

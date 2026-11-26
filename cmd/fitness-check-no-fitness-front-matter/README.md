@@ -4,4 +4,13 @@ Fails a Markdown file whose front matter still holds `fitnessFunctions` or `rela
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-docs-hold-no-fitness-front-matter.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-docs-hold-no-fitness-front-matter.md)
+
+## Example
+
+```
+fitness no-fitness-front-matter
+```
+
+It reads no `.fitnessrc.json` key.
+

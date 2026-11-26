@@ -59,4 +59,14 @@ Detection is per-line via `^<Key>:[ \t]*(\S.*)$`, so an `AI-Tools:` mid-sentence
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-commits-disclose-ai-use.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-commits-disclose-ai-use.md)
+
+## Example
+
+```
+fitness commit-attribution
+fitness commit-attribution --message "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

@@ -6,6 +6,18 @@ A PR description is not a file in the tree, so this check reads its target from 
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-pr-bodies-follow-the-template.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-pr-bodies-follow-the-template.md)
+
+## Notes
 
 The bullet links the PR's [entry file](../fitness-check-changelog/README.md#entry-files) rather than copying it. This check sees only the body, so `pr-check` enforces the link with the PR's diff. It fails a PR that adds an entry without linking it, links another file, or copies a bullet the PR adds.
+
+## Example
+
+```
+fitness pr-structure
+fitness pr-structure --body "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

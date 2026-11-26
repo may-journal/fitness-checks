@@ -4,4 +4,13 @@ Runs SwiftLint over the repo through the Swift language module, which owns the t
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-swift-code-passes-swiftlint.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-swift-code-passes-swiftlint.md)
+
+## Example
+
+```
+fitness swiftlint
+```
+
+It reads no `.fitnessrc.json` key.
+

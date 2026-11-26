@@ -4,7 +4,7 @@ Fails a declared npm dependency behind its latest published version — an insta
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-dependencies-stay-at-their-latest-version.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-dependencies-stay-at-their-latest-version.md)
 
 ## Notes
 
@@ -20,3 +20,12 @@ Fails a declared npm dependency behind its latest published version — an insta
 - When the runner's probe finds GitHub's API host unreachable, it reads no registry.
 - Then it reports info naming the host and proxy.
 - Reports against `latest`, not `wanted`, so a dependency inside its declared range but behind the newest release is still flagged.
+
+## Example
+
+```
+fitness dependency-currency
+```
+
+It reads no `.fitnessrc.json` key.
+

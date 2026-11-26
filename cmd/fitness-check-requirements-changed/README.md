@@ -15,7 +15,7 @@ A file counts as changed only when its lines change beyond whitespace, so a pure
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-product-code-changes-with-its-test-and-doc.md) states what this check does, and a test case named for each step proves it.
+[Requirements](docs/requirements)
 
 ## When it runs
 
@@ -23,3 +23,13 @@ A file counts as changed only when its lines change beyond whitespace, so a pure
 - A `commit-msg` hook, as `fitness init` installs, also makes `pre-commit` leave the check out.
 - Amends: everything the amended commit changes since its parent.
 - Pull requests: CI judges the diff against the merge base with the base branch.
+
+## Example
+
+```
+fitness requirements-changed
+fitness requirements-changed --message "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

@@ -45,6 +45,17 @@ Only the basename is validated, so directory casing is ignored — `SomeDir/api-
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-markdown-names-follow-kebab-case.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-markdown-names-follow-kebab-case.md)
+
+## Notes
 
 No directory is skipped. Run `fitness explain markdown-filename-kebab-case` for the files it reads.
+
+## Example
+
+```
+fitness markdown-filename-kebab-case
+```
+
+It reads no `.fitnessrc.json` key.
+

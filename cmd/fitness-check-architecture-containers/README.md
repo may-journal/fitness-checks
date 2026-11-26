@@ -4,4 +4,13 @@ Matches the containers view against the runtime products the repository builds a
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-containers-match-what-ships.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-containers-match-what-ships.md)
+
+## Example
+
+```
+fitness architecture-containers
+```
+
+It reads no `.fitnessrc.json` key.
+

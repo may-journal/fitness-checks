@@ -4,4 +4,13 @@ Fails any JS or TS source file that holds an ESLint disable directive, in file, 
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-source-holds-no-eslint-disable.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-source-holds-no-eslint-disable.md)
+
+## Example
+
+```
+fitness no-eslint-disable
+```
+
+It reads no `.fitnessrc.json` key.
+

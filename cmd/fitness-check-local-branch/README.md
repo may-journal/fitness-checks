@@ -14,6 +14,10 @@ Full local Fitness checks the current branch. Pre-push runs one meta-check over 
 
 ## Behavior
 
+[Requirement 0001](docs/requirements/0001-the-program-declares-and-fitness-judges.md)
+
+## Notes
+
 The check matches the current branch's open PR, including drafts and forks, then validates its closing issues and branch Plan trailers. History starts at the fetched base branch when it contains the API base commit, else at that commit. Upstream Plans and entries merged since never count. Ordinary issues receive PR checklist rules.
 
 No PR or detached HEAD skips. Ambiguous PRs, unfinished checklists, inaccessible metadata, and missing base history fail with retry guidance.
@@ -26,4 +30,11 @@ The judgments live in the engine's internal `metadata` package, which no check i
 
 Only Actions applies GitHub effects. The meta-check calls judgments directly, so it cannot recursively run the suite.
 
-[Requirement 0001](docs/requirements/0001-the-program-declares-and-fitness-judges.md) states what this program does, and a test case named for each step proves it.
+## Example
+
+```
+fitness local-branch
+```
+
+It reads no `.fitnessrc.json` key.
+

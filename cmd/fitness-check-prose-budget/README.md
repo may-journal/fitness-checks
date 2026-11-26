@@ -14,14 +14,11 @@ Each nested level holds at most half the items of the level above. A requirement
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md), [0002](docs/requirements/0002-comments-stay-short-and-plain.md) and [0003](docs/requirements/0003-doc-prose-stays-within-its-limits.md) state what this check does, and a test case named for each step proves it.
+[Requirements](docs/requirements)
 
-- Pass: every masked paragraph, section, and list in the file is within all six limits.
-- Fail: one error per limit crossed, naming the file, the offending element, and its count versus the limit.
-- `CHANGELOG.md` is judged too; there is no exempt list. Run `fitness explain prose-budget` for the files it reads.
-- A `.fitnessrc.json` that tries to exempt files fails the run.
+## Notes
 
-It shares its prose extraction and sentence splitting with `text-readability` through `pkg/mdx`.
+It shares its prose extraction and sentence splitting with `text-readability` through `pkg/mdx`. Run `fitness explain prose-budget` for the files it reads.
 
 ## Code comments
 
@@ -60,3 +57,32 @@ A history or filler word before a past participle, as in `previously stored`, pa
 - Words in a fenced or indented example inside a comment do not count.
 - One error names the body by the line of its opening brace.
 - A commit or pull request run judges a body when one of its changed comments sits in it.
+
+## Example
+
+```
+fitness prose-budget
+fitness prose-budget --body-file body.md
+```
+
+Run `fitness explain prose-budget` for what each key does. This sets each key to its default:
+
+```json
+{
+  "proseBudget": {
+    "maxSentenceWords": 23,
+    "maxParagraphSentences": 4,
+    "maxSectionParagraphs": 3,
+    "maxListItemWords": 23,
+    "maxListItems": 8,
+    "maxWords": 300
+  },
+  "prose": {
+    "comments": {
+      "maxWordsPerToken": 3,
+      "minBodyComments": 2
+    }
+  }
+}
+```
+

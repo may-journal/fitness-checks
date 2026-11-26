@@ -4,4 +4,13 @@ Pairs each architecture decision, an `ADR` issue, with the check in `fitness/adr
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-each-decision-has-its-check.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-each-decision-has-its-check.md)
+
+## Example
+
+```
+fitness adr-checks
+```
+
+It reads no `.fitnessrc.json` key.
+

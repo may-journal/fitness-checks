@@ -8,4 +8,14 @@ Plans no longer live as repo files, so this check reads its target from stdin (o
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-plans-follow-the-template.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-plans-follow-the-template.md)
+
+## Example
+
+```
+fitness plan-structure
+fitness plan-structure --body "text"
+```
+
+It reads no `.fitnessrc.json` key.
+

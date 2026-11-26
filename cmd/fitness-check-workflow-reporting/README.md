@@ -4,7 +4,11 @@ Fails a workflow job that can fail without a report on its run page ([#181](http
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-every-job-reports-on-its-run-page.md) states what this check passes and fails, and a test case named for each step proves it. It reads the `.yml` and `.yaml` workflow files directly under `.github/workflows`, keeping each value's line.
+[Requirement 0001](docs/requirements/0001-every-job-reports-on-its-run-page.md)
+
+## Notes
+
+It reads the `.yml` and `.yaml` workflow files directly under `.github/workflows`, keeping each value's line.
 
 A job with `steps` needs one step with `if: always()`, bare or as `${{ always() }}`, whose `run` writes to `$GITHUB_STEP_SUMMARY`.
 
@@ -37,3 +41,12 @@ steps:
     if: ${{ always() }}
     run: printf '### Job %s: %s\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 ```
+
+## Example
+
+```
+fitness workflow-reporting
+```
+
+It reads no `.fitnessrc.json` key.
+

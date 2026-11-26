@@ -82,14 +82,7 @@ History fails a numbered doc missing an acceptance ID it once held, bullet IDs i
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.
-
-- Flags: any flag but `--fix`, such as the removed `--up` or `--down`, fails naming it.
-- No code: a repo with no file in a module's language passes with `filesChecked: 0`.
-- Not code: a file a module names a tool config, or a file `.gitattributes` marks `linguist-generated`.
-- Missing docs: a repo with such code and none in `docs/requirements` fails.
-- Full and scoped runs judge every doc and test file, including unchanged files in pull requests that change only unrelated files.
-- Ownership is a repository-wide invariant: an unmapped repo stays red until every test owns a requirement.
+[Requirements](docs/requirements)
 
 ## Package roots
 
@@ -152,3 +145,22 @@ Some requirements are rules over the repo's own files. A check in `fitness/req-N
 - Orphans: a `fitness/req-NNNN/` folder whose number no doc defines fails.
 - Pairs: the check's files pair with the doc as a test file does, so a change to one half alone fails.
 - Broken scan: a requirement check that passes having judged no files fails the run.
+
+## Example
+
+```
+fitness requirements
+fitness requirements --fix
+```
+
+Run `fitness explain requirements` for what each key does. This sets each key to its default:
+
+```json
+{
+  "requirements": {
+    "maxAcceptances": 8,
+    "maxSteps": 7
+  }
+}
+```
+

@@ -4,4 +4,13 @@ Warns when a callout description at one C4 level repeats the previous level verb
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-lower-levels-add-new-detail.md) states what this check does, and a test case named for each step proves it.
+[Requirement 0001](docs/requirements/0001-lower-levels-add-new-detail.md)
+
+## Example
+
+```
+fitness mermaid-level-bleed
+```
+
+It reads no `.fitnessrc.json` key.
+
