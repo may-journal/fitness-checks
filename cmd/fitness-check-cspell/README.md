@@ -4,19 +4,4 @@ Fails unknown words in the checked files. It spell-checks with a native Go engin
 
 ## Behavior
 
-- Pass: no unknown words in checked files.
-- In a scoped run: only the changed paths that still exist on disk are checked; with none left it passes without scanning.
-- Otherwise: spell-checks every tracked file; binary files, with a NUL in their first 8 KB, count but are never spelled or read whole.
-- Generated files: files `.gitattributes` marks `linguist-generated`, and the [lockfiles and build wrapper files](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/lang.go) of any language, are left out; nothing else is.
-- Fail: a resolved `cspell.json` that sets `ignorePaths` fails before any scan; remove it and fix the words instead.
-- Config: a repo-local `cspell.json` wins; otherwise an installed `@mayjournal/fitness-shared` package under `node_modules`; otherwise the copy embedded in the binary, materialized on demand.
-- No copy is required in the consumer repo, so a repo with no npm anywhere still gets the shared words.
-- Forbidden words: each `flagWords` word or phrase fails wherever it appears whole, in any case, except in a `cspell.json` file.
-
-In an issue or PR body, Renovate's hidden debug comment is skipped, since its encoded words are no one's to fix.
-
-## Output
-
-Errors are reported as one line per issue: `path:line:col - Unknown word (word)` or `path:line:col - Forbidden word (entry)`.
-
-A file over 64 KB is checked in line-aligned chunks in parallel, once its `cspell:` directives are applied to the whole file.
+[Requirement 0001](docs/requirements/0001-unknown-words-fail.md) states what this check does, and a test case named for each step proves it.

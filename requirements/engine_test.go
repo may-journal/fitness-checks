@@ -1,5 +1,3 @@
-// cspell:ignore mispeled
-
 // Helpers the moved requirement tests share with the engine's own tests,
 // which stay in fitness-runner.
 package requirements
@@ -122,9 +120,6 @@ func judgeKind(t *testing.T, body string, files map[string]string, saved []respo
 func kindGitHub(kind string, labels ...string) []response {
 	return issueGitHub(kindIssue, "fitness:issue-check:"+kind+":", "", labels...)
 }
-
-// misspelledNote is a note cspell fails.
-const misspelledNote = "A mispeled wrd.\n"
 
 // passing is a local check's verdict that judged one file and found nothing.
 const passing = `{"ok": true, "errors": [], "filesChecked": 1}`

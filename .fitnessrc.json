@@ -3,6 +3,18 @@
     "*": "v1"
   },
   "packages": [
+    "cmd/fitness-check-checkstyle",
+    "cmd/fitness-check-comment-structure",
+    "cmd/fitness-check-commit-attribution",
+    "cmd/fitness-check-cspell",
+    "cmd/fitness-check-dependency-currency",
+    "cmd/fitness-check-doc-template",
+    "cmd/fitness-check-duplicate-code",
+    "cmd/fitness-check-epic-structure",
+    "cmd/fitness-check-eslint",
+    "cmd/fitness-check-gitignore-why",
+    "cmd/fitness-check-go-complexity",
+    "cmd/fitness-check-go-test-coverage",
     "cmd/fitness-check-node-version",
     "cmd/fitness-check-open-questions",
     "cmd/fitness-check-plan-structure",

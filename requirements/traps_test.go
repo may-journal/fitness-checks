@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
@@ -50,36 +48,6 @@ func promptingTools(t *testing.T, stalls ...string) (path, pidFile string) {
 			"printf \"git@git.example.invalid's password: \" >&2\n" + wait,
 	})
 	return "PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH"), pidFile
-}
-
-// silentListener starts a TCP listener that accepts connections and never
-// answers, as a proxy dropping traffic does, and returns its URL.
-func silentListener(t *testing.T) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	mustDo(t, err)
-	var mu sync.Mutex
-	var held []net.Conn
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			held = append(held, conn)
-			mu.Unlock()
-		}
-	}()
-	t.Cleanup(func() {
-		_ = ln.Close()
-		mu.Lock()
-		defer mu.Unlock()
-		for _, conn := range held {
-			_ = conn.Close()
-		}
-	})
-	return "http://" + ln.Addr().String()
 }
 
 // generatedTree copies happyRepo with files written over it, adds n tracked text

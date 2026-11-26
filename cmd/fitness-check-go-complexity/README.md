@@ -4,20 +4,7 @@ Enforces a cyclomatic complexity ceiling on Go functions, the Go-native counterp
 
 ## Behavior
 
-- A function starts at 1 and gains a point per `if`, `for`, `range`, non-default `switch` or `select` case, `&&`, and `||`.
-- Function literals score separately from their enclosing function, the way eslint scores arrow functions.
-- Test files (`_test.go`) are scored like any other Go file; table-driven tests keep them under the ceiling.
-- A file that fails to parse fails the check with the parser's error.
-- A file it cannot read is skipped and named as info; the other files are still judged.
-- `filesChecked` counts every Go file scanned, tests included.
-
-## Errors
-
-```
-internal/example/thing.go:42: func parseAll has a complexity of 8; maximum allowed is 5
-```
-
-Function literals report as `function literal`; methods report as `method <name>`.
+[Requirement 0001](docs/requirements/0001-go-functions-stay-simple.md) states what this check does, and a test case named for each step proves it.
 
 ## Ceiling
 
@@ -30,3 +17,8 @@ A repo can override the ceiling in `.fitnessrc.json`. Run `fitness explain go-co
 ```
 
 A native Go engine (`go/ast` and `go/parser` from the standard library) scores the code; no external tool is required.
+
+## Notes
+
+- A file it cannot read is skipped and named as info, and the other files are still judged.
+- `filesChecked` counts every Go file scanned, tests included.

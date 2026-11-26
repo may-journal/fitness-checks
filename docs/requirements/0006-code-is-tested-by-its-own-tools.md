@@ -38,12 +38,12 @@ repos with code or requirement docs
          1. THEN each fails naming the file and line
          2. THEN clean code passes
 5. Node code is tidy
-   1. GIVEN Developer has JavaScript files with a lint problem
+   1. GIVEN Developer has JavaScript files with a disable directive
       1. WHEN the Node tooling checks run on them
          1. THEN each fails naming the file and line
          2. THEN clean code passes
 6. Java code is tidy
-   1. GIVEN Developer has Java code with a format or style problem
+   1. GIVEN Developer has Java code with a format problem
       1. WHEN the Java tooling checks run on it
          1. THEN each fails naming the file and the fix
          2. THEN clean code passes

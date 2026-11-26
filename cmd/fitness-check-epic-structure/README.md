@@ -6,12 +6,5 @@ Epics live as GitHub Issues, so this check reads its target from stdin (or a `--
 
 ## Behavior
 
-- Pass: each list item is a plain `#N` or `org/repo#N` reference, with an optional short note after a comma, such as `#12, after #11`.
-- Fail: a checkbox, an emoji, a status word such as done or blocked, or an item that is not a plain reference.
-- Fail: a reference listed twice, or an item listed before an item its `after` note names.
-- Fail: a table anywhere in the body.
-- A list over the item cap fails prose-budget, which issue-check runs on every body; `###` headings split it into shorter lists.
+[Requirement 0001](docs/requirements/0001-epics-follow-the-epic-template.md) states what this check does, and a test case named for each step proves it.
 
-Fenced code is skipped, so a `##` or list item inside a code sample never counts. A bare `#N` is an issue in the judged repo, so `#12` and `org/repo#12` match.
-
-Checks never call GitHub, so `fitness issue-check` compares the list with the epic's sub-issues. Every listed issue must be a sub-issue and exist, and every sub-issue must be listed.

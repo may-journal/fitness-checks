@@ -20,11 +20,7 @@ commits and entry files checked
          1. THEN only subjects with a listed type and scope pass
          2. THEN each failure quotes the subject
 2. Removed in 2026.11.26.0000: moved to the plan-trailer check's own requirement
-3. Attribution trailers are present
-   1. GIVEN Developer has commits with and without the AI tool and model trailers
-      1. WHEN the commit checks read the attribution trailers
-         1. THEN an adopting repo fails naming each missing one
-         2. THEN merges and reverts pass
+3. Removed in 2026.11.26.0100: moved to the commit-attribution doc
 4. Issue links are not repeated
    1. GIVEN Developer has a branch and PR linking issues
       1. WHEN the commit checks look for repeated issue links

@@ -59,9 +59,4 @@ Detection is per-line via `^<Key>:[ \t]*(\S.*)$`, so an `AI-Tools:` mid-sentence
 
 ## Behavior
 
-- Declares `--message` as its context-inline argument, mirroring `semantic-commit`.
-- The runner forwards a proposed message, such as a commit-msg hook's, as `FITNESS_CTX_MESSAGE`; else the check reads the last commit.
-- A message that is provided but empty fails rather than falling back to `git log`.
-- Pass: both trailers present with non-empty values, or a `Merge ` or `Revert ` subject.
-- Fail: one error per missing trailer; on no repo, git error, or empty message, the empty-message guidance error.
-- `filesChecked` is always 1.
+[Requirement 0001](docs/requirements/0001-commits-disclose-ai-use.md) states what this check does, and a test case named for each step proves it.
