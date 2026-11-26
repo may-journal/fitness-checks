@@ -1,9 +1,9 @@
 ### 2026.11.26.2000
 
-> Old-style requirements fail wherever they hide, in a README or in a step that joins clauses.
+> Old-style requirements fail wherever they hide, and every THEN has its own test case.
 
 - Feat: `readme-behavior` fails a GIVEN, WHEN or THEN list item in any case outside a code fence, naming the line.
-- Docs: `readme-behavior` gains 0001.6 and `requirements` gains 0008. `dependency-currency` gains 0001.4, which holds the behavior its README had hidden in Notes.
-- Docs: every requirement doc here that the new rule failed splits its joined steps into numbered GIVEN and THEN items.
-- Feat: `requirements` fails a Gherkin block keyword such as `Scenario:` not in caps, 0008.2.
-- Feat: `requirements` fails GIVEN, WHEN, THEN, AND or BUT inside a step not in caps outside code and quotes, 0008.1.
+- Feat: `requirements` fails a Gherkin word or block keyword not in caps inside a step, 0008.
+- Feat: `requirements` fails a THEN with no case named with its ID, such as `0005.3.1.2.1`, plus its words, a stray case, or a case with no assertion call.
+- Feat: Swift cases count through XCTest activities, and Node stays exempt behind the `nodeReportsCases` switch.
+- Docs: 0005.3 is a `Removed` line, 0005.4 states the rule, and every requirement doc and test here follows the new rules.

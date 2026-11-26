@@ -172,17 +172,23 @@ func assertingCall(call *ast.CallExpr) bool {
 		return assertingName(f.Name)
 	case *ast.SelectorExpr:
 		recv, _ := f.X.(*ast.Ident)
-		switch {
-		case recv == nil:
-			return assertingName(f.Sel.Name)
-		case plainPackages[recv.Name]:
-			return false
-		case f.Sel.Name == "Error" || f.Sel.Name == "Errorf":
-			return testingReceivers[recv.Name]
-		}
-		return assertingName(f.Sel.Name)
+		return assertingMethod(recv, f.Sel.Name)
 	}
 	return false
+}
+
+// assertingMethod reports whether calling name on recv, which is nil for a
+// receiver that is no plain name, asserts.
+func assertingMethod(recv *ast.Ident, name string) bool {
+	switch {
+	case recv == nil:
+		return assertingName(name)
+	case plainPackages[recv.Name]:
+		return false
+	case name == "Error" || name == "Errorf":
+		return testingReceivers[recv.Name]
+	}
+	return assertingName(name)
 }
 
 // testingReceivers are the names a test gives its testing value, so only

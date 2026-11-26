@@ -29,7 +29,7 @@ acceptances
          1. THEN a test proving no requirement fails naming it
       2. WHEN a test is named for a step
          1. THEN it fails telling to name the acceptance's test
-3. Removed in 2026.11.26.2100: each THEN has its own case under 0005.4
+3. Removed in 2026.11.26.2000: each THEN has its own case under 0005.4
 4. Each THEN has its own case
    1. GIVEN Developer has an acceptance whose test runs named cases
       1. WHEN each THEN has a case named with its ID plus its words
