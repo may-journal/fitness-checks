@@ -94,9 +94,9 @@ func Test0002_3(t *testing.T) {
 	t.Parallel()
 	named := "1. Adds numbers\n   1. GIVEN Developer has two numbers\n      1. WHEN the `semantic-commit` check reads them\n         1. THEN it gets their sum\n"
 	given := func(rootDoc, packageDoc string) map[string]string {
-		return acceptance.With(acceptance.With(acceptance.Monorepo(true), owning("semantic-commit", "0001.1")), map[string]string{
+		return acceptance.With(acceptance.With(acceptance.Monorepo(true), owning("fitness-check-semantic-commit", "0001.1")), map[string]string{
 			acceptance.PairedDoc: acceptance.DocWith(rootDoc),
-			"pkgs/semantic-commit/docs/requirements/0001-adds-numbers.md": acceptance.DocWith(packageDoc),
+			"pkgs/fitness-check-semantic-commit/docs/requirements/0001-adds-numbers.md": acceptance.DocWith(packageDoc),
 		})
 	}
 	t.Run("0002.3.1 a root acceptance naming a single check fails naming both", func(t *testing.T) {

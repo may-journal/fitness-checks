@@ -31,7 +31,7 @@ package requirement docs
          1. THEN the repo is one package
 3. The repo root keeps only monorepo promises
    1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names its package folders
-      1. WHEN a root doc acceptance names a single check
+      1. WHEN a root doc acceptance names a single fitness-check package
          1. THEN it fails naming the acceptance and the check
       2. WHEN a package doc or a Removed line names a check
          1. THEN it passes

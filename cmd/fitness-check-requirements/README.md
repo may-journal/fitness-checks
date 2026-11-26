@@ -106,7 +106,7 @@ cmd/fitness-check-gofmt/requirements/0001_test.go
 ```
 
 - Rules: [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) states how packages own their docs and tests.
-- Scope: an acceptance in the repo root of a monorepo that names a check fails, since that check's own doc holds it.
+- Scope: an acceptance in the repo root of a monorepo that names a `fitness-check-` package fails, since that check's own doc holds it.
 - Numbers: a number is unique within its package, so each package starts at 0001.
 - Tests: a package's requirement tests sit in its own folder and prove only its docs.
 - Missing docs: a package root with code and no docs fails. The repo root may leave its behavior to its packages.

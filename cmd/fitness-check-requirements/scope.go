@@ -16,15 +16,15 @@ const checkPrefix = "fitness-check-"
 // nameLike matches a hyphenated name, or any name in backticks, as a doc writes a check's name.
 var nameLike = regexp.MustCompile("`([a-z][a-z0-9-]*)`|\\b([a-z][a-z0-9]*(?:-[a-z0-9]+)+)\\b")
 
-// checkNames lists the checks beside the repo root of a monorepo, one per package folder, or none for another root.
+// checkNames lists the checks beside a monorepo root, one per fitness-check folder, and none for any other root.
 func checkNames(roots []string, root string) map[string]bool {
 	if root != packages.Root || len(roots) == 1 {
 		return nil
 	}
 	names := map[string]bool{}
 	for _, r := range roots {
-		if r != packages.Root {
-			names[strings.TrimPrefix(path.Base(r), checkPrefix)] = true
+		if name, ok := strings.CutPrefix(path.Base(r), checkPrefix); ok {
+			names[name] = true
 		}
 	}
 	return names
