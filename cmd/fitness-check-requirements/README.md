@@ -70,7 +70,7 @@ Each THEN needs its own case in the acceptance's test, and its ID joins the doc,
 - Reworded: a case with a THEN's ID and other words fails, so a reworded THEN fails until its case is renamed.
 - Stray: a case that opens with a path no doc holds fails, naming the case. Cases named otherwise pass.
 - Assertions: a case with no assertion call fails. Go judges the `t.Run` function, or the whole test for a case table row.
-- Calls: a name opening with assert, require, expect, verify, check, sees, must, ensure, fail, fatal, error, equal, contains, passed or shows counts.
+- Calls: t.Error or a name opening with assert, require, expect, verify, check, sees, must, ensure, fail, fatal, equal, contains, passed or shows counts.
 - Cases: Go reads `t.Run` names and case table rows, Java dynamic tests and `Named` arguments, and Swift XCTest activities.
 - Node: its tests need only their test, behind the `nodeReportsCases` switch in `cases.go`. It turns on once [fitness-runner#1108](https://github.com/may-journal/fitness-runner/pull/1108) reports Vitest and Jest cases.
 

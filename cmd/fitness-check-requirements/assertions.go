@@ -17,7 +17,7 @@ import (
 // assertionWords are the words an assertion call's name opens with, such as
 // t.Fatalf, require.Equal, Sees or expectEqual. A word counts whole: "check"
 // opens checkEqual and not checked.
-const assertionWords = "assert|require|expect|verify|check|sees|must|ensure|fail|fatal|error|equal|contains|passed|shows"
+const assertionWords = "assert|require|expect|verify|check|sees|must|ensure|fail|fatal|equal|contains|passed|shows"
 
 // assertionName matches a call name, its first letter lowered, that opens
 // with an assertion word and ends there or at the next word.
@@ -29,7 +29,7 @@ var assertionText = regexp.MustCompile(`\b(?:(?i:assert)|XCTAssert|XCTFail|(?i:r
 
 // plainPackages are the packages whose calls only read or shape values, so
 // strings.Contains is no assertion.
-var plainPackages = map[string]bool{"strings": true, "slices": true, "bytes": true, "errors": true, "fmt": true, "os": true, "filepath": true, "maps": true}
+var plainPackages = map[string]bool{"strings": true, "slices": true, "bytes": true, "errors": true, "fmt": true, "os": true, "filepath": true, "maps": true, "regexp": true, "template": true}
 
 // assertionErrors fails each case named for a THEN whose body holds no
 // assertion call. A case row of a table is judged by its test's whole body.
@@ -48,8 +48,14 @@ func assertionErrors(root string, tests []reqTest) []string {
 func silentCases(files map[string]*sourceFile, root string, t reqTest) []string {
 	var errs []string
 	for i, c := range t.Cases {
+		if !caseID.MatchString(c.Name) {
+			continue
+		}
 		src := sourceOf(files, root, c.Loc)
-		if caseID.MatchString(c.Name) && src != nil && !src.asserts(t, i) {
+		switch {
+		case src == nil:
+			errs = append(errs, fmt.Sprintf("%s: case %q is in a file this check cannot read, so its assertion call is unchecked", c.Loc, c.Name))
+		case !src.asserts(t, i):
 			errs = append(errs, fmt.Sprintf("%s: case %q has no assertion call; assert the result its THEN states", c.Loc, c.Name))
 		}
 	}
@@ -163,14 +169,31 @@ func holdsAssertion(n ast.Node) bool {
 func assertingCall(call *ast.CallExpr) bool {
 	switch f := call.Fun.(type) {
 	case *ast.Ident:
-		return assertionName.MatchString(lowerFirst(f.Name))
+		return assertingName(f.Name)
 	case *ast.SelectorExpr:
-		if pkg, ok := f.X.(*ast.Ident); ok && plainPackages[pkg.Name] {
+		recv, _ := f.X.(*ast.Ident)
+		switch {
+		case recv == nil:
+			return assertingName(f.Sel.Name)
+		case plainPackages[recv.Name]:
 			return false
+		case f.Sel.Name == "Error" || f.Sel.Name == "Errorf":
+			return testingReceivers[recv.Name]
 		}
-		return assertionName.MatchString(lowerFirst(f.Sel.Name))
+		return assertingName(f.Sel.Name)
 	}
 	return false
+}
+
+// testingReceivers are the names a test gives its testing value, so only
+// t.Error counts as an assertion and err.Error() does not.
+var testingReceivers = map[string]bool{"t": true, "tb": true, "b": true}
+
+// assertingName reports whether a call name opens with an assertion word.
+// Must parsers such as mustCompile only build values, so they do not count.
+func assertingName(name string) bool {
+	lowered := lowerFirst(name)
+	return assertionName.MatchString(lowered) && !strings.HasPrefix(lowered, "mustCompile") && !strings.HasPrefix(lowered, "mustParse")
 }
 
 // lowerFirst is name with its first letter lowered.
@@ -192,7 +215,7 @@ func (s *sourceFile) region(t reqTest, from, i int) string {
 		end = min(end, next-1)
 	}
 	if from < 1 || from > end {
-		return s.text
+		return ""
 	}
 	return strings.Join(lines[from-1:end], "\n")
 }
@@ -201,8 +224,10 @@ func (s *sourceFile) region(t reqTest, from, i int) string {
 // next test's, or 0 for none.
 func nextBoundary(t reqTest, i int, lines []string) int {
 	if i+1 < len(t.Cases) {
-		_, n := splitLoc(t.Cases[i+1].Loc)
-		return n
+		_, from := splitLoc(t.Cases[i].Loc)
+		if _, n := splitLoc(t.Cases[i+1].Loc); n > from {
+			return n
+		}
 	}
 	return nextTest(t, lines)
 }
