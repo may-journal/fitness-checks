@@ -8,6 +8,7 @@ Fails a change that adds or changes product code without also changing a test an
 - Vendored code is not product code: files under `vendor`, `third_party`, `Pods`, `Carthage`, or `node_modules`.
 - Fixtures and build output are not either: Go `testdata`, `dist`, `.build`, `DerivedData`, and what each [language module](https://github.com/may-journal/fitness-runner/blob/main/go/pkg/lang/langs/langs.go) names.
 - Generated files are not: those `.gitattributes` marks `linguist-generated`, and Go files that say `Code generated … DO NOT EDIT.`
+- Synced files: a file `.github/synced-files.json` names passes when its staged blob matches, and fails naming its source repo otherwise.
 - Tests: `_test.go` files, and Swift files that declare a test or sit in a `…Tests` folder, as the requirements check pairs them.
 - Requirement docs: `docs/requirements/NNNN-*.md`.
 
