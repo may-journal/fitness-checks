@@ -126,7 +126,7 @@ func Test0001_2(t *testing.T) {
 	t.Run("0001.2.4 a full scan judges no changes", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", adrRepo())
-		acceptance.Commit(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), adrIssue, adrIssue+"6", 1)}, "docs(adr): repoint 0001")
+		acceptance.Commit(t, repo, map[string]string{adrPath: strings.Replace(adrText(""), adrIssue, adrIssue+"6", 1)}, "docs(adr): move 0001")
 		out, code := adrChecks(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})

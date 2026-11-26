@@ -2,9 +2,6 @@
   "checkVersions": {
     "*": "v1"
   },
-<<<<<<< HEAD
-  "packages": ["cmd/fitness-check-prose-budget", "cmd/fitness-check-requirements", "cmd/fitness-check-swiftlint"]
-=======
   "packages": [
     "cmd/fitness-check-adr-as-issue",
     "cmd/fitness-check-adr-checks",
@@ -18,7 +15,8 @@
     "cmd/fitness-check-changelog",
     "cmd/fitness-check-changelog-bullets",
     "cmd/fitness-check-changelog-updated",
+    "cmd/fitness-check-prose-budget",
+    "cmd/fitness-check-requirements",
     "cmd/fitness-check-swiftlint"
   ]
->>>>>>> 9aaccbe (feat(requirements): twelve checks own their requirement docs)
 }

@@ -14,15 +14,27 @@ entry files
 
 ## Requirements
 
-- 0001.1
-  - Given Developer has a repo, with or without `changelog/` entry files and a `CHANGELOG.md`
-    1. When each entry file holds one `### yyyy.mm.dd.HHMM` heading, its bullets, and that date in its name
-       - Then it passes, counting the entry files, with or without front matter
-    2. When an entry file holds two dated headings, or an undated one
-       - Then it fails, asking for one `### yyyy.mm.dd.HHMM` heading and its bullets
-    3. When an entry file's name lacks its heading's date, or carries another
-       - Then it fails naming the file it should be, `changelog/<yyyy-mm-dd-HHMM>-<change>.md`
-    4. When the repo has no entry files, with or without `CHANGELOG.md`
-       - Then it passes with no files
-    5. When `CHANGELOG.md` keeps an upstream fork's undated history, or the package version moves
-       - Then neither is judged, and the entry files still pass
+```gherkin
+SCENARIO: 0001.1
+  GIVEN Developer has a repo with or without `changelog/` entry files AND a `CHANGELOG.md`
+  WHEN each entry file holds one `### yyyy.mm.dd.HHMM` heading
+    AND each entry file holds its bullets
+    AND each entry file has that date in its name
+  THEN it passes
+    AND it counts the entry files
+    AND front matter may be present or absent
+  WHEN an entry file holds two dated headings
+    AND an entry file holds an undated heading
+  THEN it fails asking for one `### yyyy.mm.dd.HHMM` heading and its bullets
+  WHEN an entry file's name lacks its heading's date
+    AND an entry file's name carries another date
+  THEN it fails naming the file it should be
+    AND it gives `changelog/<yyyy-mm-dd-HHMM>-<change>.md`
+  WHEN the repo has no entry files
+    AND `CHANGELOG.md` may be present or absent
+  THEN it passes with no files
+  WHEN `CHANGELOG.md` keeps an upstream fork's undated history
+    AND the package version moves
+  THEN neither is judged
+    AND the entry files still pass
+```

@@ -208,15 +208,6 @@ func user(t *testing.T, repo string, env []string, args ...string) (string, int)
 	return ansi.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
 }
 
-// verdictScript is a check program that prints verdict, or hangs when it
-// is empty.
-func verdictScript(verdict string) string {
-	if verdict == "" {
-		return "#!/bin/sh\nexec /bin/sleep 30\n"
-	}
-	return "#!/bin/sh\necho '" + verdict + "'\n"
-}
-
 // bodyEdit is the event GitHub delivers when issue's body is edited: its
 // changes name the body's earlier text.
 func bodyEdit(issue map[string]any) map[string]any {

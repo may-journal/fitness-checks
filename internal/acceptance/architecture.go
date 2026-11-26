@@ -273,18 +273,6 @@ const AoScripts = "{\n  \"main\": \"tools/build.mjs\",\n  \"files\": [\"lib\"],\
 // ArchitectureChecks are the six checks that read the architecture model.
 var ArchitectureChecks = []string{"architecture-actors", "architecture-code", "architecture-components", "architecture-containers", "architecture-contract", "architecture-journey"}
 
-// With returns base with overrides applied.
-func With(base map[string]string, overrides map[string]string) map[string]string {
-	out := map[string]string{}
-	for k, v := range base {
-		out[k] = v
-	}
-	for k, v := range overrides {
-		out[k] = v
-	}
-	return out
-}
-
 // JavaPom is a Maven build that declares plugins.
 func JavaPom(plugins string) string {
 	return "<project><modelVersion>4.0.0</modelVersion><groupId>com.example</groupId>" +
