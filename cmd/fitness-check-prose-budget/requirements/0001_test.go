@@ -111,3 +111,31 @@ func Test0001_3(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 4")
 	})
 }
+
+func Test0001_4(t *testing.T) {
+	t.Parallel()
+	out, code := proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 7))})
+	acceptance.Sees(t, out, code, 0)
+	out, code = proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 8))})
+	acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 7 items at level 3")
+	out, code = proseBudget(t, map[string]string{"README.md": acceptance.DocWith(acceptance.Chain("0001.1", 3))})
+	acceptance.Sees(t, out, code, 1, "README.md: a list has more than 2 items at level 3")
+	numbered := strings.Replace(acceptance.DocWith(acceptance.Chain("0001.1", 2)), "## Measurement", "- Steps\n"+strings.Repeat("    1. Sub step\n", 7)+"\n## Measurement", 1)
+	out, code = proseBudget(t, map[string]string{docs[0]: numbered})
+	acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 2")
+}
+
+// readme is a short clean README.
+const readme = "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n"
+
+// proseBudget runs `fitness-install -- prose-budget <args>` on happyRepo
+// with files written over it.
+func proseBudget(t *testing.T, files map[string]string, args ...string) (string, int) {
+	t.Helper()
+	return acceptance.Fitness(t, acceptance.Example(t, "happyRepo", files), nil, append([]string{"prose-budget"}, args...)...)
+}
+
+// planBody is a Plan that follows the template, with one task.
+func planBody(task string) string {
+	return "> One clear pitch for this Plan.\n\n## Background\n\nThis Plan is a test fixture.\n\n## What needs to happen\n\n" + task + "\n"
+}

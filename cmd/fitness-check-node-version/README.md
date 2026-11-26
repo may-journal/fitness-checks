@@ -4,8 +4,4 @@ Requires the machine's active Node version to satisfy the repo's `.nvmrc`. It on
 
 ## Behavior
 
-- Pass: `.nvmrc` exists and its major version is at most the current Node's major, as `.nvmrc` holding `24` and Node v24.x or higher.
-- Fail: `.nvmrc` missing → `missing .nvmrc`.
-- Fail: Node too old → `Node vX.Y.Z does not satisfy .nvmrc (requires N.x). Run: nvm use`.
-
-It accepts plain or `v`-prefixed versions in `.nvmrc`, such as `24` or `v24`.
+[Requirement 0001](docs/requirements/0001-node-matches-the-repo-pin.md) states what this check does, and a test case named for each step proves it.

@@ -14,7 +14,7 @@ Each nested level holds at most half the items of the level above. A requirement
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states how it judges step chains, and its own test proves it.
+[Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md), [0002](docs/requirements/0002-comments-stay-short-and-plain.md) and [0003](docs/requirements/0003-doc-prose-stays-within-its-limits.md) state what this check does, and a test case named for each step proves it.
 
 - Pass: every masked paragraph, section, and list in the file is within all six limits.
 - Fail: one error per limit crossed, naming the file, the offending element, and its count versus the limit.

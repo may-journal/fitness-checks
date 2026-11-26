@@ -2,5 +2,19 @@
   "checkVersions": {
     "*": "v1"
   },
-  "packages": ["cmd/fitness-check-prose-budget", "cmd/fitness-check-requirements", "cmd/fitness-check-swiftlint"]
+  "packages": [
+    "cmd/fitness-check-node-version",
+    "cmd/fitness-check-open-questions",
+    "cmd/fitness-check-plan-structure",
+    "cmd/fitness-check-plan-trailer",
+    "cmd/fitness-check-pr-closes-issue",
+    "cmd/fitness-check-pr-structure",
+    "cmd/fitness-check-prettier",
+    "cmd/fitness-check-prose-budget",
+    "cmd/fitness-check-read-repo-first",
+    "cmd/fitness-check-release-changelog",
+    "cmd/fitness-check-repeated-string-literals",
+    "cmd/fitness-check-requirements",
+    "cmd/fitness-check-swiftlint"
+  ]
 }

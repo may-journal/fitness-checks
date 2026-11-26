@@ -35,6 +35,9 @@ var (
 	requirementDoc    = acceptance.RequirementDoc
 	acceptances       = acceptance.Acceptances
 	chain             = acceptance.Chain
+	inComments        = acceptance.InComments
+	atEachFile        = acceptance.AtEachFile
+	longSentence      = acceptance.LongSentence
 	docWith           = acceptance.DocWith
 	with              = acceptance.With
 	loggedGit         = acceptance.LoggedGit

@@ -14,14 +14,11 @@ docs, bodies and comments the writing checks judge
 
 ## Requirements
 
-1. Prose stays within limits
-   1. GIVEN Developer has prose with a long sentence
-   2. GIVEN it has a long section
-   3. GIVEN it has a long list
-   4. GIVEN it has a dense passage
-      1. WHEN the prose limit checks read it
-         1. THEN each fails naming place and limit
-         2. THEN plain prose and step chains pass
+1. Prose reads easily
+   1. GIVEN Developer has a dense passage
+      1. WHEN the readability check reads it
+         1. THEN it fails naming place and limit
+         2. THEN plain prose passes
 2. Wording is plain
    1. GIVEN Developer has text with a misspelling
    2. GIVEN it has a forbidden phrase
@@ -30,7 +27,8 @@ docs, bodies and comments the writing checks judge
          1. THEN each fails naming the finding
          2. THEN known terms and code and quotes pass
 3. Comments say why
-   1. GIVEN Developer has code comments with long prose or dead code
+   1. GIVEN Developer has code comments that are hard to read
+   2. GIVEN they reframe a sentence
       1. WHEN the comment checks read the repo
          1. THEN each fails naming the comment and rule
          2. THEN why comments pass
@@ -44,16 +42,12 @@ docs, bodies and comments the writing checks judge
       1. WHEN the doc template checks read the repo
          1. THEN each difference fails
          2. THEN matching docs pass
-6. Issues follow templates
-   1. GIVEN Developer has an issue or Plan body that breaks its template
-      1. WHEN the issue and Plan checks read the body
-         1. THEN each fails naming the item or section
-         2. THEN bodies that follow the template pass
-7. PR bodies follow templates
-   1. GIVEN Developer has a PR body that breaks its template
-      1. WHEN the PR body checks read it
-         1. THEN each fails naming the section
-         2. THEN bodies that follow it pass
+6. Issues are ticked
+   1. GIVEN Developer has an issue body with unchecked items
+      1. WHEN the issue checklist check reads the body
+         1. THEN it fails naming the item
+         2. THEN bodies with every item ticked pass
+7. Removed in 2026.11.26.0000: moved to the pr-closes-issue and pr-structure checks' own requirements
 8. Comments stay short
    1. GIVEN Developer has a comment that runs long
    2. GIVEN it adds noise

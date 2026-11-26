@@ -234,53 +234,6 @@ func Test0002_3(t *testing.T) {
 	})
 }
 
-func Test0002_4(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"read-repo-first passes with zero files", func(t *testing.T) {
-			t.Parallel()
-			out, code := readRepoFirst(t)
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "read-repo-first")
-		}},
-		{"asks whether decisions and checks were read", func(t *testing.T) {
-			t.Parallel()
-			out, code := readRepoFirst(t)
-			sees(t, out, code, 0, "Did you familiarize yourself with the decisions logged in the repo, "+
-				`specifically all "Fitness Checks" that are enabled via @mayjournal/fitness?`)
-		}},
-		{"warns never to skip hooks", func(t *testing.T) {
-			t.Parallel()
-			out, code := readRepoFirst(t)
-			sees(t, out, code, 0, "NOTE: Do not under any circumstance use `--no-verify`")
-		}},
-		{"table lists only enabled checks", func(t *testing.T) {
-			t.Parallel()
-			out, code := readRepoFirstChosen(t, "duplicate-code")
-			sees(t, out, code, 0, "Check │ Src", "duplicate-code │ go/cmd/fitness-check-duplicate-code")
-			if strings.Contains(out, "fitness-check-gofmt") {
-				t.Errorf("table lists gofmt, which this run did not enable:\n%s", out)
-			}
-		}},
-		{"long cells are shortened with ellipsis", func(t *testing.T) {
-			t.Parallel()
-			out, code := readRepoFirstChosen(t, "markdown-filename-kebab-case")
-			sees(t, out, code, 0, "markdown-filename-kebab-c… │ go/cmd/fitness-check-markdown-file"+"n…")
-		}},
-		{"no color when color is disabled", func(t *testing.T) {
-			t.Parallel()
-			colored := readRepoFirstRaw(t, "NO_COLOR=")
-			plain := readRepoFirstRaw(t, "NO_COLOR=1")
-			if !ansi.MatchString(colored) {
-				t.Errorf("without NO_COLOR the table should be colored:\n%q", colored)
-			}
-			if ansi.MatchString(plain) || !strings.Contains(plain, "│ Check") {
-				t.Errorf("with NO_COLOR the table should print plain:\n%q", plain)
-			}
-		}},
-	})
-}
-
 func Test0002_5(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
@@ -471,34 +424,6 @@ var lockedChecks = []struct {
 		"go.mod":    "module example.com/m\n\ngo 1.22\n",
 		"open.go":   "package m\n\nfunc Open(a int) int {\n\tif a > 1 {\n\t\treturn 1\n\t}\n\tif a > 2 {\n\t\treturn 2\n\t}\n\tif a > 3 {\n\t\treturn 3\n\t}\n\tif a > 4 {\n\t\treturn 4\n\t}\n\tif a > 5 {\n\t\treturn 5\n\t}\n\tif a > 6 {\n\t\treturn 6\n\t}\n\treturn 0\n}\n",
 		"locked.go": "package m\n"}},
-}
-
-// readRepoFirst runs `fitness-install -- <args>` on happyRepo; with no args
-// it runs read-repo-first alone.
-func readRepoFirst(t *testing.T, args ...string) (string, int) {
-	t.Helper()
-	if len(args) == 0 {
-		args = []string{"read-repo-first"}
-	}
-	return fitness(t, example(t, "happyRepo", nil), nil, args...)
-}
-
-// readRepoFirstChosen runs read-repo-first beside the checks a user chose.
-func readRepoFirstChosen(t *testing.T, checks string) (string, int) {
-	t.Helper()
-	return readRepoFirst(t, "--policy=external", "--checks=read-repo-first,"+checks)
-}
-
-// readRepoFirstRaw runs read-repo-first on happyRepo with env added and
-// returns its banner, up to the note, exactly as printed with color codes.
-func readRepoFirstRaw(t *testing.T, env ...string) string {
-	t.Helper()
-	cmd := exec.Command(installer(t), "--", "read-repo-first")
-	cmd.Dir, cmd.Env = example(t, "happyRepo", nil), append(userEnv(), env...)
-	out, err := cmd.CombinedOutput()
-	mustDo(t, err)
-	banner, _, _ := strings.Cut(string(out), "NOTE:")
-	return banner
 }
 
 // noFitnessFront writes files over happyRepo and runs

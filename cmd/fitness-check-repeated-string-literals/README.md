@@ -26,13 +26,10 @@ It fails with:
 
 ## Behavior
 
-- Test, spec and bench files are included. Run `fitness explain repeated-string-literals` for the files it reads.
-- A hand lexer reads each file's code view for single- and double-quoted literals, skipping regex and template literals.
-- It drops module specifiers, after `import`, `require` or `from`, and the directives a code view keeps.
-- Counts identical values repo-wide; flags any at or above the threshold (3). Values under the length floor (3) are ignored.
-- Idiomatic tokens are never flagged: buffer encodings (`'utf8'`), stdio modes (`'inherit'`), `typeof` results (`'object'`), and directives (`'use strict'`).
-- Error format: `"value" appears N times (file:line, …, +K more) — extract a shared constant`, locations capped at 5.
-- `filesChecked` counts every scanned source file.
+[Requirement 0001](docs/requirements/0001-a-repeated-string-becomes-a-shared-constant.md) states what this check does, and a test case named for each step proves it.
+
+- Run `fitness explain repeated-string-literals` for the files it reads.
+- A hand lexer reads each file's code view for single- and double-quoted literals.
 
 ## Allow list
 
