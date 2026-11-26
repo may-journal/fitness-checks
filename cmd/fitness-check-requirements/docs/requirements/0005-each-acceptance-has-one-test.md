@@ -45,5 +45,3 @@ acceptances
          1. THEN it fails naming the case
       6. WHEN a case holds no assertion call
          1. THEN it fails naming the case
-      7. WHEN a Node test runs its cases
-         1. THEN it needs only its own test until the Node switch is on

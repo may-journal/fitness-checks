@@ -21,10 +21,12 @@ acceptances
          2. THEN a name in a comment or a string or a helper owns nothing
       2. WHEN an acceptance has no such test
          1. THEN it fails naming the test form to write
-      3. WHEN an acceptance chains steps
-         1. THEN it needs only its own test
+      3. WHEN a Node test runs its cases
+         1. THEN it needs only its own test until the Node switch is on
       4. WHEN a test is named for no acceptance
          1. THEN it fails naming the form to rename it to
+      5. WHEN a Swift or Java test has no case for a THEN
+         1. THEN it fails naming the THEN
 2. Code needs requirement docs
    1. GIVEN Developer has a repo with code in a covered language
       1. WHEN docs/requirements holds no doc

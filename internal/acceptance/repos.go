@@ -38,7 +38,7 @@ func TestFile(pkg string, names ...string) string {
 			body += "\nfunc " + n + "(t *testing.T) {}\n"
 			continue
 		}
-		body += "\n" + CaseFile(pkg, n, ThenCases(strings.ReplaceAll(m[1], "_", "."), 1)...)[len("package "+pkg+"\n\nimport \"testing\"\n\n"):]
+		body += "\n" + CaseFunc(n, ThenCases(strings.ReplaceAll(m[1], "_", "."), 1)...)
 	}
 	return body
 }
@@ -129,7 +129,19 @@ func Occurrences(path, want string) int {
 // CaseFile is a Go test file in pkg declaring test name, which runs one
 // case per case name, each ending in one assertion call.
 func CaseFile(pkg, name string, cases ...string) string {
-	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
+	return "package " + pkg + "\n\nimport \"testing\"\n\n" + CaseFunc(name, cases...)
+}
+
+// CaseFiles is a Go test file in pkg declaring each of funcs, as CaseFunc
+// writes them.
+func CaseFiles(pkg string, funcs ...string) string {
+	return "package " + pkg + "\n\nimport \"testing\"\n\n" + strings.Join(funcs, "\n")
+}
+
+// CaseFunc is the Go test function name, which runs one case per case name,
+// each ending in one assertion call.
+func CaseFunc(name string, cases ...string) string {
+	body := "func " + name + "(t *testing.T) {\n"
 	for _, c := range cases {
 		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {\n\t\tif t.Name() == \"\" {\n\t\t\tt.Fatal(\"unnamed\")\n\t\t}\n\t})\n"
 	}

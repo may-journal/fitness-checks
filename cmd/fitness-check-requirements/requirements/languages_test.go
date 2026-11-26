@@ -1,6 +1,7 @@
 package requirements
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -22,20 +23,40 @@ func swiftRepo() map[string]string {
 	}
 }
 
-// swiftTestingFile is a Swift Testing suite declaring one empty test per
-// name.
+// thenCase is the name of the one case that owns the THEN of acceptance
+// test, such as test0001_1, as Acceptances renders it, or "" for a test
+// named for no acceptance.
+func thenCase(test string) string {
+	m := regexp.MustCompile(`^test(\d{4})_(\d+)$`).FindStringSubmatch(test)
+	if m == nil {
+		return ""
+	}
+	return acceptance.ThenCases(m[1]+"."+m[2], 1)[0]
+}
+
+// swiftTestingFile is a Swift Testing suite declaring one test per name. A
+// test named for an acceptance runs the XCTest activity of its THEN's case.
 func swiftTestingFile(names ...string) string {
 	body := "import Testing\n\n@MainActor @Suite struct AdderSpec {\n"
 	for _, n := range names {
+		if c := thenCase(n); c != "" {
+			body += "  @Test func " + n + "() async throws {\n    XCTContext.runActivity(named: \"" + c + "\") { _ in\n      #expect(1 + 1 == 2)\n    }\n  }\n"
+			continue
+		}
 		body += "  @Test func " + n + "() async throws {}\n"
 	}
 	return body + "}\n"
 }
 
-// xcTestFile is an XCTest case class declaring one empty test per name.
+// xcTestFile is an XCTest case class declaring one test per name. A test
+// named for an acceptance runs the XCTest activity of its THEN's case.
 func xcTestFile(names ...string) string {
 	body := "import XCTest\n\nfinal class AdderTests: XCTestCase {\n"
 	for _, n := range names {
+		if c := thenCase(n); c != "" {
+			body += "  func " + n + "() {\n    XCTContext.runActivity(named: \"" + c + "\") { _ in\n      XCTAssertEqual(1 + 1, 2)\n    }\n  }\n"
+			continue
+		}
 		body += "  func " + n + "() {}\n"
 	}
 	return body + "}\n"
@@ -51,10 +72,15 @@ func junitRepo() map[string]string {
 	}
 }
 
-// junitFile is a JUnit test class declaring one empty test per name.
+// junitFile is a JUnit test class declaring one test per name. A test named
+// for an acceptance is a factory of the dynamic test of its THEN's case.
 func junitFile(class string, names ...string) string {
-	body := "import org.junit.jupiter.api.Test;\n\nclass " + class + " {\n"
+	body := "import org.junit.jupiter.api.DynamicTest;\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.TestFactory;\n\nclass " + class + " {\n"
 	for _, n := range names {
+		if c := thenCase(n); c != "" {
+			body += "  @TestFactory\n  Stream<DynamicTest> " + n + "() {\n    return Stream.of(DynamicTest.dynamicTest(\"" + c + "\", () -> assertEquals(2, 1 + 1)));\n  }\n"
+			continue
+		}
 		body += "  @Test\n  void " + n + "() {}\n"
 	}
 	return body + "}\n"

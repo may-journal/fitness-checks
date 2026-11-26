@@ -37,38 +37,46 @@ func cappedRepo(limit, count int) map[string]string {
 
 func Test0004_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0004.1.1 a file name that differs from its title ID fails", func(t *testing.T) {
+	t.Run("0004.1.1.1.1 it fails telling the file name to use", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.DocOf("docs/requirements/0002-adds-numbers.md", acceptance.RequirementDoc("0001.1")))
 		acceptance.Sees(t, out, code, 1, "name the file NNNN-kebab-title.md and title it `# NNNN Title` with the same ID")
 	})
-	t.Run("0004.1.2 two docs sharing an ID fail", func(t *testing.T) {
+	t.Run("0004.1.1.2.1 it fails naming the docs", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.With(acceptance.GoRepo(), map[string]string{"docs/requirements/0001-other.md": acceptance.RequirementDoc("0001.1")}))
 		acceptance.Sees(t, out, code, 1, "requirement 0001 is used by")
 	})
-	t.Run("0004.1.3 two acceptances sharing a name fail naming both IDs", func(t *testing.T) {
+	t.Run("0004.1.1.3.1 it fails naming both IDs", func(t *testing.T) {
 		t.Parallel()
 		shared := strings.Replace(acceptance.Acceptances("0001.1", "0001.2"), "Adds pair 2", "Adds pair 1", 1)
 		out, code := suite(t, acceptance.Reqs(shared))
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":21: 0001.2 has the name of 0001.1; give each acceptance its own name")
 	})
-	t.Run("0004.1.4 a doc past the acceptance cap fails", func(t *testing.T) {
+	t.Run("0004.1.1.4.1 it fails naming the count", func(t *testing.T) {
 		t.Parallel()
 		for _, row := range []struct {
 			max, count int
-			want       []string
+			want       string
 		}{
-			{0, 8, nil},
-			{0, 9, []string{acceptance.PairedDoc + ":49: 0001 holds 9 acceptances, at most 8; fold cases into table rows of one acceptance, or move a separate goal to its own doc"}},
-			{10, 9, nil},
-			{10, 11, []string{acceptance.PairedDoc + ":57: 0001 holds 11 acceptances, at most 10;"}},
-			{3, 4, []string{acceptance.PairedDoc + ":29: 0001 holds 4 acceptances, at most 3;"}},
+			{0, 9, acceptance.PairedDoc + ":49: 0001 holds 9 acceptances, at most 8; fold cases into table rows of one acceptance, or move a separate goal to its own doc"},
+			{10, 11, acceptance.PairedDoc + ":57: 0001 holds 11 acceptances, at most 10;"},
+			{3, 4, acceptance.PairedDoc + ":29: 0001 holds 4 acceptances, at most 3;"},
 		} {
 			t.Run(fmt.Sprintf("cap %d holds %d", row.max, row.count), func(t *testing.T) {
 				t.Parallel()
 				out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", cappedRepo(row.max, row.count)), nil, "requirements")
-				acceptance.Sees(t, out, code, min(len(row.want), 1), row.want...)
+				acceptance.Sees(t, out, code, 1, row.want)
+			})
+		}
+	})
+	t.Run("0004.1.1.4.2 a doc at the limit passes", func(t *testing.T) {
+		t.Parallel()
+		for _, row := range [][2]int{{0, 8}, {10, 9}} {
+			t.Run(fmt.Sprintf("cap %d holds %d", row[0], row[1]), func(t *testing.T) {
+				t.Parallel()
+				out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", cappedRepo(row[0], row[1])), nil, "requirements")
+				acceptance.Sees(t, out, code, 0)
 			})
 		}
 	})
@@ -76,24 +84,32 @@ func Test0004_1(t *testing.T) {
 
 func Test0004_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0004.2.1 sections that are missing or extra or empty fail", func(t *testing.T) {
+	t.Run("0004.2.1.1.1 it fails naming the sections", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.DocOf("docs/requirements/0001-adds-numbers.md", acceptance.RequirementDoc("0001.1")+"\n## Out of scope\n\n- Subtraction.\n"))
 		acceptance.Sees(t, out, code, 1, "sections must be exactly ## Why, ## Measurement, ## Requirements")
 	})
-	t.Run("0004.2.2 a Measurement that is not numerator over dash over denominator fails", func(t *testing.T) {
+	t.Run("0004.2.1.2.1 it fails naming the three lines", func(t *testing.T) {
 		t.Parallel()
 		out, code := suite(t, acceptance.DocOf("docs/requirements/0001-adds-numbers.md", strings.Replace(acceptance.RequirementDoc("0001.1"), "\n-\n", "\nover\n", 1)))
 		acceptance.Sees(t, out, code, 1, "Measurement needs three lines: numerator, `-`, denominator")
 	})
-	t.Run("0004.2.3 a Source line fails and the fix deletes it", func(t *testing.T) {
+	sourced := func(t *testing.T) (repo, doc string) {
+		t.Helper()
+		doc = acceptance.DocWith("1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n")
+		repo = acceptance.Example(t, "happyRepo", acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: acceptance.WithSource(doc, "`gone.go:99`")}))
+		return repo, doc
+	}
+	t.Run("0004.2.1.3.1 it fails naming the line", func(t *testing.T) {
 		t.Parallel()
-		doc := acceptance.DocWith("1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n")
-		sourced := acceptance.WithSource(doc, "`gone.go:99`")
-		repo := acceptance.Example(t, "happyRepo", acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: sourced}))
+		repo, _ := sourced(t)
 		out, code := acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":15: delete this `Source:` line, or run `fitness requirements --fix`")
-		out, code = acceptance.Fitness(t, repo, nil, "requirements", "--fix")
+	})
+	t.Run("0004.2.1.3.2 `fitness requirements --fix` deletes it", func(t *testing.T) {
+		t.Parallel()
+		repo, doc := sourced(t)
+		out, code := acceptance.Fitness(t, repo, nil, "requirements", "--fix")
 		acceptance.Sees(t, out, code, 0)
 		if got, err := os.ReadFile(filepath.Join(repo, acceptance.PairedDoc)); err != nil || string(got) != doc {
 			t.Errorf("--fix must leave the doc without its Source line, got %v:\n%s", err, got)
@@ -109,15 +125,18 @@ func Test0004_2(t *testing.T) {
 
 func Test0004_4(t *testing.T) {
 	t.Parallel()
-	t.Run("0004.4.1 steps chain up to the limit beside a single step", func(t *testing.T) {
+	t.Run("0004.4.1.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		tests := map[string]string{"adder_test.go": acceptance.TestFile("adder", "Test0001_1"), "chain_test.go": acceptance.CaseFile("adder", "Test0001_2", acceptance.ThenCases("0001.2", 7)...)}
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Reqs(acceptance.Acceptances("0001.1")+acceptance.Chain("0001.2", 7)), tests)), nil, "requirements")
 		acceptance.Sees(t, out, code, 0)
-		out, code = suite(t, acceptance.Reqs(acceptance.Chain("0001.1", 8)))
+	})
+	t.Run("0004.4.1.1.2 a longer chain fails naming the limit", func(t *testing.T) {
+		t.Parallel()
+		out, code := suite(t, acceptance.Reqs(acceptance.Chain("0001.1", 8)))
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":17: 0001.1 chains 8 steps, at most 7; move the rest to a new ID")
 	})
-	t.Run("0004.4.2 misnumbered or unnumbered steps fail", func(t *testing.T) {
+	t.Run("0004.4.1.2.1 it fails naming the line", func(t *testing.T) {
 		t.Parallel()
 		for body, want := range map[string]string{
 			strings.Replace(acceptance.Chain("0001.1", 3), "3. WHEN", "4. WHEN", 1): ":23: number this WHEN `3.`; each level numbers from 1 in order",
@@ -127,7 +146,7 @@ func Test0004_4(t *testing.T) {
 			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+want)
 		}
 	})
-	t.Run("0004.4.3 two docs sharing a WHEN fail", func(t *testing.T) {
+	t.Run("0004.4.1.3.1 it fails naming both docs", func(t *testing.T) {
 		t.Parallel()
 		other := "docs/requirements/0002-adds-again.md"
 		adds := "1. Adds\n   1. GIVEN Writer has two whole numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
@@ -141,21 +160,42 @@ func Test0004_4(t *testing.T) {
 	})
 }
 
+// twoAdds is GoRepo with requirement 0001 holding 0001.1 and 0001.2, each
+// proven by its own test.
+func twoAdds() map[string]string {
+	return acceptance.With(acceptance.GoRepo(), map[string]string{
+		"adder_test.go":                          acceptance.TestFile("adder", "Test0001_1", "Test0001_2"),
+		"docs/requirements/0001-adds-numbers.md": acceptance.RequirementDoc("0001.1", "0001.2"),
+	})
+}
+
+// restarted is twoAdds committed after a commit that dropped 0001.2, then
+// restructured into 0001-sums-numbers.md by a commit that removed every doc
+// first.
+func restarted(t *testing.T) (repo string, restructured map[string]string) {
+	t.Helper()
+	repo = acceptance.Example(t, "happyRepo", twoAdds())
+	acceptance.Commit(t, repo, acceptance.GoRepo(), "docs(requirements): drop 0001.2")
+	restructured = acceptance.With(twoAdds(), map[string]string{
+		"docs/requirements/0001-adds-numbers.md": "",
+		"docs/requirements/0001-sums-numbers.md": acceptance.RequirementDoc("0001.1", "0001.2"),
+	})
+	acceptance.Write(t, repo, restructured)
+	acceptance.Git(t, repo, "add", "-A")
+	return repo, restructured
+}
+
 func Test0004_5(t *testing.T) {
 	t.Parallel()
-	t.Run("0004.5.1 a deleted ID brought back fails", func(t *testing.T) {
+	t.Run("0004.5.1.1.1 it fails naming the ID", func(t *testing.T) {
 		t.Parallel()
-		two := acceptance.With(acceptance.GoRepo(), map[string]string{
-			"adder_test.go":                          acceptance.TestFile("adder", "Test0001_1", "Test0001_2"),
-			"docs/requirements/0001-adds-numbers.md": acceptance.RequirementDoc("0001.1", "0001.2"),
-		})
-		repo := acceptance.Example(t, "happyRepo", two)
+		repo := acceptance.Example(t, "happyRepo", twoAdds())
 		acceptance.Commit(t, repo, acceptance.GoRepo(), "docs(requirements): drop 0001.2")
-		acceptance.Write(t, repo, two)
+		acceptance.Write(t, repo, twoAdds())
 		out, code := acceptance.Fitness(t, repo, nil)
 		acceptance.Sees(t, out, code, 1, "0001.2 was deleted before")
 	})
-	t.Run("0004.5.2 a deleted step brought back fails", func(t *testing.T) {
+	t.Run("0004.5.1.2.1 it fails naming the step", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
 		cased := func(steps int) map[string]string {
@@ -169,29 +209,23 @@ func Test0004_5(t *testing.T) {
 		out, code = acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":23: 0001.1.3 was deleted before; IDs are never reused, so chain the step under a new acceptance ID")
 	})
-	t.Run("0004.5.3 a commit removing every doc restarts the history", func(t *testing.T) {
+	t.Run("0004.5.1.3.1 the history restarts", func(t *testing.T) {
 		t.Parallel()
-		two := acceptance.With(acceptance.GoRepo(), map[string]string{
-			"adder_test.go":                          acceptance.TestFile("adder", "Test0001_1", "Test0001_2"),
-			"docs/requirements/0001-adds-numbers.md": acceptance.RequirementDoc("0001.1", "0001.2"),
-		})
-		repo := acceptance.Example(t, "happyRepo", two)
-		acceptance.Commit(t, repo, acceptance.GoRepo(), "docs(requirements): drop 0001.2")
-		restructured := acceptance.With(two, map[string]string{
-			"docs/requirements/0001-adds-numbers.md": "",
-			"docs/requirements/0001-sums-numbers.md": acceptance.RequirementDoc("0001.1", "0001.2"),
-		})
-		acceptance.Write(t, repo, restructured)
-		acceptance.Git(t, repo, "add", "-A")
+		repo, restructured := restarted(t)
 		out, code := acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 0)
 		acceptance.Commit(t, repo, restructured, "docs(requirements): restart the numbers")
 		out, code = acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 0)
+	})
+	t.Run("0004.5.1.3.2 later removals count afresh", func(t *testing.T) {
+		t.Parallel()
+		repo, restructured := restarted(t)
+		acceptance.Commit(t, repo, restructured, "docs(requirements): restart the numbers")
 		dropped := map[string]string{"adder_test.go": acceptance.GoRepo()["adder_test.go"], "docs/requirements/0001-sums-numbers.md": acceptance.RequirementDoc("0001.1")}
 		acceptance.Commit(t, repo, dropped, "docs(requirements): drop 0001.2 again")
 		acceptance.Write(t, repo, restructured)
-		out, code = acceptance.Fitness(t, repo, nil, "requirements")
+		out, code := acceptance.Fitness(t, repo, nil, "requirements")
 		acceptance.Sees(t, out, code, 1, "0001.2 was deleted before")
 	})
 }
@@ -203,16 +237,34 @@ const bulletDoc = "- 0001.1\n  - Given two numbers\n    - When I add them\n     
 
 func Test0004_6(t *testing.T) {
 	t.Parallel()
-	out, code := judged(t, gherkinRepo(t, bulletDoc, acceptance.TestFile("adder", "Test0001_1", "Test0001_2")))
-	acceptance.Sees(t, out, code, 1, rootDoc+":17: this is the bullet acceptance form, which `requirements` no longer reads",
-		rootDoc+":21: this is the bullet acceptance form")
-	acceptance.Sees(t, out, code, 1, "number each acceptance and write its GIVEN, WHEN and THEN items in caps")
-	// The table wraps the link, so it is found without spaces.
-	link := "https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md#template"
-	if !strings.Contains(strings.Join(strings.Fields(out), ""), link) {
-		t.Errorf("output is missing the link %s:\n%s", link, out)
+	bullets := func(t *testing.T) string {
+		t.Helper()
+		out, code := judged(t, gherkinRepo(t, bulletDoc, acceptance.TestFile("adder", "Test0001_1", "Test0001_2")))
+		if code != 1 {
+			t.Errorf("a bullet doc must fail, exit code = %d:\n%s", code, out)
+		}
+		return out
 	}
-	if strings.Contains(out, "adder_test.go") {
-		t.Errorf("a bullet doc's tests still own its IDs, got:\n%s", out)
-	}
+	t.Run("0004.6.1.1.1 it fails at each acceptance", func(t *testing.T) {
+		t.Parallel()
+		out := bullets(t)
+		acceptance.Sees(t, out, 1, 1, rootDoc+":17: this is the bullet acceptance form, which `requirements` no longer reads",
+			rootDoc+":21: this is the bullet acceptance form")
+	})
+	t.Run("0004.6.1.1.2 it links the numbered form", func(t *testing.T) {
+		t.Parallel()
+		out := bullets(t)
+		acceptance.Sees(t, out, 1, 1, "number each acceptance and write its GIVEN, WHEN and THEN items in caps")
+		// The table wraps the link, so it is found without spaces.
+		link := "https://github.com/may-journal/fitness-checks/blob/main/cmd/fitness-check-requirements/README.md#template"
+		if !strings.Contains(strings.Join(strings.Fields(out), ""), link) {
+			t.Errorf("output is missing the link %s:\n%s", link, out)
+		}
+	})
+	t.Run("0004.6.1.1.3 its tests keep their IDs", func(t *testing.T) {
+		t.Parallel()
+		if out := bullets(t); strings.Contains(out, "adder_test.go") {
+			t.Errorf("a bullet doc's tests still own its IDs, got:\n%s", out)
+		}
+	})
 }

@@ -33,31 +33,40 @@ func chainRun(t *testing.T, requirements string, steps int) string {
 	return acceptance.Read(out)
 }
 
-// chainsWithin fails unless a chain of steps passes the limit and one more
-// step fails naming both.
-func chainsWithin(t *testing.T, requirements string, limit int) {
+// chainOverLimit fails unless a chain of limit steps passes the limit and
+// one more step fails with every want, such as the chain and the limit.
+func chainOverLimit(t *testing.T, requirements string, limit int, want ...string) {
 	t.Helper()
 	if out := chainRun(t, requirements, limit); strings.Contains(out, "0001.1 chains") {
 		t.Errorf("a chain of %d steps must pass a limit of %d:\n%s", limit, limit, out)
 	}
-	want := fmt.Sprintf("0001.1 chains %d steps, at most %d", limit+1, limit)
 	out := chainRun(t, requirements, limit+1)
-	if !strings.Contains(out, want) {
-		t.Errorf("output is missing %q:\n%s", want, out)
-	}
-	if named := fmt.Sprintf("0001.1 chains %d steps", limit+1); !strings.Contains(out, named) {
-		t.Errorf("output does not name the chain %q:\n%s", named, out)
+	for _, w := range want {
+		if !strings.Contains(out, fmt.Sprintf(w, limit+1, limit)) {
+			t.Errorf("output is missing %q:\n%s", fmt.Sprintf(w, limit+1, limit), out)
+		}
 	}
 }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, `, "requirements": {"maxSteps": 3}`, 3)
+	const set = `, "requirements": {"maxSteps": 3}`
+	t.Run("0001.1.2.1.1 it fails naming the chain", func(t *testing.T) {
+		t.Parallel()
+		chainOverLimit(t, set, 3, "0001.1 chains %[1]d steps")
+	})
+	t.Run("0001.1.2.1.2 it names the limit", func(t *testing.T) {
+		t.Parallel()
+		chainOverLimit(t, set, 3, "at most %[2]d")
+	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, "", 7)
-	// A chain holds two steps at least, so a smaller limit keeps the default.
-	chainsWithin(t, `, "requirements": {"maxSteps": 1}`, 7)
+	t.Run("0001.2.2.1.1 the default limit of seven steps applies", func(t *testing.T) {
+		t.Parallel()
+		chainOverLimit(t, "", 7, "0001.1 chains %d steps, at most %d")
+		// A chain holds two steps at least, so a smaller limit keeps the default.
+		chainOverLimit(t, `, "requirements": {"maxSteps": 1}`, 7, "0001.1 chains %d steps, at most %d")
+	})
 }

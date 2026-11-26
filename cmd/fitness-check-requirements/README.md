@@ -39,9 +39,22 @@ users who have lost connection
          1. THEN it shows the uploaded edits
 ```
 
+Its test has one case for each THEN, named with the THEN's ID and its words, and each case asserts its own result:
+
+```go
+func Test0001_2(t *testing.T) {
+	t.Run("0001.2.1.1.1 the edits upload", func(t *testing.T) {
+		// arrange, then assert
+	})
+	t.Run("0001.2.1.2.1 it shows the uploaded edits", func(t *testing.T) {
+		// arrange, then assert
+	})
+}
+```
+
 ## Rules
 
-[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance names and their cap, sections, measurement, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
+[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance names and their cap, sections, measurement, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each THEN. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 
 [Requirement 0006](docs/requirements/0006-changes-come-paired.md) states that a test and its doc change together. [Requirement 0007](docs/requirements/0007-tests-fit-their-language.md) states how each language finds its tests.
 
@@ -51,11 +64,14 @@ The error for a missing test names the one it expects, and deleting an ID delete
 
 An acceptance may chain 2 to `requirements.maxSteps` WHENs under its last GIVEN, as item 2 of the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
 
-Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) the cases they need.
+Each THEN needs its own case in the acceptance's test. A THEN's ID is the doc, acceptance, GIVEN, WHEN and THEN numbers, so THEN 1 under WHEN 2 under GIVEN 1 of acceptance 3 in doc 0005 is `0005.3.1.2.1`. The case name is that ID, a space, and the THEN's words without `THEN `, such as `t.Run("0001.2.1.2.1 it shows the uploaded edits", …)` in `Test0001_2`. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) the cases.
 
-- Cases: Go reads `t.Run` names and case table rows, and Java dynamic tests and `Named` arguments.
-- Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
-- Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
+- Missing: a THEN with no case fails, naming the test to add it to and the name to give it.
+- Reworded: a case that opens with a THEN's ID but not its words fails, so a reworded THEN fails until its case is renamed.
+- Stray: a case that opens with a path no doc holds fails, naming the case. Cases named otherwise pass.
+- Assertions: a case with no assertion call fails. A call counts when its name opens with a word such as assert, require, expect, verify, check, sees, must, ensure, fail, fatal, error, equal, contains, passed or shows. Go judges the `t.Run` function, or the whole test for a case table row.
+- Cases: Go reads `t.Run` names and case table rows, Java dynamic tests and `Named` arguments, and Swift XCTest activities.
+- Node: its tests need only their test, behind the `nodeReportsCases` switch in `cases.go`. It turns on once [fitness-runner#1108](https://github.com/may-journal/fitness-runner/pull/1108) reports Vitest and Jest cases.
 
 ## Gherkin
 

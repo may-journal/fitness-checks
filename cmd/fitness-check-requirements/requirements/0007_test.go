@@ -37,7 +37,7 @@ func Test0007_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, `0001.1 has no test; name exactly one test test("0001.1 …")`)
 		junitOwnership(t)
 	})
-	t.Run("0007.1.2 an acceptance with no such test fails naming the form to write", func(t *testing.T) {
+	t.Run("0007.1.1.2.1 it fails naming the test form to write", func(t *testing.T) {
 		t.Parallel()
 		swiftOwnsNothing(t, xcTestFile())
 		out, code := checked(t, acceptance.With(scriptRepo(), map[string]string{"tests/adder.test.ts": ""}))
@@ -52,14 +52,14 @@ func Test0007_1(t *testing.T) {
 			acceptance.Sees(t, out, code, 0)
 		}
 	})
-	t.Run("0007.1.4 a test named for no acceptance fails naming the form to rename it to", func(t *testing.T) {
+	t.Run("0007.1.1.4.1 it fails naming the form to rename it to", func(t *testing.T) {
 		t.Parallel()
 		out, code := swiftJudged(t, map[string]string{swiftTest: swiftTestingFile("test0001_1", "testAddsAgain")})
 		acceptance.Sees(t, out, code, 1, "testAddsAgain proves no requirement; rename it testNNNN_N")
 		out, code = scriptChecked(t, `test("0001.1 adds two numbers", () => {});`, `it("adds again", () => {});`)
 		acceptance.Sees(t, out, code, 1, `tests/adder.test.ts:4: it("adds again") proves no requirement; rename it test("NNNN.N …")`)
 		out, code = checked(t, acceptance.With(junitRepo(), map[string]string{"src/test/java/AdderTest.java": junitFile("AdderTest", "test0001_1", "addsAgain")}))
-		acceptance.Sees(t, out, code, 1, "src/test/java/AdderTest.java:6: addsAgain proves no requirement; rename it testNNNN_N")
+		acceptance.Sees(t, out, code, 1, "src/test/java/AdderTest.java:10: addsAgain proves no requirement; rename it testNNNN_N")
 		unchangedTestFails(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": acceptance.TestFile("adder", "Test0001_1", "TestAddsAgain")}), "TestAddsAgain proves no requirement")
 		for _, body := range []string{xcTestFile("testAddsAgain"), "import Testing\n@Test func addsAgain() {}\n"} {
 			files := acceptance.With(swiftRepo(), map[string]string{"Tests/ExtraTests.swift": body})
@@ -74,7 +74,7 @@ func Test0007_1(t *testing.T) {
 
 func Test0007_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0007.2.1 code with no requirement doc fails naming the folder", func(t *testing.T) {
+	t.Run("0007.2.1.1.1 it fails naming the folder", func(t *testing.T) {
 		t.Parallel()
 		for _, repo := range []map[string]string{acceptance.GoRepo(), swiftRepo(), scriptRepo(), junitRepo()} {
 			out, code := checked(t, acceptance.With(repo, map[string]string{"docs/requirements/0001-adds-numbers.md": ""}))
@@ -83,7 +83,7 @@ func Test0007_2(t *testing.T) {
 		out, code := checked(t, map[string]string{"src/app.js": "export const app = 1;\n"})
 		acceptance.Sees(t, out, code, 1, "docs/requirements/ has no requirement docs")
 	})
-	t.Run("0007.2.2 a repo with no covered code passes with no files", func(t *testing.T) {
+	t.Run("0007.2.1.2.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		for _, files := range []map[string]string{nil, {"vite.config.ts": "export default {};\n", ".eslintrc.cjs": "module.exports = {};\n"}} {
 			out, code := checked(t, files)
@@ -119,7 +119,7 @@ func Test0007_3(t *testing.T) {
 		out, code = swiftChecked(t, map[string]string{swiftScreens: "", "Tests/OtherTests/Screens.swift": "import UITestingLibrary\n"})
 		acceptance.Sees(t, out, code, 1, "nothing in Tests/AdderTests/ imports UITestingLibrary")
 	})
-	t.Run("0007.3.2 a Swift Testing test on UITestingLibrary passes", func(t *testing.T) {
+	t.Run("0007.3.1.2.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		// Words in comments and strings are no import or call.
 		quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n}\n"
@@ -136,13 +136,13 @@ func Test0007_3(t *testing.T) {
 
 func Test0007_4(t *testing.T) {
 	t.Parallel()
-	t.Run("0007.4.1 a requirement a passing check proves needs no test", func(t *testing.T) {
+	t.Run("0007.4.1.1.1 the acceptances need no test", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", provenRepo()), nil)
 		acceptance.Sees(t, out, code, 0, "All 2 checks passed")
 		acceptance.PassedWith(t, out, "req-0002", "1")
 	})
-	t.Run("0007.4.2 a check with no doc or a change without its doc fails", func(t *testing.T) {
+	t.Run("0007.4.1.2.1 it fails naming the check", func(t *testing.T) {
 		t.Parallel()
 		orphan := acceptance.With(provenRepo(), map[string]string{"fitness/req-0003/README.md": houseReadme, "fitness/req-0003/check": acceptance.VerdictScript(passing)})
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", orphan), nil, "requirements")
@@ -150,7 +150,7 @@ func Test0007_4(t *testing.T) {
 		out, code = stagedRun(t, provenRepo(), map[string]string{"fitness/req-0002/check": acceptance.VerdictScript(`{"ok": true, "errors": [], "filesChecked": 2}`)})
 		acceptance.Sees(t, out, code, 1, "fitness/req-0002/check changed without its requirement doc docs/requirements/0002-adds-again.md; change both together")
 	})
-	t.Run("0007.4.3 a check that judged no files fails", func(t *testing.T) {
+	t.Run("0007.4.1.3.1 it fails since its scan is broken", func(t *testing.T) {
 		t.Parallel()
 		empty := acceptance.With(provenRepo(), map[string]string{"fitness/req-0002/check": acceptance.VerdictScript(`{"ok": true, "errors": [], "filesChecked": 0}`)})
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", empty), nil, "check", "req-0002")
