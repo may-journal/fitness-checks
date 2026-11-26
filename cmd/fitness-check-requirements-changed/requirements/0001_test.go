@@ -73,7 +73,7 @@ func Test0001_1(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, nil, "requirements-changed")
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.2.5.1 it passes when no doc names it", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 it passes if no doc names it", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{"three.go": "package adder\n\n// Three is three.\nconst Three = 3\n"})
 		out, code := staged(t, given, map[string]string{"three.go": ""})
@@ -83,7 +83,7 @@ func Test0001_1(t *testing.T) {
 		doc := strings.Replace(acceptance.GoRepo()[pairedDoc], "by hand.", "by hand, with `adder.go`.", 1)
 		return staged(t, acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: doc}), map[string]string{"adder.go": ""})
 	}
-	t.Run("0001.1.2.5.2 it fails naming the file with the doc when a doc names it", func(t *testing.T) {
+	t.Run("0001.1.2.5.2 it fails naming the file with the doc if a doc names it", func(t *testing.T) {
 		t.Parallel()
 		out, code := named(t)
 		acceptance.Sees(t, out, code, 1, "adder.go was deleted, leaving requirement doc "+pairedDoc)
