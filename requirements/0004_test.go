@@ -1,11 +1,9 @@
 package requirements
 
 import (
-	"encoding/base64"
 	"maps"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -70,120 +68,6 @@ func Test0004_1(t *testing.T) {
 func Test0004_2(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"misspellings in short and long files", func(t *testing.T) {
-			t.Parallel()
-			// 2,500 filler lines are 65,000 bytes, so the block opens just before
-			// cspell's 64 KB chunk boundary and closes after it.
-			filler := strings.Repeat("good words in a long file\n", 2500)
-			long := "the " + cspellTypo + " fox\n" + filler +
-				"cspell:disable\n" + filler[:2600] + "the " + cspellBodyTypo + " fox\ncspell:enable\n" +
-				filler + "the " + cspellRepoWord + " fox\n"
-			out, code := cspellRun(t, map[string]string{
-				"notes.md": "good words\nthe " + cspellTypo + " fox\n",
-				"long.md":  long,
-			})
-			first := "long.md:1:5 - Unknown word (" + cspellTypo + ")"
-			last := "long.md:5105:5 - Unknown word (" + cspellRepoWord + ")"
-			sees(t, out, code, 1, "notes.md:2:5 - Unknown word ("+cspellTypo+")", first, last)
-			if strings.Contains(out, cspellBodyTypo) || strings.Index(out, first) > strings.Index(out, last) {
-				t.Errorf("only the words outside the block may be named, in line order:\n%s", out)
-			}
-		}},
-		{"repo word list beside shared one", func(t *testing.T) {
-			t.Parallel()
-			out, code := cspellRun(t, map[string]string{
-				"cspell.json":   `{"words":["fitnessrc","` + cspellRepoWord + `"]}` + "\n",
-				cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
-				"notes.md":      cspellRepoWord + " and " + cspellSharedWord + "\n@jasonvanderslice from Vanderbot\n",
-			})
-			sees(t, out, code, 1, "notes.md:1:11 - Unknown word ("+cspellSharedWord+")")
-			if strings.Contains(out, "Unknown word ("+cspellRepoWord+")") {
-				t.Errorf("the repo's own word must be accepted:\n%s", out)
-			}
-			if strings.Contains(out, "Unknown word (jasonvanderslice)") || strings.Contains(out, "Unknown word (Vanderbot)") {
-				t.Errorf("the owner and agent names must be accepted:\n%s", out)
-			}
-		}},
-		{"ignore paths setting is refused", func(t *testing.T) {
-			t.Parallel()
-			out, code := cspellRun(t, map[string]string{"cspell.json": `{"ignorePaths":["docs"]}` + "\n"})
-			sees(t, out, code, 1, "cspell.json sets ignorePaths; cspell checks every tracked file, so remove ignorePaths and fix the findings instead")
-		}},
-		{"unknown words in exempt files", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{
-				".gitattributes":       "*.gen linguist-generated\n",
-				"deps/pkg.gen":         cspellSharedWord + "\n",
-				"blob.bin":             cspellBinaryWord + "\x00" + cspellBinaryOther,
-				"package-lock.json":    `{"packages":{"node_modules/` + cspellTypo + `":{}}}` + "\n",
-				"web/yarn.lock":        cspellRepoWord + "@1.0.0\n",
-				"pnpm-lock.yaml":       cspellBodyTypo + ": 1.0.0\n",
-				"go.sum":               "example.com/" + cspellBinaryOther + " v1.0.0 h1:abc=\n",
-				"App/Package.resolved": `{"identity":"` + cspellBinaryWord + `"}` + "\n",
-				"lib/gradle.lockfile":  "com.example:" + cspellTypo + ":1.0=compileClasspath\n",
-				"mvnw":                 "url=" + cspellTypo + "\n",
-				"app/gradlew.bat":      "set " + cspellRepoWord + "=1\n",
-				".mvn/wrapper/MavenWrapperDownloader.java": "class Downloader { String " + cspellRepoWord + "; }\n",
-				"gradle/wrapper/gradle-wrapper.properties": "distributionUrl=" + cspellBodyTypo + "\n",
-			})
-			write(t, repo, map[string]string{"untracked.md": "the " + cspellRepoWord + " fox\n"})
-			out, code := fitness(t, repo, nil, "cspell")
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"staged misspelling versus committed one", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{"old.md": "the " + cspellTypo + " fox\n", "gone.md": "clean words\n"})
-			write(t, repo, map[string]string{"new.md": "the " + cspellRepoWord + " fox\n"})
-			git(t, repo, "add", "new.md")
-			git(t, repo, "rm", "-q", "gone.md")
-			out, code := fitness(t, repo, nil, "cspell")
-			sees(t, out, code, 1, "new.md:1:5 - Unknown word ("+cspellRepoWord+")")
-			if strings.Contains(out, cspellTypo) || strings.Contains(out, "gone.md") {
-				t.Errorf("only the staged file on disk may be checked:\n%s", out)
-			}
-		}},
-		{"issue or pr body misspelling", func(t *testing.T) {
-			t.Parallel()
-			out, code := cspellRun(t, map[string]string{"body.md": "a " + cspellBodyTypo + " word\n"}, "--body-file", "body.md")
-			sees(t, out, code, 1, "(description):1:3 - Unknown word ("+cspellBodyTypo+")")
-		}},
-		{"no repo word list falls back", func(t *testing.T) {
-			t.Parallel()
-			out, code := cspellRun(t, map[string]string{
-				cspellInstalled: `{"words":["fitnessrc","` + cspellSharedWord + `"]}` + "\n",
-				"notes.md":      cspellSharedWord + " is a shared word\n",
-			})
-			sees(t, out, code, 0, "All 1 checks passed")
-			out, code = cspellRun(t, map[string]string{"notes.md": "mayjournal is a shared word, and addrinfo a language one\n"})
-			sees(t, out, code, 0, "All 1 checks passed")
-			out, code = cspellRun(t, map[string]string{"body.md": "sync `fastlane/Appfile`, `fastlane/Fastfile`, `fastlane/Gymfile`\n"}, "--body-file", "body.md")
-			sees(t, out, code, 0, "All 1 checks passed")
-			out, code = cspellRun(t, map[string]string{"static-preview.yml": "run: touch \"$PAGES/.nojekyll\"\n"})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"forbidden flag word phrases", func(t *testing.T) {
-			t.Parallel()
-			files := map[string]string{
-				"cspell.json": `{"words":["fitnessrc"],"flagWords":["green apple"]}` + "\n",
-				"notes.md":    "a Green  Apple and green" + "apple\n",
-				"body.md":     "no green\napple here\n",
-			}
-			out, code := cspellRun(t, files)
-			sees(t, out, code, 1, "notes.md:1:3 - Forbidden word (green apple)", "body.md:1:4 - Forbidden word (green apple)")
-			if strings.Contains(out, "cspell.json:") {
-				t.Errorf("the cspell.json listing flagWords must not be flagged:\n%s", out)
-			}
-			out, code = cspellRun(t, files, "--body-file", "body.md")
-			sees(t, out, code, 1, "(description):1:4 - Forbidden word (green apple)")
-		}},
-		{"renovate hidden debug block passes", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", nil)
-			out, code := piped(t, repo, renovateBody, nil, "--blob", "-", "--checks=cspell")
-			sees(t, out, code, 0, "All 1 checks passed")
-			out, code = piped(t, repo, misspelledNote+renovateBody, nil, "--blob", "-", "--checks=cspell")
-			sees(t, out, code, 1, "Unknown word (mispeled)")
-		}},
 		{"asterisk bold and italic", func(t *testing.T) {
 			t.Parallel()
 			out, code := noBoldItalicReadme(t, "Some **strong** and *soft* words.\n")
@@ -494,168 +378,6 @@ func Test0004_4(t *testing.T) {
 func Test0004_5(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"github templates do not govern files", func(t *testing.T) {
-			t.Parallel()
-			out, code := docTemplate(t, map[string]string{
-				"docs/arch/templates/adr.md":       docTemplateADR,
-				"docs/arch/templates/note.md":      docTemplateNote,
-				"docs/arch/04-code.md":             "# Code\n\n## Summary\n\ns\n",
-				".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\n<!-- context -->\n",
-				".github/other.md":                 "# Other\n\n## Totally\n\ndifferent\n",
-			})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"section the template lacks or has", func(t *testing.T) {
-			t.Parallel()
-			out, code := docTemplate(t, map[string]string{
-				"docs/adr/template.md":   docTemplateADR,
-				"docs/adr/0001-extra.md": "# 0001 Extra\n\n## Context\n\nc\n\n## Status\n\ns\n\n## Decision\n\nd\n\n## Consequences\n\ne\n",
-				"docs/adr/0002-short.md": "# 0002 Short\n\n## Context\n\nc\n\n## Consequences\n\ne\n",
-			})
-			sees(t, out, code, 1,
-				"docs/adr/0001-extra.md: Unexpected `## Status` section",
-				"docs/adr/0002-short.md: Missing `## Decision` section")
-		}},
-		{"nested and named templates nearest wins", func(t *testing.T) {
-			t.Parallel()
-			out, code := docTemplate(t, map[string]string{
-				"docs/templates/adr.md":           docTemplateADR,
-				"docs/deep/note.template.md":      "# Note\n\n## Summary\n\n<!-- gist -->\n",
-				"docs/deep/sub/0001-note.md":      "# 0001 Note\n\n## Context\n\nc\n",
-				"docs/views/templates/04-code.md": docTemplateNote,
-				"docs/views/04-code.md":           "# Code\n\n## Summary\n\ns\n",
-				"docs/views/notes.md":             "# Notes\n\n## Open threads\n\no\n",
-			})
-			sees(t, out, code, 1,
-				"docs/deep/sub/0001-note.md: Missing `## Summary` section",
-				"docs/views/notes.md: Missing `## Context` section",
-				"docs/views/notes.md: Unexpected `## Open threads` section")
-		}},
-		{"template section lacks guiding comment", func(t *testing.T) {
-			t.Parallel()
-			out, code := docTemplate(t, map[string]string{
-				"docs/adr/template.md":             "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\nno comment here\n",
-				".github/PULL_REQUEST_TEMPLATE.md": "## Background\n\nno comment\n",
-				".github/ISSUE_TEMPLATE/plan.md":   "## Goal\n\nno comment\n",
-			})
-			sees(t, out, code, 1,
-				"docs/adr/template.md: section `## Decision` needs a guiding <!-- comment -->",
-				".github/PULL_REQUEST_TEMPLATE.md: section `## Background` needs a guiding <!-- comment -->",
-				".github/ISSUE_TEMPLATE/plan.md: section `## Goal` needs a guiding <!-- comment -->")
-		}},
-		{"doc matching neither of two templates", func(t *testing.T) {
-			t.Parallel()
-			out, code := docTemplate(t, map[string]string{
-				"docs/adr/adr.template.md":  docTemplateADR,
-				"docs/adr/note.template.md": docTemplateNote,
-				"docs/adr/0001-bad.md":      "# 0001 Bad\n\n## Other\n\no\n",
-			})
-			sees(t, out, code, 1,
-				"docs/adr/0001-bad.md: sections match none of its templates: docs/adr/adr.template.md, docs/adr/note.template.md")
-		}},
-		{"view lacks legend or callout structure", func(t *testing.T) {
-			t.Parallel()
-			files := dtCopied(t)
-			dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Example", "```mermaid\nflowchart TB\n    class Example")
-			dtEdit(t, files, acJourney, "## Journey", "## Steps")
-			out, code := docTemplate(t, files)
-			sees(t, out, code, 1,
-				dtViews+acCode+": the opening needs a classDiagram legend as "+dtTemplates+acCode+" has",
-				dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtTemplates+acJourney+" does")
-
-			files = dtCopied(t)
-			dtEdit(t, files, acJourney, "| Type    |", "| Kind    |")
-			dtEdit(t, files, acCode, "Numbers on classes", "Labels on classes")
-			files[dtViews+acContainer] = files[dtViews+acContainer][:strings.Index(files[dtViews+acContainer], "| #")]
-			journey := dtLine(t, files, acJourney, "| #   | Description          | Kind")
-			table := dtLine(t, files, acCode, "| #")
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 1,
-				journey+": callout table columns #, Description, Kind, Why must be #, Description, Type, Why as "+dtTemplates+acJourney+" has",
-				table+`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtTemplates+acCode+" has",
-				dtViews+acContainer+": the opening needs a callout table with columns #, Description, Why as "+dtTemplates+acContainer+" has")
-
-			files = dtShipped(t)
-			dtEdit(t, files, acContainer, "C4Container\n    title Product", "C4Context\n    title Product")
-			dtEdit(t, files, acComponent, "C4Component\n    title Legend", "C4Container\n    title Legend")
-			dtEdit(t, files, acCode, "```mermaid\nclassDiagram\n    class Record", "```mermaid\nflowchart TB\n    class Record")
-			dtEdit(t, files, acJourney, "flowchart TB", "flowchart LR")
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 1,
-				dtLine(t, files, acContainer, "```mermaid")+": diagram type C4Context must be C4Container as "+dtShippedName(acContainer)+" has",
-				dtViews+acComponent+": the opening needs a C4Component legend as "+dtShippedName(acComponent)+" has",
-				": legend type C4Container must be C4Component as "+dtShippedName(acComponent)+" has",
-				dtLine(t, files, acCode, "```mermaid")+": diagram type flowchart TB must be classDiagram as "+dtShippedName(acCode)+" has",
-				dtLine(t, files, acJourney, "```mermaid")+": legend type flowchart LR must be flowchart TB as "+dtShippedName(acJourney)+" has")
-		}},
-		{"views from shipped architecture templates", func(t *testing.T) {
-			t.Parallel()
-			files := dtCopied(t)
-			files[dtViews+acContainer] += "\n## Setup\n\nHow a consumer runs the app.\n"
-			files[dtViews+acJourney] += "\n## Notes\n\nWhat the journey leaves out.\n"
-			dtEdit(t, files, acComponent, "match the callout table.", "match the callout table. <!-- kept in step with the diagram -->")
-			files[dtViews+"notes.md"] = "# Notes\n\n## Open threads\n\nWhat the views leave out.\n"
-			files[dtViews+"archive/"+acCode] = "# Old code\n\n## Before\n\nThe first layout.\n"
-			out, code := docTemplate(t, files)
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWith(t, out, "doc-template", "14")
-
-			files = dtShipped(t)
-			files[dtViews+acContainer] += "\n## Setup\n\nHow a consumer runs the app.\n"
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 0, "All 1 checks passed")
-			dtEdit(t, files, acJourney, "## Journey", "## Steps")
-			dtEdit(t, files, acCode, "Numbers on classes", "Labels on classes")
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 1,
-				dtViews+acJourney+": sections must open with `## Legend`, `## Journey` as "+dtShippedName(acJourney)+" does",
-				`: callout table needs the caption "Numbers on classes and letters on relationships match the callout table" above it as `+dtShippedName(acCode)+" has")
-		}},
-		{"view styles differ from template", func(t *testing.T) {
-			t.Parallel()
-			files := dtShipped(t)
-			dtEdit(t, files, acContext, "    UpdateElementStyle(user,",
-				"    SystemDb_Ext(db, \"4 Records\", \"Keeps records.\")\n    UpdateElementStyle(db, $fontColor=\"#FFFFFF\", $bgColor=\"#64748b\",  $borderColor=\"#475569\")\n    UpdateLayoutConfig($c4ShapeInRow=\"3\")\n    Lay_R(user, product)\n    UpdateElementStyle(user,")
-			dtEdit(t, files, acCode, "    save --> Record : A", "    save --> Record : A\n    Store : +save()\n    <<interface>> Store\n    style Store "+paletteClass)
-			dtEdit(t, files, acContainer, `Container(app, "3 App", "Language", "src/app")`, `Container(app, "3 App", $techn="Language")`)
-			out, code := docTemplate(t, files)
-			sees(t, out, code, 0, "All 1 checks passed")
-			dtEdit(t, files, acContext, "UpdateElementStyle(product, $bgColor=\"#1d4ed8\"", "UpdateElementStyle(product, $bgColor=\"#ff0000\"")
-			dtEdit(t, files, acContainer, "    UpdateElementStyle(app, "+paletteContainer+"\n", "")
-			dtEdit(t, files, acComponent, "Container_Boundary(app,", "System_Boundary(app,")
-			dtEdit(t, files, acComponent, "    Rel(user, entry, \"A\")", "    Rel(user, entry, \"A\")\n    UpdateRelStyle(user, entry, $textColor=\"red\")")
-			dtEdit(t, files, acCode, "    save --> Record : A", "    save --> Record : A\n    classDef hot fill:#ff0000")
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 1,
-				"`UpdateElementStyle(product, $bgColor=\"#ff0000\", $borderColor=\"#1e3a8a\", $fontColor=\"#ffffff\")` must be `UpdateElementStyle(product, "+paletteSystem+"` as "+dtShippedName(acContext)+" styles each System",
-				"Container app needs `UpdateElementStyle(app, "+paletteContainer+"` as "+dtShippedName(acContainer)+" styles each Container",
-				dtLine(t, files, acComponent, "    System_Boundary(app,")+": System_Boundary app is a kind "+dtShippedName(acComponent)+" does not use; use Person, Container_Boundary, Component, System_Ext",
-				"`UpdateRelStyle(user, entry, $textColor=\"red\")` is a style "+dtShippedName(acComponent)+" does not use",
-				"`classDef hot fill:#ff0000` is a style "+dtShippedName(acCode)+" does not use")
-			for _, styled := range []string{"Person user", "Component entry", "class save", "class Record"} {
-				if strings.Contains(read(out), styled) {
-					t.Errorf("%s keeps its palette and must not fail, got:\n%s", styled, out)
-				}
-			}
-
-			files = dtShipped(t)
-			dtEdit(t, files, acContext, "C4Context\n    title Product\n", "C4Context\n")
-			dtEdit(t, files, acComponent, "C4Component\n    title Legend\n", "C4Component\n")
-			dtEdit(t, files, acContainer, `Container(app, "3 App", "Language", "src/app")`, `Container(app, "3 App", "", "src/app")`)
-			dtEdit(t, files, acComponent, `Component(store, "4 Store", "Language",`, `Component(store, "4 Store", " ",`)
-			dtEdit(t, files, acContext, "    System_Ext(e, \"External\", \"Outside our boundary\")\n", "")
-			dtEdit(t, files, acContext, c4Styled("e", paletteExternal), "")
-			dtEdit(t, files, acContainer, "    System_Ext(service, \"4 Outside service\"", "    Person(service, \"4 Outside service\"")
-			dtEdit(t, files, acContainer, c4Styled("service", paletteExternal), c4Styled("service", palettePerson))
-			out, code = docTemplate(t, files)
-			sees(t, out, code, 1,
-				dtLine(t, files, acContext, "```mermaid")+": C4Context diagram needs a `title` line as "+dtShippedName(acContext)+" has",
-				": C4Component legend needs a `title` line as "+dtShippedName(acComponent)+" has",
-				dtLine(t, files, acContainer, "        Container(app,")+": Container app needs a technology as "+dtShippedName(acContainer)+" gives each Container",
-				dtLine(t, files, acComponent, "        Component(store,")+": Component store needs a technology as "+dtShippedName(acComponent)+" gives each Component",
-				dtViews+acContext+":", "legend needs a System_Ext sample, a kind the diagram uses",
-				dtViews+acContainer+":", "legend shows System_Ext, a kind the diagram does not use")
-		}},
 		{"adr files in adr folder", func(t *testing.T) {
 			t.Parallel()
 			out, code := adrAsIssue(t, map[string]string{
@@ -756,60 +478,6 @@ func Test0004_6(t *testing.T) {
 func Test0004_8(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"comment over word budget", func(t *testing.T) {
-			t.Parallel()
-			out, code := commentStructure(t, overBudget, nil)
-			sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams; the budget is 100")
-		}},
-		{"repo raises the word budget", func(t *testing.T) {
-			t.Parallel()
-			out, code := commentStructure(t, overBudget, map[string]string{".fitnessrc.json": `{"comment": {"maxWords": 150}}`})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"two plain tables in comment", func(t *testing.T) {
-			t.Parallel()
-			table := "| A | B |\n| - | - |\n| 1 | 2 |\n"
-			out, code := commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
-			sees(t, out, code, 1, "(comment): 2 tables besides callout tables; the budget is 1")
-		}},
-		{"unnumbered diagram versus numbered legend", func(t *testing.T) {
-			t.Parallel()
-			out, code := commentStructure(t, "Flow.\n\n```mermaid\nflowchart TD\n  A --> B\n```\n", nil)
-			sees(t, out, code, 1, "(comment): line 3: mermaid diagram has no numbered callouts")
-			legend := strings.Replace(numbered, "\n\n|", "\n\n```mermaid\nflowchart LR\n  k[Step]:::s\n  classDef s fill:#eef\n```\n\n|", 1)
-			out, code = commentStructure(t, legend, nil)
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"change log note in comment", func(t *testing.T) {
-			t.Parallel()
-			out, code := commentStructure(t, "The parser works.\n\nEdit 2: it handles tabs too.\n", nil)
-			sees(t, out, code, 1, `(comment): line 3: "Edit 2:": change-log note; edit the text in place and drop the note`)
-			out, code = commentStructure(t, "The cache is updated after every push.\n", nil)
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"agent frame model id and marker", func(t *testing.T) {
-			t.Parallel()
-			out, code := commentStructure(t, "Done.\n\n<system-reminder>\n\nRan on claude-opus-4-1 today.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
-			sees(t, out, code, 1, `(comment): line 3: "<system-reminder": agent frame; post only the finished text`,
-				`(comment): line 5: "claude-opus-4-1": model identifier; name the agent, not the model`,
-				`(comment): line 7: "<!-- fitness:": carries a fitness marker; only fitness writes those, so remove it`)
-			out, code = commentStructure(t, "Pinned to `claude-opus-4-1` in config.\n", nil)
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"plan or epic body exempt", func(t *testing.T) {
-			t.Parallel()
-			repo := example(t, "happyRepo", nil)
-			for _, body := range []string{planBody("- [ ] Write the tests."), epicBody("1. #22\n2. #23, after #22")} {
-				out, code := piped(t, repo, body, nil, "--blob", "-")
-				sees(t, out, code, 0, "Skipped (does not apply to this text): comment-structure")
-			}
-		}},
-		{"no comment to check", func(t *testing.T) {
-			t.Parallel()
-			out, code := fitness(t, example(t, "happyRepo", nil), nil, "comment-structure")
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "comment-structure")
-		}},
 		{"pr and plan body questions line", func(t *testing.T) {
 			t.Parallel()
 			plan := planBody("- [x] Write the tests.")
@@ -849,99 +517,6 @@ func issueChecklist(t *testing.T, body string) (string, int) {
 	t.Helper()
 	repo := example(t, "happyRepo", map[string]string{"issue.md": body})
 	return fitness(t, repo, nil, "issue-checklist", "--body-file", "issue.md")
-}
-
-// cspell:ignore mvnw gradlew
-
-// Misspellings are built from pieces so this file's own spell check passes.
-var (
-	cspellTypo        = "qu" + "ik"
-	cspellRepoWord    = "bor" + "wn"
-	cspellSharedWord  = "zz" + "zq" + "qqv"
-	cspellBinaryWord  = "xq" + "zzt"
-	cspellBinaryOther = "vb" + "nmm"
-	cspellBodyTypo    = "mis" + "pe" + "led"
-)
-
-// cspellRun runs `fitness-install -- cspell <args>` on happyRepo with files
-// written over it and committed.
-func cspellRun(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"cspell"}, args...)...)
-}
-
-// cspellInstalled is where an installed shared package keeps its cspell.json.
-const cspellInstalled = "node_modules/@mayjournal/fitness-shared/config/cspell.json"
-
-// docTemplate runs `fitness-install -- doc-template` on happyRepo with files
-// written over it.
-func docTemplate(t *testing.T, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, "doc-template")
-}
-
-// docTemplateNote guides its one section with a comment.
-const docTemplateNote = "# Note\n\n## Summary\n\n<!-- gist -->\n"
-
-// docTemplateADR guides each of its three sections with a comment.
-const docTemplateADR = "# NNNN Title\n\n## Context\n\n<!-- why -->\n\n## Decision\n\n<!-- what -->\n\n## Consequences\n\n<!-- fallout -->\n"
-
-const (
-	dtViews     = "docs/architecture/"
-	dtTemplates = dtViews + "templates/"
-)
-
-// dtShipped is a user's docs/architecture after following the
-// architecture-contract README: each view copied from its template, templates
-// left behind.
-func dtShipped(t *testing.T) map[string]string {
-	t.Helper()
-	files := map[string]string{}
-	for _, view := range []string{acContext, acContainer, acComponent, acCode, acJourney} {
-		body, err := os.ReadFile(filepath.Join("..", "internal", "architecture", "templates", view))
-		mustDo(t, err)
-		files[dtViews+view] = string(body)
-	}
-	return files
-}
-
-// dtCopied is dtShipped with the five templates also copied into
-// docs/architecture/templates, as repos did before fitness shipped them.
-func dtCopied(t *testing.T) map[string]string {
-	t.Helper()
-	files := dtShipped(t)
-	for _, view := range []string{acContext, acContainer, acComponent, acCode, acJourney} {
-		files[dtTemplates+view] = files[dtViews+view]
-	}
-	return files
-}
-
-// dtShippedName is how a message names a view's shipped template.
-func dtShippedName(view string) string {
-	return "the shipped " + view
-}
-
-// dtEdit replaces old with new in one copied view, failing when old is not
-// there to replace.
-func dtEdit(t *testing.T, files map[string]string, view, old, new string) {
-	t.Helper()
-	if !strings.Contains(files[dtViews+view], old) {
-		t.Fatalf("%s has no %q", view, old)
-	}
-	files[dtViews+view] = strings.Replace(files[dtViews+view], old, new, 1)
-}
-
-// dtLine is the 1-based line of the first line in a view starting with
-// prefix, as an error names it.
-func dtLine(t *testing.T, files map[string]string, view, prefix string) string {
-	t.Helper()
-	for i, line := range strings.Split(files[dtViews+view], "\n") {
-		if strings.HasPrefix(line, prefix) {
-			return dtViews + view + ":" + strconv.Itoa(i+1)
-		}
-	}
-	t.Fatalf("%s has no line starting %q", view, prefix)
-	return ""
 }
 
 // camelDocsCheck is the check under test.
@@ -1035,28 +610,6 @@ var textReadabilityPlain = strings.Repeat("The runner builds each check and then
 // textReadabilityDense is 141 long words in one sentence.
 var textReadabilityDense = strings.Repeat("extraordinary bureaucratic infrastructure considerations regarding administrative complexity ", 20) + "conclude.\n"
 
-// cspell:ignore antml
-
-// commentStructure runs comment-structure on comment, saved over happyRepo
-// with files, as --body-file.
-func commentStructure(t *testing.T, comment string, files map[string]string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", with(files, map[string]string{"comment.md": comment})), nil,
-		"comment-structure", "--body-file", "comment.md")
-}
-
-// words is n words of plain prose.
-func words(n int) string {
-	return strings.TrimSpace(strings.Repeat("word ", n)) + "."
-}
-
-// numbered is a numbered diagram and its matching callout table.
-const numbered = "```mermaid\nflowchart TD\n  A[1 Start]:::s --> B[2 End]:::s\n  classDef s fill:#eef\n```\n\n" +
-	"| # | Element | Description | Why |\n| - | - | - | - |\n| 1 | Start | First. | Begins. |\n| 2 | End | Last. | Ends. |\n"
-
-// overBudget has 120 prose words, and more inside a table and code.
-var overBudget = words(120) + "\n\n| A | B |\n| - | - |\n| " + words(30) + " | x |\n\n```\n" + words(30) + "\n```\n"
-
 // hardToRead holds 104 long words in sentences within their limit.
 var hardToRead = strings.Repeat("Configuration interdependencies necessitate comprehensive documentation regarding initialization sequencing, synchronization guarantees, and serialization compatibility. ", 8)
 
@@ -1092,14 +645,6 @@ func heldCheck() map[string]string {
 func allowADRs(entries string) string {
 	return `{"adrAsIssue": {"allow": [` + entries + `]}}` + "\n"
 }
-
-// cspell:ignore mispeled
-
-// renovateBody is the end of a Renovate PR body, with the hidden debug block
-// that holds its state encoded as Renovate encodes it.
-var renovateBody = "This PR updates the tooling.\n\n<!--renovate-debug:" +
-	base64.StdEncoding.EncodeToString([]byte(`{"createdInVer":"44.222.2","updatedInVer":"44.222.2","targetBranch":"main","labels":[]}`)) +
-	"-->\n"
 
 // questionsLabel is a label line that opens a list of open questions, and
 // the finding it earns.

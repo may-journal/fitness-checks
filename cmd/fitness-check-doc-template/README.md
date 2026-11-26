@@ -54,6 +54,4 @@ Fitness ships the five architecture view templates inside the binary. A view und
 
 ## Behavior
 
-- Pass: every template guides each section, and every governed file matches. A repo with no templates passes.
-- Fail: a template section lacks a comment, or a governed file matches none of its templates.
-- With one template, each difference is its own error. With several, one error names them all.
+[Requirement 0001](docs/requirements/0001-docs-match-their-templates.md) states what this check does, and a test case named for each step proves it.

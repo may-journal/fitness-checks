@@ -56,8 +56,4 @@ node_modules/
 
 ## Behavior
 
-- When `.gitignore` is absent, passes with `filesChecked` 0. Run `fitness explain gitignore-why` for the files it reads.
-- Classifies each line as blank, a `#` comment, or a pattern (any other non-blank line, including `!` negations and `dir/` rules).
-- Pass: every pattern line is directly preceded by a non-empty explanatory `#` comment.
-- Fail: reports `.gitignore:<lineNumber>: pattern "<text>" has no explanatory # comment on the line above` for each offending pattern.
-- `filesChecked` is 1 whenever `.gitignore` is present.
+[Requirement 0001](docs/requirements/0001-ignore-patterns-say-why.md) states what this check does, and a test case named for each step proves it.

@@ -8,18 +8,10 @@ The shared config imports its plugins (typescript-eslint, jsdoc, perfectionist, 
 
 ## Behavior
 
-- Pass: no errors in checked files.
-- A repo with no tracked JavaScript or TypeScript source passes with 0 files, even with a formatting-only `package.json`. Tool configs are not source.
-- Execs eslint with `cwd` set to the repo root, forcing the resolved shared config via `--config`.
-- In a scoped run: only changed paths are linted, passing with 0 files when none is lintable. Otherwise lints every tracked lintable file.
-- Lints `.ts`, `.tsx`, `.cjs`, `.js`, `.mjs`, declarations and tests included.
-- Fail: a tracked file ESLint reports as ignored fails; remove the ignore pattern so it is linted.
-- Enforces `sort-keys` (natural ascending) and other rules from `eslint.config.mjs`.
+[Requirement 0001](docs/requirements/0001-javascript-and-typescript-pass-eslint.md) states what this check does, and a test case named for each step proves it.
 
-Errors are reported as `path:line:col - message (ruleId)`.
+## Notes
 
-## Biome
-
-A repo that chose Biome lints with it instead, as [ADR 0006](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0006/README.md) records. Such a repo has a `biome.json` or `biome.jsonc` at its root and `@biomejs/biome` in its `package.json` dependencies. The check runs `biome lint --reporter=github` on the same paths, and needs no eslint.
-
-Biome resolves like eslint, and a missing binary fails with an install hint. Biome before 1.8 fails naming its version, since its CLI rejects the GitHub reporter. Each Biome error or warning fails as `path:line:col - message (rule)`.
+- It enforces `sort-keys` (natural ascending) and the other rules from `eslint.config.mjs`.
+- It lints `.ts`, `.tsx`, `.cjs`, `.js` and `.mjs` files, declarations and tests included.
+- A repo that chose [Biome](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0006/README.md) resolves its binary like eslint, and a missing binary fails with an install hint.

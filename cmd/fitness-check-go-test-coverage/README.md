@@ -95,3 +95,7 @@ Both org and external defaults keep their current checks. Select this check expl
 ```
 fitness --policy=external --checks=go-test-coverage --all
 ```
+
+## Behavior
+
+[Requirement 0001](docs/requirements/0001-entry-code-is-fully-covered.md) states what this check does, and a test case named for each step proves it.
