@@ -28,17 +28,17 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 passes dependencies at the latest version with or without workspaces", func(t *testing.T) {
+	t.Run("0001.1.2.1.1 it passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`, "", dcLeftPad, "1.3.0"))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.2 skips internal packages", func(t *testing.T) {
+	t.Run("0001.1.2.2.1 it is skipped", func(t *testing.T) {
 		t.Parallel()
 		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"`+dcInternal+`": "*"}}`))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 passes a repo without package.json", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 it passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := dependencyCurrency(t, nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -48,19 +48,19 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 rejects each kind behind latest in an installed repo", func(t *testing.T) {
+	t.Run("0001.2.2.1.1 it fails naming each as `name: current → latest`", func(t *testing.T) {
 		t.Parallel()
 		files := dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.0.0"}, "devDependencies": {"is-number": "^6.0.0"}, "peerDependencies": {"@types/left-pad": "^1.0.0"}}`,
 			"", dcLeftPad, "1.0.0", "", dcIsNumber, "6.0.0", "", dcTypes, "1.0.0")
 		out, code := dependencyCurrency(t, files)
 		acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0", "is-number: 6.0.0 → 7.0.0", "@types/left-pad: 1.0.0 → 1.2.0")
 	})
-	t.Run("0001.2.2 rejects a dependency that is missing", func(t *testing.T) {
+	t.Run("0001.2.2.2.1 it fails as `name: missing → latest`", func(t *testing.T) {
 		t.Parallel()
 		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`))
 		acceptance.Sees(t, out, code, 1, dcLead, "left-pad: missing → 1.3.0")
 	})
-	t.Run("0001.2.3 rejects stale workspace dependencies", func(t *testing.T) {
+	t.Run("0001.2.2.3.1 it fails naming it", func(t *testing.T) {
 		t.Parallel()
 		for _, workspaces := range []string{`["packages/*"]`, `{"packages": ["packages/a"]}`} {
 			files := dcRepo(dcRegistry(t), `{"workspaces": `+workspaces+`}`, "", dcLeftPad, "1.0.0")
@@ -69,7 +69,7 @@ func Test0001_2(t *testing.T) {
 			acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0")
 		}
 	})
-	t.Run("0001.2.4 lists shared installs once", func(t *testing.T) {
+	t.Run("0001.2.2.4.1 identical lines collapse to one", func(t *testing.T) {
 		t.Parallel()
 		files := dcRepo(dcRegistry(t), `{"workspaces": ["packages/*"]}`, "", dcLeftPad, "1.0.0", "packages/a/", dcLeftPad, "1.1.0")
 		for _, ws := range []string{"a", "b", "c"} {
@@ -85,17 +85,30 @@ func Test0001_2(t *testing.T) {
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	for _, broken := range dcBrokenRegistries(t) {
-		start := time.Now()
-		out, code := dcAgainst(t, broken)
-		acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
-		if broken.hits != nil && broken.hits.Load() == 0 {
-			t.Errorf("%s: the check never asked the registry", broken.name)
+	t.Run("0001.3.1.1.1 it reports info counting the packages it could not query", func(t *testing.T) {
+		t.Parallel()
+		for _, broken := range dcBrokenRegistries(t) {
+			start := time.Now()
+			out, code := dcAgainst(t, broken)
+			acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
+			if broken.hits != nil && broken.hits.Load() == 0 {
+				t.Errorf("%s: the check never asked the registry", broken.name)
+			}
+			if took := time.Since(start); took > dcSilentWithin {
+				t.Errorf("%s: the run took %v, past the %v a silent registry may cost", broken.name, took.Round(time.Second), dcSilentWithin)
+			}
 		}
-		if took := time.Since(start); took > dcSilentWithin {
-			t.Errorf("%s: the run took %v, past the %v a silent registry may cost", broken.name, took.Round(time.Second), dcSilentWithin)
+	})
+	t.Run("0001.3.1.1.2 it reports no finding", func(t *testing.T) {
+		t.Parallel()
+		for _, broken := range dcBrokenRegistries(t) {
+			out, code := dcAgainst(t, broken)
+			acceptance.Sees(t, out, code, 0)
+			if strings.Contains(out, dcLead) {
+				t.Errorf("%s: a silent registry must report no finding:\n%s", broken.name, out)
+			}
 		}
-	}
+	})
 }
 
 // The packages these tests declare, each with its saved latest version.
@@ -279,12 +292,29 @@ func registry(t *testing.T, packages map[string]string) string {
 
 func Test0001_4(t *testing.T) {
 	t.Parallel()
-	url, hits := dcAnswer(t, http.StatusOK, dcDoc(dcLeftPad, "1.0.0", "1.3.0"))
-	proxy := silentListener(t)
-	files := dcRepo(url, `{"dependencies": {"left-pad": "^1.0.0"}}`, "", dcLeftPad, "1.0.0")
-	out, code := dependencyCurrency(t, files, "HTTPS_PROXY="+proxy, "NO_PROXY=", "GITHUB_API_URL=https://api.github.com")
-	acceptance.ShowsInfo(t, out, code, "dependency-currency", "api.github.com did not answer within 2s through proxy "+proxy)
-	if n := hits.Load(); n != 0 {
-		t.Errorf("the registry was asked %d times, want none", n)
+	blocked := func(t *testing.T) (string, int, string, *atomic.Int32) {
+		url, hits := dcAnswer(t, http.StatusOK, dcDoc(dcLeftPad, "1.0.0", "1.3.0"))
+		proxy := silentListener(t)
+		files := dcRepo(url, `{"dependencies": {"left-pad": "^1.0.0"}}`, "", dcLeftPad, "1.0.0")
+		out, code := dependencyCurrency(t, files, "HTTPS_PROXY="+proxy, "NO_PROXY=", "GITHUB_API_URL=https://api.github.com")
+		return out, code, proxy, hits
 	}
+	t.Run("0001.4.1.1.1 it reads no registry", func(t *testing.T) {
+		t.Parallel()
+		out, code, _, hits := blocked(t)
+		acceptance.Sees(t, out, code, 0)
+		if n := hits.Load(); n != 0 {
+			t.Errorf("the registry was asked %d times, want none", n)
+		}
+	})
+	t.Run("0001.4.1.1.2 it reports info naming the host", func(t *testing.T) {
+		t.Parallel()
+		out, code, _, _ := blocked(t)
+		acceptance.ShowsInfo(t, out, code, "dependency-currency", "api.github.com did not answer within 2s")
+	})
+	t.Run("0001.4.1.1.3 it reports info naming the proxy", func(t *testing.T) {
+		t.Parallel()
+		out, code, proxy, _ := blocked(t)
+		acceptance.ShowsInfo(t, out, code, "dependency-currency", "through proxy "+proxy)
+	})
 }
