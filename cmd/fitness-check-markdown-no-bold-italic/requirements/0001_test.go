@@ -31,35 +31,53 @@ func readme(t *testing.T, text string) (string, int) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 emphasis fails once per occurrence", func(t *testing.T) {
+	star := "Some **strong** and *soft* words.\n"
+	under := "Some __strong__ and _soft_ words.\n"
+	t.Run("0001.1.2.1.1 it fails once per occurrence", func(t *testing.T) {
 		t.Parallel()
-		out, code := readme(t, "Some **strong** and *soft* words.\n")
-		acceptance.Sees(t, out, code, 1,
-			`README.md: disallowed **bold**`+rule+`"**strong**"`,
-			`README.md: disallowed *italic*`+rule+`"*soft*"`)
-		out, code = readme(t, "Some __strong__ and _soft_ words.\n")
-		acceptance.Sees(t, out, code, 1,
-			`README.md: disallowed __bold__`+rule+`"__strong__"`,
-			`README.md: disallowed _italic_`+rule+`"_soft_"`)
+		out, code := readme(t, star)
+		acceptance.Sees(t, out, code, 1, `"**strong**"`, `"*soft*"`)
+		if n := strings.Count(out, "disallowed"); n != 2 {
+			t.Errorf("want one finding per occurrence (2), got %d:\n%s", n, out)
+		}
+		out, code = readme(t, under)
+		acceptance.Sees(t, out, code, 1, `"__strong__"`, `"_soft_"`)
 	})
-	t.Run("0001.1.2 code and links pass", func(t *testing.T) {
+	t.Run("0001.1.2.1.2 each failure names the file", func(t *testing.T) {
+		t.Parallel()
+		out, code := readme(t, star)
+		acceptance.Sees(t, out, code, 1, `README.md: disallowed **bold**`, `README.md: disallowed *italic*`)
+		out, code = readme(t, under)
+		acceptance.Sees(t, out, code, 1, `README.md: disallowed __bold__`, `README.md: disallowed _italic_`)
+	})
+	t.Run("0001.1.2.1.3 each failure names the snippet", func(t *testing.T) {
+		t.Parallel()
+		out, code := readme(t, star)
+		acceptance.Sees(t, out, code, 1, rule+`"**strong**"`, rule+`"*soft*"`)
+		out, code = readme(t, under)
+		acceptance.Sees(t, out, code, 1, rule+`"__strong__"`, rule+`"_soft_"`)
+	})
+	t.Run("0001.1.2.2.1 the file passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := readme(t, "Use `**strong**` here.\n\n```\n_soft_ and **strong**\n```\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = readme(t, "See [the _dev_ path](https://example.com/_dev_/to_page_).\n")
+	})
+	t.Run("0001.1.2.2.2 emphasis in a link block passes the same way", func(t *testing.T) {
+		t.Parallel()
+		out, code := readme(t, "See [the _dev_ path](https://example.com/_dev_/to_page_).\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.3 asterisk list markers pass", func(t *testing.T) {
+	t.Run("0001.1.2.3.1 that line passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := readme(t, "* first item\n* second item\n* third item\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 a body is judged as the description", func(t *testing.T) {
+	t.Run("0001.1.2.4.1 the body is judged as the description", func(t *testing.T) {
 		t.Parallel()
 		out, code := emphasis(t, map[string]string{"body.md": "Hello _there_.\n"}, "--body-file", "body.md")
 		acceptance.Sees(t, out, code, 1, `(description): disallowed _italic_`+rule+`"_there_"`)
 	})
-	t.Run("0001.1.5 only bold outside a release scope fails", func(t *testing.T) {
+	t.Run("0001.1.2.5.1 only that bold fails", func(t *testing.T) {
 		t.Parallel()
 		changelog := "# Changelog\n\n## Changes\n\n## [1.1.1](https://github.com/o/r/compare/v1.1.0...v1.1.1) (2026-10-10)\n\n" +
 			"### Features\n\n* **install:** change **everything** ([#239](https://github.com/o/r/issues/239))\n\n" +
@@ -70,7 +88,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("only the bold outside a scope must fail, got %d findings:\n%s", n, out)
 		}
 	})
-	t.Run("0001.1.6 a repo with no Markdown passes with no files", func(t *testing.T) {
+	t.Run("0001.1.2.6.1 the check passes with no files", func(t *testing.T) {
 		t.Parallel()
 		out, code := emphasis(t, map[string]string{"README.md": "", "CHANGELOG.md": ""})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
