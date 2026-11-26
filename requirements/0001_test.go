@@ -43,7 +43,7 @@ func Test0001_1(t *testing.T) {
 		}},
 		{"describe prints name summary scope and the keys with their defaults", func(t *testing.T) {
 			t.Parallel()
-			ours := goBuild(t, "./cmd/...")
+			ours := installOnly(t)
 			for _, folder := range checkFolders(t, "..") {
 				name := filepath.Base(folder)
 				got := describeMap(t, filepath.Join(ours, name))
@@ -86,21 +86,21 @@ func Test0001_1(t *testing.T) {
 func Test0001_2(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"one file in one check names only that check", func(t *testing.T) {
+		{"0001.2.1 one file in one check names only that check", func(t *testing.T) {
 			t.Parallel()
 			clone, base := changedClone(t, "cmd/fitness-check-gofmt/main.go")
 			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"gofmt"}) {
 				t.Errorf("changed-checks = %v, want only gofmt", got)
 			}
 		}},
-		{"a check's own requirement test names only that check", func(t *testing.T) {
+		{"0001.2.1 a check's own requirement test names only that check", func(t *testing.T) {
 			t.Parallel()
 			clone, base := changedClone(t, "cmd/fitness-check-prose-budget/requirements/0001_test.go")
 			if got := changedChecks(t, clone, base); !slices.Equal(got, []string{"prose-budget"}) {
 				t.Errorf("changed-checks = %v, want only prose-budget", got)
 			}
 		}},
-		{"shared helper names dependent checks", func(t *testing.T) {
+		{"0001.2.1 shared helper names dependent checks", func(t *testing.T) {
 			t.Parallel()
 			for _, file := range []string{"internal/spell/mask.go", "internal/spell/dict/git.txt"} {
 				clone, base := changedClone(t, file)
@@ -109,7 +109,7 @@ func Test0001_2(t *testing.T) {
 				}
 			}
 		}},
-		{"go mod change or no base names all checks", func(t *testing.T) {
+		{"0001.2.1 go mod change or no base names all checks", func(t *testing.T) {
 			t.Parallel()
 			clone, base := changedClone(t, "go.mod")
 			var every []string
@@ -122,13 +122,45 @@ func Test0001_2(t *testing.T) {
 				}
 			}
 		}},
-		{"test script builds vets and tests one check", func(t *testing.T) {
+		{"0001.2.1 test script builds vets and tests one check", func(t *testing.T) {
 			t.Parallel()
 			script, err := filepath.Abs(filepath.Join("..", "scripts", "test-check.sh"))
 			mustDo(t, err)
 			out, err := exec.Command(script, "gofmt").CombinedOutput()
 			if err != nil || !strings.Contains(string(out), `{"name":"gofmt"`) {
 				t.Errorf("test-check.sh gofmt: %v\n%s", err, out)
+			}
+		}},
+		{"0001.2.2 each root test runs once", func(t *testing.T) {
+			t.Parallel()
+			tests := rootTests(t)
+			for _, n := range []int{1, 3, 8} {
+				runs := shareRuns(t, tests, n)
+				for _, test := range tests {
+					if runs[test] != 1 {
+						t.Errorf("split into %d jobs, %s runs in %d of them, want exactly one", n, test, runs[test])
+					}
+				}
+			}
+		}},
+		{"0001.2.2 only the changed checks' folders run", func(t *testing.T) {
+			t.Parallel()
+			got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["gofmt","swiftlint"]`))
+			if want := []string{"./cmd/fitness-check-swiftlint/requirements"}; !slices.Equal(got, want) {
+				t.Errorf("folders for gofmt and swiftlint = %v, want %v", got, want)
+			}
+			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
+				t.Errorf("folders for no changed check = %q, want none", got)
+			}
+
+		}},
+		{"0001.2.2 shared suite changes run every folder and the slow cases", func(t *testing.T) {
+			t.Parallel()
+			for file, want := range map[string]string{"tests/requirements.sh": "true", "scripts/release-build.sh": "true", "cmd/fitness-check-gofmt/main.go": "false"} {
+				clone, base := changedClone(t, file)
+				if got := strings.TrimSpace(runScript(t, clone, "requirement-shard.sh", "suite", base)); got != want {
+					t.Errorf("after %s, suite = %s, want %s", file, got, want)
+				}
 			}
 		}},
 	})
@@ -443,7 +475,7 @@ func Test0001_8(t *testing.T) {
 			var ours string
 			eachReadme(t, func(folder, name, readme string) {
 				if ours == "" {
-					ours = goBuild(t, "./cmd/...")
+					ours = installOnly(t)
 				}
 				checkDocumentedReadme(t, ours, folder, name, readme)
 			})
@@ -1042,3 +1074,36 @@ const sizedIndex = `{"format":1,"repository":"may-journal/fitness-checks","check
  "latest":"2.0.0","majors":{"1":"1.0.0","2":"2.0.0"},"versions":{
   "1.0.0":{"tag":"fitness-check-gofmt-v1.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/a.tar","sha256":"aaa"}}},
   "2.0.0":{"tag":"fitness-check-gofmt-v2.0.0","artifacts":{"linux-arm64":{"url":"https://example.test/b.tar","sha256":"bbb","gz":{"url":"https://example.test/b.tar.gz","sha256":"ccc"}}}}}}}}`
+
+// rootTests lists the top-level tests of the root requirements package.
+func rootTests(t *testing.T) []string {
+	t.Helper()
+	names := regexp.MustCompile(`(?m)^func (Test[A-Za-z0-9_]*)`)
+	files, err := filepath.Glob("*_test.go")
+	mustDo(t, err)
+	var tests []string
+	for _, file := range files {
+		for _, m := range names.FindAllStringSubmatch(fiFile(t, file), -1) {
+			if m[1] != "TestMain" {
+				tests = append(tests, m[1])
+			}
+		}
+	}
+	return tests
+}
+
+// shareRuns counts, for each of tests, the shares of n whose pattern from
+// requirement-shard.sh runs it.
+func shareRuns(t *testing.T, tests []string, n int) map[string]int {
+	t.Helper()
+	runs := map[string]int{}
+	for i := 1; i <= n; i++ {
+		pattern := regexp.MustCompile(strings.TrimSpace(runScript(t, "..", "requirement-shard.sh", fmt.Sprintf("%d/%d", i, n))))
+		for _, test := range tests {
+			if pattern.MatchString(test) {
+				runs[test]++
+			}
+		}
+	}
+	return runs
+}

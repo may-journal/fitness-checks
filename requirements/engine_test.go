@@ -377,15 +377,27 @@ func fiRun(t *testing.T, dir string, env []string, args ...string) (string, int)
 	return ansi.ReplaceAllString(string(out), ""), cmd.ProcessState.ExitCode()
 }
 
-// installOnly runs `fitness-install --install-only`, which prints the
-// directory holding the runner and every check, and returns that directory.
+// installOnly returns the directory holding the runner and every check
+// program built from this checkout, which cases share instead of building
+// their own.
 func installOnly(t *testing.T) string {
 	t.Helper()
-	out, err := exec.Command(installer(t), "--install-only").Output()
+	installer(t)
+	dir, err := installedBundle()
 	mustDo(t, err)
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	return strings.TrimSpace(lines[len(lines)-1])
+	return dir
 }
+
+// installedBundle runs `fitness-install --install-only` once, which prints
+// the directory holding the runner and every check, and returns that directory.
+var installedBundle = sync.OnceValues(func() (string, error) {
+	out, err := exec.Command(os.Getenv("FITNESS_INSTALL"), "--install-only").Output()
+	if err != nil {
+		return "", fmt.Errorf("fitness-install --install-only: %w", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	return strings.TrimSpace(lines[len(lines)-1]), nil
+})
 
 // noChangelog is GitHub listing no CHANGELOG.md change in a PR.
 var noChangelog = response{Match: []string{"/files"}}

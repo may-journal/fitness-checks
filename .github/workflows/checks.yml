@@ -35,6 +35,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       checks: ${{ steps.pick.outputs.checks }}
+      suite: ${{ steps.suite.outputs.suite }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,6 +50,11 @@ jobs:
           # first parent is the base as it stands, so the diff is the PR's.
           BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
         run: scripts/step-output.sh checks scripts/changed-checks.sh "$BASE"
+      - name: Pick whether the shared suite changed
+        id: suite
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
+        run: scripts/step-output.sh suite scripts/requirement-shard.sh suite "$BASE"
       - name: Report job outcome
         if: ${{ always() }}
         env:
@@ -80,16 +86,83 @@ jobs:
         run: printf '### %s (%s)\n' "$CHECK" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   requirements:
+    # Twelve jobs share the root requirements package, balanced by the times
+    # in tests/requirement-times.tsv, so a pull request waits on a twelfth
+    # of it. The suite step fails once it passes two minutes.
+    name: requirements ${{ matrix.shard }}
     runs-on: ubuntu-24.04-arm
-    # The suite took 73s on a laptop; a cold runner also builds every check.
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/12, 2/12, 3/12, 4/12, 5/12, 6/12, 7/12, 8/12, 9/12, 10/12, 11/12, 12/12]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          # A key of its own keeps the build cache these jobs fill apart from
+          # the small one the other jobs save first.
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the requirement suite against these programs
+        timeout-minutes: 2
+        env:
+          REQUIREMENT_SHARD: ${{ matrix.shard }}
+        # Only main runs the slow release build and measure cases, in the
+        # measure job. The -v log gives each case's time for the shares.
+        run: tests/requirements.sh -v -skip '^Test0001_[47]$/^(archive_and|stripped_program|measure_script)'
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB ${{ matrix.shard }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  check-requirements:
+    # A pull request runs the requirement folders of the checks it changes.
+    # Main and a change to the shared suite run every check's folder.
+    needs: changed
+    if: ${{ github.event_name != 'pull_request' || needs.changed.outputs.checks != '[]' || needs.changed.outputs.suite == 'true' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the changed checks' requirement folders
+        timeout-minutes: 2
+        env:
+          REQUIREMENT_SHARD: checks
+          REQUIREMENT_CHECKS: ${{ github.event_name == 'pull_request' && needs.changed.outputs.suite != 'true' && needs.changed.outputs.checks || '' }}
+        run: tests/requirements.sh
+      - name: Report job outcome
+        if: ${{ always() }}
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  measure:
+    # The release build cases build four platforms and the measure case builds
+    # every check thrice. They run on main and on a change to their scripts.
+    needs: changed
+    if: ${{ github.event_name == 'push' || needs.changed.outputs.suite == 'true' }}
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run the requirement suite against these programs
-        run: tests/requirements.sh
+          cache-dependency-path: |
+            go.sum
+            tests/requirements.sh
+      - name: Run the release build and measure script cases
+        # One share of one keeps the run to the root package, and the later
+        # -run narrows it to the slow cases.
+        env:
+          REQUIREMENT_SHARD: 1/1
+        run: tests/requirements.sh -run '^Test0001_[47]$/^(archive_and|stripped_program|measure_script)'
       - name: Report job outcome
         if: ${{ always() }}
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

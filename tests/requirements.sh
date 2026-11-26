@@ -4,6 +4,25 @@
 set -eu
 cd "$(dirname "$0")/.."
 
+# The repo root's requirements folder and each package's own, such as
+# cmd/<check>/requirements, hold the requirement tests. REQUIREMENT_SHARD
+# <i>/<n> runs share i of n of the root folder, and checks runs the folders
+# of the checks REQUIREMENT_CHECKS names.
+case "${REQUIREMENT_SHARD:-}" in
+"") folders="$(go list ./... | grep '/requirements$')" ;;
+checks) folders="$(scripts/requirement-shard.sh checks "${REQUIREMENT_CHECKS:-}")" ;;
+*)
+  folders=./requirements
+  pattern="$(scripts/requirement-shard.sh "$REQUIREMENT_SHARD")"
+  set -- -run "$pattern" "$@"
+  ;;
+esac
+if [ -z "$folders" ]; then
+  [ -n "${REQUIREMENT_SHARD:-}" ] || { echo "no requirements folder found" >&2; exit 1; }
+  echo "requirements.sh: the changed checks own no requirement folder"
+  exit 0
+fi
+
 # The installer takes only X.Y.Z. A pseudo-version such as v1.61.1-0.<time>-<sha>
 # builds on release 1.61.0, so the engine reports that release.
 version="$(go list -m -f "{{.Version}}" github.com/may-journal/fitness-runner/go)"
@@ -35,9 +54,9 @@ go build -ldflags "-X main.version=$version -X main.bundleHashes=$platform=$dige
 FITNESS_INSTALL="$work/fitness-install"
 export FITNESS_CACHE_DIR FITNESS_INSTALL
 
-# The repo root's requirements folder and each package's own, such as
-# cmd/<check>/requirements, hold the requirement tests.
-folders="$(go list ./... | grep '/requirements$')"
-[ -n "$folders" ] || { echo "no requirements folder found" >&2; exit 1; }
+# cspell:ignore getconf NPROCESSORS ONLN
+# Cases and packages run at most one per core, so a timed case never waits
+# behind more work than the cores can do.
+cores="$(getconf _NPROCESSORS_ONLN)"
 # shellcheck disable=SC2086
-exec go test $folders -count=1 -parallel 32 "$@"
+exec go test $folders -count=1 -p "$cores" -parallel "$cores" "$@"
