@@ -123,7 +123,7 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	errs = append(errs, scopeErrors(docs, p.checks)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
-	errs = append(errs, stepCaseErrors(docs, p.tests)...)
+	errs = append(errs, thenCaseErrors(root, docs, p.tests)...)
 	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
 }
 

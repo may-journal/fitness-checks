@@ -48,35 +48,59 @@ func Test0005_2(t *testing.T) {
 	})
 }
 
-func Test0005_3(t *testing.T) {
+func Test0005_4(t *testing.T) {
 	t.Parallel()
 	chained := acceptance.Reqs(acceptance.Acceptances("0001.1") + acceptance.Chain("0001.2", 2))
 	named := func(cases ...string) map[string]string {
 		return acceptance.With(chained, map[string]string{"chain_test.go": acceptance.CaseFile("adder", "Test0001_2", cases...)})
 	}
-	t.Run("0005.3.1 a case named for each step passes beside other cases", func(t *testing.T) {
+	const sum, even = "0001.2.1.1.1 I get their sum", "0001.2.1.2.1 the total is even"
+	t.Run("0005.4.1.1.1 it passes beside cases named otherwise", func(t *testing.T) {
 		t.Parallel()
-		out, code := checked(t, named("0001.2.1 adds", "0001.2.2 doubles", "edge"))
+		out, code := checked(t, named(sum, even, "edge"))
 		acceptance.Sees(t, out, code, 0)
 	})
-	t.Run("0005.3.2 a step with no case fails naming the step then the test", func(t *testing.T) {
+	t.Run("0005.4.1.2.1 it fails naming the THEN", func(t *testing.T) {
 		t.Parallel()
-		out, code := checked(t, named("0001.2.1 adds"))
-		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":25: step 0001.2.2 has no test case; add a case to Test0001_2 whose name opens with 0001.2.2")
+		out, code := checked(t, named(sum))
+		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+":26: THEN 0001.2.1.2.1 has no test case")
 	})
-	t.Run("0005.3.3 a case naming a step its acceptance does not chain fails", func(t *testing.T) {
+	t.Run("0005.4.1.2.2 it fails naming the test to add the case to", func(t *testing.T) {
 		t.Parallel()
-		out, code := checked(t, named("0001.2.1 adds", "0001.2.2 doubles", "0001.2.3 halves", "0001.1.1 sums"))
-		acceptance.Sees(t, out, code, 1, `chain_test.go:8: case "0001.2.3 halves" names step 0001.2.3, which 0001.2 does not chain`,
-			`chain_test.go:9: case "0001.1.1 sums" names step 0001.1.1, which 0001.2 does not chain`)
-		out, code = checked(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": acceptance.CaseFile("adder", "Test0001_1", "0001.1.1 adds")}))
-		acceptance.Sees(t, out, code, 1, `case "0001.1.1 adds" names step 0001.1.1, which 0001.1 does not chain`)
+		out, code := checked(t, named(sum))
+		acceptance.Sees(t, out, code, 1, `add a case to Test0001_2 named "`+even+`"`)
 	})
-	t.Run("0005.3.4 a malformed chain never fails its good cases", func(t *testing.T) {
+	t.Run("0005.4.1.3.1 it fails naming the case and the name it needs", func(t *testing.T) {
 		t.Parallel()
-		out, _ := checked(t, acceptance.With(acceptance.Reqs(acceptance.Chain("0001.1", 8)), map[string]string{"adder_test.go": acceptance.CaseFile("adder", "Test0001_1", acceptance.StepCases("0001.1", 7)...)}))
-		if strings.Contains(out, "does not chain") {
-			t.Errorf("a malformed chain fails its good cases:\n%s", out)
-		}
+		out, code := checked(t, named(sum, "0001.2.1.2.1 totals"))
+		acceptance.Sees(t, out, code, 1, `THEN 0001.2.1.2.1 has a case named "0001.2.1.2.1 totals" in Test0001_2; rename it to "`+even+`"`)
+	})
+	t.Run("0005.4.1.4.1 it fails naming the count", func(t *testing.T) {
+		t.Parallel()
+		out, code := checked(t, named(sum, even, even))
+		acceptance.Sees(t, out, code, 1, "THEN 0001.2.1.2.1 has 2 test cases in Test0001_2")
+	})
+	t.Run("0005.4.1.5.1 it fails naming the case", func(t *testing.T) {
+		t.Parallel()
+		out, code := checked(t, named(sum, even, "0001.2.1.9.1 halves", "0001.1.1.1.1 I get their sum"))
+		acceptance.Sees(t, out, code, 1, `case "0001.2.1.9.1 halves" names 0001.2.1.9.1, which no requirement doc holds`,
+			`case "0001.1.1.1.1 I get their sum" names 0001.1.1.1.1, which 0001.1 holds, not 0001.2`)
+	})
+	t.Run("0005.4.1.6.1 it fails naming the case", func(t *testing.T) {
+		t.Parallel()
+		silent := "package adder\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {\n\tt.Run(\"0001.1.1.1.1 I get their sum\", func(t *testing.T) {})\n}\n"
+		out, code := checked(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": silent}))
+		acceptance.Sees(t, out, code, 1, `case "0001.1.1.1.1 I get their sum" has no assertion call`)
+		table := "package adder\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {\n\tfor _, c := range []struct{ name string }{{\"0001.1.1.1.1 I get their sum\"}} {\n\t\tt.Run(c.name, func(t *testing.T) { t.Parallel(); _ = c })\n\t}\n}\n"
+		out, code = checked(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": table}))
+		acceptance.Sees(t, out, code, 1, `case "0001.1.1.1.1 I get their sum" has no assertion call`)
+		helpers := strings.Replace(silent, "func(t *testing.T) {}", "func(t *testing.T) { if t.Name() == \"\" { t.Fatalf(\"x\") } }", 1)
+		out, code = checked(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": helpers}))
+		acceptance.Sees(t, out, code, 0)
+	})
+	t.Run("0005.4.1.7.1 it needs only its own test until the Node switch is on", func(t *testing.T) {
+		t.Parallel()
+		out, code := checked(t, scriptRepo())
+		acceptance.Sees(t, out, code, 0)
 	})
 }

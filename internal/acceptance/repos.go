@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,11 +23,22 @@ func GoRepo() map[string]string {
 	}
 }
 
-// TestFile is a Go test file in pkg declaring one passing test per name.
+// requirementTest matches a test name that owns an acceptance, such as
+// Test0001_1. Group 1 is its ID.
+var requirementTest = regexp.MustCompile(`^Test(\d{4}_\d+)$`)
+
+// TestFile is a Go test file in pkg declaring one passing test per name. A
+// test named for an acceptance holds the case of the one THEN that
+// Acceptances renders for it, so it owns every THEN of that acceptance.
 func TestFile(pkg string, names ...string) string {
 	body := "package " + pkg + "\n\nimport \"testing\"\n"
 	for _, n := range names {
-		body += "\nfunc " + n + "(t *testing.T) {}\n"
+		m := requirementTest.FindStringSubmatch(n)
+		if m == nil {
+			body += "\nfunc " + n + "(t *testing.T) {}\n"
+			continue
+		}
+		body += "\n" + CaseFile(pkg, n, ThenCases(strings.ReplaceAll(m[1], "_", "."), 1)...)[len("package "+pkg+"\n\nimport \"testing\"\n\n"):]
 	}
 	return body
 }
@@ -115,21 +127,21 @@ func Occurrences(path, want string) int {
 }
 
 // CaseFile is a Go test file in pkg declaring test name, which runs one
-// empty case per case name.
+// case per case name, each ending in one assertion call.
 func CaseFile(pkg, name string, cases ...string) string {
 	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
 	for _, c := range cases {
-		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n"
+		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {\n\t\tif t.Name() == \"\" {\n\t\t\tt.Fatal(\"unnamed\")\n\t\t}\n\t})\n"
 	}
 	return body + "}\n"
 }
 
-// StepCases names one case for each of id's first steps, such as
-// "0001.2.1 step".
-func StepCases(id string, steps int) []string {
+// ThenCases names one case for each of the first whens WHENs of acceptance
+// id as Acceptances and Chain render it: the THEN's ID, then its words.
+func ThenCases(id string, whens int) []string {
 	var out []string
-	for n := 1; n <= steps; n++ {
-		out = append(out, id+"."+strconv.Itoa(n)+" step")
+	for n := 1; n <= whens; n++ {
+		out = append(out, id+".1."+strconv.Itoa(n)+".1 "+chainSteps[n-1][1])
 	}
 	return out
 }

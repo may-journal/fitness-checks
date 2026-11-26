@@ -111,7 +111,7 @@ func Test0004_4(t *testing.T) {
 	t.Parallel()
 	t.Run("0004.4.1 steps chain up to the limit beside a single step", func(t *testing.T) {
 		t.Parallel()
-		tests := map[string]string{"adder_test.go": acceptance.TestFile("adder", "Test0001_1"), "chain_test.go": acceptance.CaseFile("adder", "Test0001_2", acceptance.StepCases("0001.2", 7)...)}
+		tests := map[string]string{"adder_test.go": acceptance.TestFile("adder", "Test0001_1"), "chain_test.go": acceptance.CaseFile("adder", "Test0001_2", acceptance.ThenCases("0001.2", 7)...)}
 		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", acceptance.With(acceptance.Reqs(acceptance.Acceptances("0001.1")+acceptance.Chain("0001.2", 7)), tests)), nil, "requirements")
 		acceptance.Sees(t, out, code, 0)
 		out, code = suite(t, acceptance.Reqs(acceptance.Chain("0001.1", 8)))
@@ -159,7 +159,7 @@ func Test0004_5(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
 		cased := func(steps int) map[string]string {
-			return acceptance.With(acceptance.Reqs(acceptance.Chain("0001.1", steps)), map[string]string{"adder_test.go": acceptance.CaseFile("adder", "Test0001_1", acceptance.StepCases("0001.1", steps)...)})
+			return acceptance.With(acceptance.Reqs(acceptance.Chain("0001.1", steps)), map[string]string{"adder_test.go": acceptance.CaseFile("adder", "Test0001_1", acceptance.ThenCases("0001.1", steps)...)})
 		}
 		acceptance.Commit(t, repo, cased(3), "docs(requirements): chain 0001.1 in three steps")
 		out, code := acceptance.Fitness(t, repo, nil, "requirements")

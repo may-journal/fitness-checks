@@ -29,14 +29,21 @@ acceptances
          1. THEN a test proving no requirement fails naming it
       2. WHEN a test is named for a step
          1. THEN it fails telling to name the acceptance's test
-3. Each chained step has a case
-   1. GIVEN Developer has an acceptance that chains steps
-      1. WHEN each step has a case named with its ID
+3. Removed in 2026.11.26.2100: each THEN has its own case, which 0005.4 states
+4. Each THEN has its own case
+   1. GIVEN Developer has an acceptance whose test runs named cases
+      1. WHEN each THEN has a case named with its ID then its words
          1. THEN it passes beside cases named otherwise
-      2. WHEN a step has no case
-         1. THEN it fails naming the step
-         2. THEN it fails naming the test to add it to
-      3. WHEN a case names a step its acceptance does not chain
+      2. WHEN a THEN has no case
+         1. THEN it fails naming the THEN
+         2. THEN it fails naming the test to add the case to
+      3. WHEN a case opens with a THEN ID but words it differently
+         1. THEN it fails naming the case and the name it needs
+      4. WHEN two cases open with one THEN ID
+         1. THEN it fails naming the count
+      5. WHEN a case names a path no doc holds
          1. THEN it fails naming the case
-      4. WHEN the chain is malformed
-         1. THEN its good cases are not called stray
+      6. WHEN a case holds no assertion call
+         1. THEN it fails naming the case
+      7. WHEN a Node test runs its cases
+         1. THEN it needs only its own test until the Node switch is on

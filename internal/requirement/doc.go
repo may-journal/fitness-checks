@@ -30,6 +30,16 @@ type Step struct {
 	Line int
 	When string
 	Then string
+	// Thens are the step's THEN items, each with its own ID.
+	Thens []Then
+}
+
+// Then is one THEN item. Its ID is the doc, acceptance, last GIVEN, WHEN and
+// THEN numbers, such as 0005.3.1.2.1, and Text is the words after THEN.
+type Then struct {
+	ID   string
+	Line int
+	Text string
 }
 
 // Document is one parsed requirement doc.

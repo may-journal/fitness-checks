@@ -2,14 +2,22 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
+// nodeReportsCases is the switch for Node. It stays false until
+// fitness-runner#1108 merges and this repo pins a release holding it, since
+// the runner reports no case names for a Vitest or Jest test until then.
+// While it is false, a Node test owns its acceptance with no case for each
+// THEN.
+const nodeReportsCases = false
+
 // casesReported names the language modules whose requirement tests report
-// the cases they run. Node reports none until fitness-runner issue 1099, and
-// Swift only XCTest activities, which a Swift Testing test may not use.
-var casesReported = map[string]bool{"go": true, "java": true}
+// the cases they run. Swift reports XCTest activities, per requirement 0009.3
+// of fitness-runner.
+var casesReported = map[string]bool{"go": true, "java": true, "swift": true, "node": nodeReportsCases}
 
 // owned is an acceptance, the path of the doc declaring it, and its tests.
 type owned struct {
@@ -18,17 +26,39 @@ type owned struct {
 	tests []reqTest
 }
 
-// stepCaseErrors requires a case named for each chained step, and fails a
-// case naming a step its acceptance lacks.
-func stepCaseErrors(docs []requirement.Document, tests []reqTest) []string {
+// caseID matches the dotted path a case name opens with, such as
+// 0005.3.1.2.1, up to a space or the end. The name's number is any digits
+// after the doc number, so a path with too few parts is still judged.
+var caseID = regexp.MustCompile(`^(\d{4}(?:\.\d+)+)(?:\s|$)`)
+
+// thenCaseErrors requires exactly one case for each THEN, named with its ID
+// and its words, and fails a case naming a path no doc holds or holding no
+// assertion call.
+func thenCaseErrors(root string, docs []requirement.Document, tests []reqTest) []string {
 	var errs []string
+	holders := thenHolders(docs)
 	for _, a := range ownedAcceptances(docs, tests) {
 		errs = append(errs, missingCases(a)...)
 		for _, t := range a.tests {
-			errs = append(errs, strayCases(a, t)...)
+			errs = append(errs, strayCases(a, t, holders)...)
 		}
 	}
-	return errs
+	return append(errs, assertionErrors(root, tests)...)
+}
+
+// thenHolders maps each THEN ID of every doc to the acceptance holding it.
+func thenHolders(docs []requirement.Document) map[string]string {
+	out := map[string]string{}
+	for _, d := range docs {
+		for _, a := range d.Acceptances {
+			for _, s := range a.Steps {
+				for _, th := range s.Thens {
+					out[th.ID] = a.ID
+				}
+			}
+		}
+	}
+	return out
 }
 
 // ownedAcceptances lists each well-formed acceptance in docs with the tests
@@ -67,49 +97,64 @@ func soleReporter(a *owned) (reqTest, bool) {
 	return a.tests[0], casesReported[a.tests[0].module.Name]
 }
 
-// stepIDs is the set of a's numbered step IDs.
-func stepIDs(a *owned) map[string]bool {
-	ids := map[string]bool{}
-	for _, s := range a.Steps {
-		ids[s.ID] = s.ID != ""
-	}
-	return ids
+// caseName is the name a THEN's case carries: its ID, then its words.
+func caseName(th requirement.Then) string {
+	return th.ID + " " + th.Text
 }
 
-// caseSteps is the set of step IDs t's case names open with.
-func caseSteps(t reqTest) map[string]bool {
-	steps := map[string]bool{}
-	for _, c := range t.Cases {
-		steps[c.Step] = c.Step != ""
-	}
-	return steps
-}
-
-// missingCases fails each numbered step of a that no case of its one test
-// names. Two owners already fail, so they are not judged here.
+// missingCases fails each THEN of a without exactly one case of its one
+// test, and each case that opens with a THEN's ID but not its words. Two
+// owners already fail, so they are not judged here.
 func missingCases(a *owned) []string {
 	t, ok := soleReporter(a)
 	if !ok {
 		return nil
 	}
-	named := caseSteps(t)
+	byID := map[string][]string{}
+	for _, c := range t.Cases {
+		if m := caseID.FindStringSubmatch(c.Name); m != nil {
+			byID[m[1]] = append(byID[m[1]], c.Name)
+		}
+	}
 	var errs []string
 	for _, s := range a.Steps {
-		if s.ID != "" && !named[s.ID] {
-			errs = append(errs, requirement.At(a.path, s.Line, fmt.Sprintf("step %s has no test case; add a case to %s whose name opens with %s", s.ID, t.Name, s.ID)))
+		for _, th := range s.Thens {
+			errs = append(errs, judgeThen(a, t, th, byID[th.ID])...)
 		}
 	}
 	return errs
 }
 
-// strayCases fails each case of t whose name opens with a step ID that a
-// does not chain.
-func strayCases(a *owned, t reqTest) []string {
-	chained := stepIDs(a)
+// judgeThen fails a THEN whose cases, the names opening with its ID, are not
+// exactly one case named for it.
+func judgeThen(a *owned, t reqTest, th requirement.Then, names []string) []string {
+	want := caseName(th)
+	switch {
+	case len(names) == 0:
+		return []string{requirement.At(a.path, th.Line, fmt.Sprintf("THEN %s has no test case; add a case to %s named %q", th.ID, t.Name, want))}
+	case len(names) > 1:
+		return []string{requirement.At(a.path, th.Line, fmt.Sprintf("THEN %s has %d test cases in %s; keep exactly one named %q", th.ID, len(names), t.Name, want))}
+	case names[0] != want:
+		return []string{requirement.At(a.path, th.Line, fmt.Sprintf("THEN %s has a case named %q in %s; rename it to %q, its ID then its words without THEN", th.ID, names[0], t.Name, want))}
+	}
+	return nil
+}
+
+// strayCases fails each case of t whose name opens with a path that is no
+// THEN of a, naming the acceptance that holds it when another does.
+func strayCases(a *owned, t reqTest, holders map[string]string) []string {
 	var errs []string
 	for _, c := range t.Cases {
-		if c.Step != "" && !chained[c.Step] {
-			errs = append(errs, fmt.Sprintf("%s: case %q names step %s, which %s does not chain; rename the case for one of its steps or delete it", c.Loc, c.Name, c.Step, a.ID))
+		m := caseID.FindStringSubmatch(c.Name)
+		if m == nil {
+			continue
+		}
+		switch home := holders[m[1]]; {
+		case home == a.ID:
+		case home == "":
+			errs = append(errs, fmt.Sprintf("%s: case %q names %s, which no requirement doc holds; rename the case for a THEN of %s or delete it", c.Loc, c.Name, m[1], a.ID))
+		default:
+			errs = append(errs, fmt.Sprintf("%s: case %q names %s, which %s holds, not %s; move the case to its test", c.Loc, c.Name, m[1], home, a.ID))
 		}
 	}
 	return errs
