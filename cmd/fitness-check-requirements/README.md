@@ -77,6 +77,49 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
 - Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
 
+## Gherkin
+
+[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) lets a doc number its acceptances instead of using bullets. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects.
+
+```markdown
+1. Opens to photos
+   1. GIVEN Writer has the app installed on a phone
+      1. WHEN they open it
+         1. THEN it shows their photos
+2. Keeps uploaded edits
+   1. GIVEN Writer has the app installed on a phone
+   2. GIVEN the user is signed in
+      1. WHEN they upload an edited photo
+         1. THEN the upload shows its edits
+      2. WHEN they reopen the app
+         1. THEN the edits are still there
+         2. THEN the photo keeps its caption
+```
+
+- IDs: an acceptance's place sets its ID, so item 2 of 0001 is 0001.2. Tests, history and messages use that ID.
+- Names: each acceptance has its own short name, with no comma and no keyword.
+- Moves: history fails a commit that moves a named acceptance to another number, so a new one goes last.
+- Removed: a deleted acceptance stays as `N. Removed in <version>: <reason>`, its version the changelog entry that removes it. It counts toward no limit.
+- Shape: GIVENs under the name, WHENs under the last GIVEN and THENs under each WHEN, each level numbered from 1 with no dash.
+- Keywords: GIVEN, WHEN and THEN in caps, never AND or BUT, and no comma outside code. An extra condition is the next GIVEN.
+- Steps: two WHENs or more chain as steps `NNNN.N.K`, at most `requirements.maxSteps`.
+- Parser: it reads a second GIVEN or THEN in a row as And.
+
+## Migrations
+
+Each format change ships as a migration named by the acceptance that states it, so a repo moves either way. Each lives in its own folder under [migrations](migrations), named as the migration and holding its `up.go` and `down.go`. The registry there lists them oldest first.
+
+- `fitness requirements --fix` runs every migration up, after deleting `Source:` lines.
+- A migration rewrites only the Requirements section, dropping its HTML comments, so a commented-out acceptance stays out.
+- `fitness requirements --up 0003.2-gherkin` numbers bullets, naming each acceptance for its first WHEN.
+- A name an earlier acceptance took adds the first THEN. Commas stay to split, and names to reword.
+- Up writes a `Removed` line for each ID a bullet doc skips, and down drops them.
+- Up's version is the newest changelog entry the change adds, else the time of the run.
+- `fitness requirements --down 0003.2-gherkin` turns numbered items back into bullets without names.
+- Down joins extra GIVENs and THENs with "and".
+
+Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
+
 ## Behavior
 
 [Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) states its step limit and [requirement 0002](docs/requirements/0002-packages-own-their-requirements.md) how it reads package history, each proven by its own tests.

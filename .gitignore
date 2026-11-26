@@ -2,3 +2,5 @@
 out/
 # Check binaries built at the repo root; the cmd/ folders stay tracked.
 /fitness-check-*
+# Check binaries built inside a check's own cmd/ folder.
+/cmd/*/fitness-check-*

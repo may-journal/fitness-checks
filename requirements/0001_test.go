@@ -644,7 +644,9 @@ func strayDeps(t *testing.T, folder string) []string {
 	mustDo(t, err)
 	return slices.DeleteFunc(strings.Fields(string(out)), func(dep string) bool {
 		pkg := strings.TrimSuffix(strings.Trim(dep, "[]"), ".test")
-		other := strings.Contains(pkg, "/cmd/fitness-check-") && !strings.HasSuffix(pkg, own)
+		// A package under the check's own folder, such as its migrations, is part of it.
+		mine := strings.HasSuffix(pkg, own) || strings.Contains(pkg, own+"/")
+		other := strings.Contains(pkg, "/cmd/fitness-check-") && !mine
 		return !other && !engineOnly(pkg)
 	})
 }

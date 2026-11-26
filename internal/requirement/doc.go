@@ -14,7 +14,9 @@ import (
 // IDLine is an ID and the line that declares it. An acceptance with a Given
 // carries it, and only a well-ordered chain its Steps.
 type IDLine struct {
-	ID        string
+	ID string
+	// Name is a numbered acceptance's name, which its ID does not hold.
+	Name      string
 	Line      int
 	Given     string
 	GivenLine int
@@ -22,11 +24,12 @@ type IDLine struct {
 }
 
 // Step is one When and its Then. A numbered step has an ID such as
-// 0003.6.2, and a single step none, since its acceptance ID names it.
+// 0003.1.2, and a single step none, since its acceptance ID names it.
 type Step struct {
 	ID   string
 	Line int
 	When string
+	Then string
 }
 
 // Document is one parsed requirement doc.
@@ -37,6 +40,9 @@ type Document struct {
 	// Title is the H1 text after the ID, or empty when the H1 is malformed.
 	Title       string
 	Acceptances []IDLine
+	// Gherkin reports whether the Requirements section states its
+	// acceptances as numbered GIVEN, WHEN and THEN items read as Gherkin.
+	Gherkin bool
 	// SourceLine is the line of the `Source:` line older docs end their
 	// Measurement with, or 0. The check fails it, and the fix deletes it.
 	SourceLine int
@@ -133,6 +139,7 @@ func ParseWith(file, body string, maxSteps int) (Document, []string) {
 	}
 	d.SourceLine = checkMeasurement(p, byName["Measurement"])
 	d.Acceptances = parseRequirements(p, d.ID, byName["Requirements"])
+	d.Gherkin = hasGherkin(byName["Requirements"])
 	return d, p.errs
 }
 

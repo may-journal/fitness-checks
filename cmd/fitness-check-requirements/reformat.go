@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	gherkin "github.com/may-journal/fitness-checks/cmd/fitness-check-requirements/migrations/0003.2-gherkin"
 	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-runner/go/pkg/comments"
 	"github.com/may-journal/fitness-runner/go/pkg/gitx"
@@ -36,20 +37,27 @@ func reformats(root string, roots []string, base string, changed []string) (map[
 	}
 	text, err := gitx.ShowAll(root, objects)
 	for _, f := range docs {
-		found[f] = sameWording(text, base+":"+from[f], gitx.JudgedObject(f))
+		found[f] = sameWording(text, f, base+":"+from[f], gitx.JudgedObject(f))
 	}
 	return found, err
 }
 
-// sameWording reports whether text holds both versions of a doc, with the
-// same wording in each.
-func sameWording(text map[string]string, before, after string) bool {
+// sameWording reports whether text holds both versions of doc f, with the
+// same wording in each. A doc of numbered GIVEN, WHEN and THEN items reads
+// as its bullets.
+func sameWording(text map[string]string, f, before, after string) bool {
 	was, ok := text[before]
 	if !ok {
 		return false
 	}
 	is, ok := text[after]
-	return ok && wording(was, true) == wording(is, false)
+	if !ok {
+		return false
+	}
+	was, wasGherkin := gherkin.Bullets(f, was)
+	is, isGherkin := gherkin.Bullets(f, is)
+	moved := wasGherkin != isGherkin
+	return wording(was, true, moved) == wording(is, false, moved)
 }
 
 // docsAtBase maps each of docs to its path at base, read from one listing
@@ -90,11 +98,20 @@ func renamedFrom(roots []string, f string, listed []string) string {
 }
 
 // wording is a doc's words in order without front matter, HTML comments, a base Source line, or formatter-changeable spacing and markers.
-func wording(doc string, dropSource bool) string {
+// A doc moved between bullets and numbered items reads each comma as the
+// "and" that joins an extra GIVEN or THEN.
+func wording(doc string, dropSource, moved bool) string {
 	body := comments.WithoutHTMLComments(mdx.StripFrontMatter(doc))
 	if dropSource {
 		body = sourceLine.ReplaceAllString(body, "")
 	}
+	if moved {
+		body = commaJoins.Replace(body)
+	}
 	body = listMarker.ReplaceAllString(body, "$1-$2")
 	return strings.Join(strings.Fields(body), " ")
 }
+
+// commaJoins reads a comma as the "and" that joins an extra GIVEN or THEN,
+// so only that split compares equal. A "but" stays a "but".
+var commaJoins = strings.NewReplacer(", but ", " but ", ", and ", " and ", ",", " and ")
