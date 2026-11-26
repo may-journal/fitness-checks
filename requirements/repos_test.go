@@ -10,18 +10,6 @@ import (
 // The Given files a user's repo adds to happyRepo. They live here, not as
 // tracked example repos, so this repo's own checks never judge them.
 
-// pairedRepo is goRepo with requirement 0001's test in reqs/0001_test.go,
-// named for it, beside a shared helper that proves no requirement. Only the
-// requirements check runs, so commits meet no other check.
-func pairedRepo() map[string]string {
-	return with(goRepo(), map[string]string{
-		".fitnessrc.json":    `{"policy": "external", "checks": ["requirements"]}` + "\n",
-		"adder_test.go":      "",
-		"reqs/0001_test.go":  testFile("reqs", "Test0001_1"),
-		"reqs/tools_test.go": "package reqs\n\n// two is a helper the tests share.\nfunc two() int { return 2 }\n",
-	})
-}
-
 // twoRepo is pairedRepo whose one test file proves requirements 0001 and 0002.
 // Requirement 0002 covers its own area, so the two docs never overlap.
 func twoRepo() map[string]string {
@@ -62,26 +50,6 @@ func xcTestFile(names ...string) string {
 		body += "  func " + n + "() {}\n"
 	}
 	return body + "}\n"
-}
-
-// caseFile is a Go test file in pkg declaring test name, which runs one
-// empty case per case name.
-func caseFile(pkg, name string, cases ...string) string {
-	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
-	for _, c := range cases {
-		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n"
-	}
-	return body + "}\n"
-}
-
-// stepCases names one case for each of id's first steps, such as
-// "0001.2.1 step".
-func stepCases(id string, steps int) []string {
-	var out []string
-	for n := 1; n <= steps; n++ {
-		out = append(out, id+"."+strconv.Itoa(n)+" step")
-	}
-	return out
 }
 
 // hungTool is a JavaScript repo whose own prettier runs prelude, then hangs

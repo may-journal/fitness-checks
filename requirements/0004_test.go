@@ -7,71 +7,9 @@ import (
 	"testing"
 )
 
-func Test0004_1(t *testing.T) {
-	t.Parallel()
-	runCases(t, []edgeCase{
-		{"long words in one endless sentence", func(t *testing.T) {
-			t.Parallel()
-			out, code := textReadability(t, map[string]string{"dense.md": textReadabilityDense})
-			sees(t, out, code, 1,
-				"dense.md: readability alarm on 141 prose words",
-				"(grade bands, alarm at 18)", "(alarm at 60)",
-				"to fix: split sentences over ~25 words",
-				"methodology: go/cmd/fitness-check-text-readability/README.md")
-		}},
-		{"plain short sentences pass", func(t *testing.T) {
-			t.Parallel()
-			out, code := textReadability(t, map[string]string{"plain.md": textReadabilityPlain})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"dense doc under hundred prose words", func(t *testing.T) {
-			t.Parallel()
-			short := strings.Repeat("extraordinary bureaucratic infrastructure considerations ", 20) + "conclude.\n"
-			out, code := textReadability(t, map[string]string{"short.md": short})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"only one readability score in alarm", func(t *testing.T) {
-			t.Parallel()
-			// Half seven-letter words in 21-word sentences: only the long-word score is high.
-			lix := strings.Repeat(strings.Repeat("journey to ", 10)+"end. ", 6)
-			out, code := textReadability(t, map[string]string{"lix.md": lix}, "--report")
-			sees(t, out, code, 0, "LIX 68.6", "All 1 checks passed")
-		}},
-		{"dense notation inside fenced code", func(t *testing.T) {
-			t.Parallel()
-			doc := textReadabilityPlain + "\n\n```text\n" + textReadabilityDense + "```\n"
-			out, code := textReadability(t, map[string]string{"notation.md": doc})
-			sees(t, out, code, 0, "All 1 checks passed")
-		}},
-		{"dense issue or pr body", func(t *testing.T) {
-			t.Parallel()
-			out, code := textReadability(t, map[string]string{"body.md": textReadabilityDense}, "--body-file", "body.md")
-			sees(t, out, code, 1, "(description): readability alarm on 141 prose words")
-		}},
-		{"repo lowers its readability bands", func(t *testing.T) {
-			t.Parallel()
-			out, code := textReadability(t, map[string]string{
-				".fitnessrc.json": `{"textReadability": {"maxGrade": 5, "minWords": 10}}` + "\n",
-				"plain.md":        textReadabilityPlain,
-			})
-			sees(t, out, code, 1, "plain.md: readability alarm on 140 prose words", "(grade bands, alarm at 5)")
-		}},
-		{"report flag prints word counts", func(t *testing.T) {
-			t.Parallel()
-			out, code := textReadability(t, map[string]string{"plain.md": textReadabilityPlain}, "--report")
-			sees(t, out, code, 0, "README.md 3 words (below 100 — not judged)", "plain.md 140 words", "All 1 checks passed")
-		}},
-	})
-}
-
 func Test0004_3(t *testing.T) {
 	t.Parallel()
 	runCases(t, []edgeCase{
-		{"hard to read comment", func(t *testing.T) {
-			t.Parallel()
-			out, code := fitness(t, example(t, "happyRepo", inComments(hardToRead)), nil, "text-readability")
-			sees(t, out, code, 1, atEachFile("readability alarm on 104 prose words")...)
-		}},
 		{"comment saying it is not x", func(t *testing.T) {
 			t.Parallel()
 			out, code := fitness(t, example(t, "happyRepo", inComments("It's not a cache. It's the source of truth.")), nil, "no-contrastive-reframing")
@@ -129,22 +67,6 @@ func proseBudget(t *testing.T, files map[string]string, args ...string) (string,
 	t.Helper()
 	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"prose-budget"}, args...)...)
 }
-
-// textReadability runs `fitness-install -- text-readability <args>` on
-// happyRepo with files written over it.
-func textReadability(t *testing.T, files map[string]string, args ...string) (string, int) {
-	t.Helper()
-	return fitness(t, example(t, "happyRepo", files), nil, append([]string{"text-readability"}, args...)...)
-}
-
-// textReadabilityPlain is 140 prose words of short, plain sentences.
-var textReadabilityPlain = strings.Repeat("The runner builds each check and then runs the full suite on every commit. ", 10)
-
-// textReadabilityDense is 141 long words in one sentence.
-var textReadabilityDense = strings.Repeat("extraordinary bureaucratic infrastructure considerations regarding administrative complexity ", 20) + "conclude.\n"
-
-// hardToRead holds 104 long words in sentences within their limit.
-var hardToRead = strings.Repeat("Configuration interdependencies necessitate comprehensive documentation regarding initialization sequencing, synchronization guarantees, and serialization compatibility. ", 8)
 
 // questionsLabel is a label line that opens a list of open questions, and
 // the finding it earns.

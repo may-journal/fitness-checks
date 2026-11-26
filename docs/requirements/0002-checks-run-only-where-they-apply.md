@@ -29,7 +29,6 @@ Checks
 3. Unreadable inputs are skipped
    1. GIVEN Developer has files a check cannot read
    2. GIVEN it has unreadable history
-   3. GIVEN it has unreadable services
       1. WHEN fitness runs that check
          1. THEN it skips them and names them as info
          2. THEN it judges the rest

@@ -8,10 +8,8 @@ Fails a workflow calling a may-journal workflow or action at a tag or sha lackin
 - A `may-journal/<repo>/<path>@<ref>` line names a reusable workflow file or an action folder. A bare `may-journal/<repo>@<ref>` names the repo's root action.
 - A ref is a tag or a full 40-character sha, and the path must exist at it.
 - An action folder holds an `action.yml` or `action.yaml` file at the ref.
-- Fail: the path is missing at the ref, naming the file, line, path, and ref.
-- Fail: the ref is not a tag, a branch, or a full sha, or a sha names no commit.
-- Ignored: local `./` actions, other owners, branch refs, and refs built from `${{ }}` expressions.
-- Ignored: text inside a `|` or `>` block, such as a `run:` script.
+
+[Requirement 0001](docs/requirements/0001-workflow-calls-resolve-at-their-refs.md) states what this check passes and fails, and a test case named for each step proves it.
 
 In a pull request, or a staged commit, it reads only the changed workflow files. Composite actions outside `.github/workflows` are out of scope.
 

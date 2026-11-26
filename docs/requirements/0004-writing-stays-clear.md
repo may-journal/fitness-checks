@@ -14,15 +14,10 @@ docs, bodies and comments the writing checks judge
 
 ## Requirements
 
-1. Prose reads easily
-   1. GIVEN Developer has a dense passage
-      1. WHEN the readability check reads it
-         1. THEN it fails naming place and limit
-         2. THEN plain prose passes
+1. Removed in 2026.11.26.0200: moved to the text-readability doc
 2. Removed in 2026.11.26.0300: moved to the markdown-no-bold-italic and no-contrastive-reframing docs
 3. Comments say why
-   1. GIVEN Developer has code comments that are hard to read
-   2. GIVEN they reframe a sentence
+   1. GIVEN Developer has code comments that reframe a sentence
       1. WHEN the comment checks read the repo
          1. THEN each fails naming the comment and rule
          2. THEN why comments pass

@@ -4,15 +4,9 @@ Fails a `run:` step in a workflow or action that holds more than a trivial comma
 
 ## Behavior
 
-- Run `fitness explain workflow-scripts` for the files it reads.
-- Pass: a one-line step with no control flow, heredoc, pipe, `;`, `&&` or `||`, such as `run: scripts/release.sh`.
-- Fail: a block scalar with more than one line of shell, not counting blank lines and comments.
-- Fail: one line that opens with `if`, `for`, `while`, `until`, `case`, `select` or `function`.
-- Fail: one line with a heredoc, a pipe, a `;`, an `&&` or `||` chain, or a trailing `\`.
-- Text inside quotes, `${{ }}` expressions and `$(( ))`, a trailing comment, `\;` and `<<<` never counts, so `printf '%s | %s'` passes.
-- A step may span lines as a plain or quoted scalar too, and counts the same.
+Run `fitness explain workflow-scripts` for the files it reads. [Requirement 0001](docs/requirements/0001-run-steps-call-checked-in-scripts.md) states what passes and fails, and a test case named for each step proves it. A trivial step is one line with no control flow, heredoc, pipe, `;`, `&&` or `||`, such as `run: scripts/release.sh`.
 
-A repo with no workflow or action files passes having checked none. In a pull request, or a staged commit, it reads only the changed files, and it never runs a step.
+In a pull request, or a staged commit, it reads only the changed files, and it never runs a step.
 
 ## Errors
 
