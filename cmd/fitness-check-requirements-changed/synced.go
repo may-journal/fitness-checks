@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -40,12 +41,12 @@ func readSynced(root string, changes []change) (syncedSet, error) {
 	return record.against(staged), nil
 }
 
-// recordAndEdits is the sync record's path, then the path of each change
-// that is not a deletion.
+// recordAndEdits is the sync record's path, then the path of each product
+// change that is not a deletion.
 func recordAndEdits(changes []change) []string {
 	paths := []string{recordPath}
 	for _, c := range changes {
-		if !c.deleted {
+		if !c.deleted && isProductPath(c.path) {
 			paths = append(paths, c.path)
 		}
 	}
@@ -55,7 +56,7 @@ func recordAndEdits(changes []change) []string {
 // against marks each staged file the record names as intact when its blob
 // matches the record.
 func (r syncRecord) against(staged map[string]string) syncedSet {
-	set := syncedSet{source: r.Source, intact: map[string]bool{}}
+	set := syncedSet{source: cmp.Or(r.Source, "the repo "+recordPath+" names"), intact: map[string]bool{}}
 	for path, blob := range staged {
 		if want, ok := r.Files[path]; ok && path != recordPath {
 			set.intact[path] = blob == want
