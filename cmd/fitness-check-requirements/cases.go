@@ -7,11 +7,8 @@ import (
 	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
-// nodeReportsCases is the switch for Node. It stays false until
-// fitness-runner#1108 merges and this repo pins a release holding it, since
-// the runner reports no case names for a Vitest or Jest test until then.
-// While it is false, a Node test owns its acceptance with no case for each
-// THEN.
+// nodeReportsCases is the Node switch, false until fitness-runner#1108 ships
+// Vitest and Jest case names. While false, a Node test needs no case per THEN.
 const nodeReportsCases = false
 
 // casesReported names the language modules whose requirement tests report
@@ -32,8 +29,8 @@ type owned struct {
 var caseID = regexp.MustCompile(`^(\d{4}(?:\.\d+)+)(?:\s|$)`)
 
 // thenCaseErrors requires exactly one case for each THEN, named with its ID
-// and its words, and fails a case naming a path no doc holds or holding no
-// assertion call.
+// and its words. It also fails a case naming a path no doc holds or holding
+// no assertion call.
 func thenCaseErrors(root string, docs []requirement.Document, tests []reqTest) []string {
 	var errs []string
 	holders := thenHolders(docs)
@@ -102,20 +99,14 @@ func caseName(th requirement.Then) string {
 	return th.ID + " " + th.Text
 }
 
-// missingCases fails each THEN of a without exactly one case of its one
-// test, and each case that opens with a THEN's ID but not its words. Two
-// owners already fail, so they are not judged here.
+// missingCases fails each THEN of a without exactly one case in its test, or
+// with a case of other words. Two owners already fail, so they are skipped.
 func missingCases(a *owned) []string {
 	t, ok := soleReporter(a)
 	if !ok {
 		return nil
 	}
-	byID := map[string][]string{}
-	for _, c := range t.Cases {
-		if m := caseID.FindStringSubmatch(c.Name); m != nil {
-			byID[m[1]] = append(byID[m[1]], c.Name)
-		}
-	}
+	byID := namesByID(t)
 	var errs []string
 	for _, s := range a.Steps {
 		for _, th := range s.Thens {
@@ -123,6 +114,17 @@ func missingCases(a *owned) []string {
 		}
 	}
 	return errs
+}
+
+// namesByID groups the names of t's cases by the path each opens with.
+func namesByID(t reqTest) map[string][]string {
+	byID := map[string][]string{}
+	for _, c := range t.Cases {
+		if m := caseID.FindStringSubmatch(c.Name); m != nil {
+			byID[m[1]] = append(byID[m[1]], c.Name)
+		}
+	}
+	return byID
 }
 
 // judgeThen fails a THEN whose cases, the names opening with its ID, are not
@@ -140,8 +142,8 @@ func judgeThen(a *owned, t reqTest, th requirement.Then, names []string) []strin
 	return nil
 }
 
-// strayCases fails each case of t whose name opens with a path that is no
-// THEN of a, naming the acceptance that holds it when another does.
+// strayCases fails each case of t that opens with a path no THEN of a holds.
+// It names the acceptance that holds the path when another does.
 func strayCases(a *owned, t reqTest, holders map[string]string) []string {
 	var errs []string
 	for _, c := range t.Cases {

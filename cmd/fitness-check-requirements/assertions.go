@@ -37,17 +37,20 @@ func assertionErrors(root string, tests []reqTest) []string {
 	files := map[string]*sourceFile{}
 	var errs []string
 	for _, t := range tests {
-		if !casesReported[t.module.Name] {
-			continue
+		if casesReported[t.module.Name] {
+			errs = append(errs, silentCases(files, root, t)...)
 		}
-		for i, c := range t.Cases {
-			if !caseID.MatchString(c.Name) {
-				continue
-			}
-			src := sourceOf(files, root, c.Loc)
-			if src != nil && !src.asserts(t, i) {
-				errs = append(errs, fmt.Sprintf("%s: case %q has no assertion call; assert the result its THEN states", c.Loc, c.Name))
-			}
+	}
+	return errs
+}
+
+// silentCases fails each case of t named for a THEN that holds no assertion.
+func silentCases(files map[string]*sourceFile, root string, t reqTest) []string {
+	var errs []string
+	for i, c := range t.Cases {
+		src := sourceOf(files, root, c.Loc)
+		if caseID.MatchString(c.Name) && src != nil && !src.asserts(t, i) {
+			errs = append(errs, fmt.Sprintf("%s: case %q has no assertion call; assert the result its THEN states", c.Loc, c.Name))
 		}
 	}
 	return errs
@@ -131,11 +134,16 @@ func runLiteral(call *ast.CallExpr) *ast.FuncLit {
 // enclosing is the body of the function declaration holding line.
 func (s *sourceFile) enclosing(line int) ast.Node {
 	for _, d := range s.tree.Decls {
-		if fn, ok := d.(*ast.FuncDecl); ok && fn.Body != nil && s.fset.Position(fn.Pos()).Line <= line && line <= s.fset.Position(fn.End()).Line {
+		if fn, ok := d.(*ast.FuncDecl); ok && s.spans(fn, line) {
 			return fn.Body
 		}
 	}
 	return nil
+}
+
+// spans reports whether function fn has a body that holds line.
+func (s *sourceFile) spans(fn *ast.FuncDecl, line int) bool {
+	return fn.Body != nil && s.fset.Position(fn.Pos()).Line <= line && line <= s.fset.Position(fn.End()).Line
 }
 
 // holdsAssertion reports whether any call under n is named like an
@@ -175,22 +183,28 @@ func lowerFirst(name string) string {
 	return string(r)
 }
 
-// region is the text of case i of t outside Go: from its line to the next
-// case, or to the next test of the file, or to the file's end.
+// region is the text of case i of t outside Go. It runs from the case's line
+// to the next case, the next test or the end of the file.
 func (s *sourceFile) region(t reqTest, from, i int) string {
 	lines := strings.Split(s.text, "\n")
 	end := len(lines)
-	if i+1 < len(t.Cases) {
-		if _, n := splitLoc(t.Cases[i+1].Loc); n > from {
-			end = min(end, n-1)
-		}
-	} else if next := nextTest(t, lines); next > from {
+	if next := nextBoundary(t, i, lines); next > from {
 		end = min(end, next-1)
 	}
 	if from < 1 || from > end {
 		return s.text
 	}
 	return strings.Join(lines[from-1:end], "\n")
+}
+
+// nextBoundary is the line where case i of t ends: the next case's, else the
+// next test's, or 0 for none.
+func nextBoundary(t reqTest, i int, lines []string) int {
+	if i+1 < len(t.Cases) {
+		_, n := splitLoc(t.Cases[i+1].Loc)
+		return n
+	}
+	return nextTest(t, lines)
 }
 
 // nextTest is the line of the test that follows t's last case, or 0.

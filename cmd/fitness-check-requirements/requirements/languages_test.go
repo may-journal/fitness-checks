@@ -23,9 +23,8 @@ func swiftRepo() map[string]string {
 	}
 }
 
-// thenCase is the name of the one case that owns the THEN of acceptance
-// test, such as test0001_1, as Acceptances renders it, or "" for a test
-// named for no acceptance.
+// thenCase names the one case of a test such as test0001_1, as Acceptances
+// renders its THEN. A test named for no acceptance gets "".
 func thenCase(test string) string {
 	m := regexp.MustCompile(`^test(\d{4})_(\d+)$`).FindStringSubmatch(test)
 	if m == nil {
@@ -157,8 +156,8 @@ var notTests = []string{
 	`interface Check { test(value: string): boolean; }`,
 }
 
-// junitOwns checks a JUnit test owns 0001.1 by its name and test annotation,
-// so the check asks only for the THEN's case, which these forms cannot hold.
+// junitOwns checks a JUnit test owns 0001.1 by its name and annotation. The
+// check then asks only for the THEN's case, which these forms cannot hold.
 func junitOwns(t *testing.T) {
 	t.Helper()
 	for _, owner := range []string{

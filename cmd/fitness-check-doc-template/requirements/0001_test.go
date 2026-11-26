@@ -99,9 +99,8 @@ func Test0001_2(t *testing.T) {
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	// lacking runs each way a view can lack part of its template and returns
-	// each run's output and exit code with where the error sits and what
-	// the template has.
+	// lacking runs each way a view can lack part of its template. It returns
+	// each run's output, exit code and error place.
 	type run struct {
 		out     string
 		code    int

@@ -66,8 +66,8 @@ func Test0002_1(t *testing.T) {
 	})
 }
 
-// stagedScenario is a file whose old comment breaks a rule and whose staged
-// change adds a comment that breaks a rule, and what each run must name.
+// stagedScenario is a file whose old comment breaks a rule, and whose staged
+// change adds another. It also holds what each run names.
 type stagedScenario struct {
 	before, after string
 	staged        string   // the finding on the staged comment alone

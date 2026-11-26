@@ -127,6 +127,7 @@ func Test0001_3(t *testing.T) {
 	var counts map[string]int
 	var audit func(t *testing.T) map[string]int
 	audit = func(t *testing.T) map[string]int {
+		acceptance.Installer(t)
 		once.Do(func() {
 			repo := acceptance.Example(t, "happyRepo", slowTests())
 			out, code := acceptance.Fitness(t, repo, nil, "go-test-coverage")

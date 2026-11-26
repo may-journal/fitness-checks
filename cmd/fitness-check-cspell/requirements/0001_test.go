@@ -24,8 +24,8 @@ func Test0001_1(t *testing.T) {
 		out, code := cspellRun(t, map[string]string{"notes.md": "good words\nthe " + cspellTypo + " fox\n"})
 		acceptance.Sees(t, out, code, 1, "notes.md:2:5 - Unknown word ("+cspellTypo+")")
 	})
-	// long is a file over 64 KB: 2,500 filler lines are 65,000 bytes, so the
-	// block opens just before cspell's 64 KB chunk boundary and closes after it.
+	// long is a file over 64 KB. Its 2,500 filler lines are 65,000 bytes, so the
+	// block opens before cspell's 64 KB chunk boundary and closes after it.
 	long := func(t *testing.T) (string, int) {
 		filler := strings.Repeat("good words in a long file\n", 2500)
 		text := "the " + cspellTypo + " fox\n" + filler +

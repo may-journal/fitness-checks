@@ -34,8 +34,8 @@ type Step struct {
 	Thens []Then
 }
 
-// Then is one THEN item. Its ID is the doc, acceptance, last GIVEN, WHEN and
-// THEN numbers, such as 0005.3.1.2.1, and Text is the words after THEN.
+// A Then is a THEN item with its words after THEN. Its ID joins the doc,
+// acceptance, last GIVEN, WHEN and THEN numbers, such as 0005.3.1.2.1.
 type Then struct {
 	ID   string
 	Line int

@@ -29,7 +29,7 @@ var requirementTest = regexp.MustCompile(`^Test(\d{4}_\d+)$`)
 
 // TestFile is a Go test file in pkg declaring one passing test per name. A
 // test named for an acceptance holds the case of the one THEN that
-// Acceptances renders for it, so it owns every THEN of that acceptance.
+// Acceptances renders for it.
 func TestFile(pkg string, names ...string) string {
 	body := "package " + pkg + "\n\nimport \"testing\"\n"
 	for _, n := range names {
@@ -126,8 +126,8 @@ func Occurrences(path, want string) int {
 	return strings.Count(string(raw), want)
 }
 
-// CaseFile is a Go test file in pkg declaring test name, which runs one
-// case per case name, each ending in one assertion call.
+// CaseFile is a Go test file in pkg declaring test name. It runs one case
+// per case name, each ending in one assertion call.
 func CaseFile(pkg, name string, cases ...string) string {
 	return "package " + pkg + "\n\nimport \"testing\"\n\n" + CaseFunc(name, cases...)
 }
@@ -149,7 +149,7 @@ func CaseFunc(name string, cases ...string) string {
 }
 
 // ThenCases names one case for each of the first whens WHENs of acceptance
-// id as Acceptances and Chain render it: the THEN's ID, then its words.
+// id, as Acceptances and Chain render it. A name is the ID plus the words.
 func ThenCases(id string, whens int) []string {
 	var out []string
 	for n := 1; n <= whens; n++ {

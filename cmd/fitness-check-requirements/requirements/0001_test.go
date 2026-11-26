@@ -33,8 +33,8 @@ func chainRun(t *testing.T, requirements string, steps int) string {
 	return acceptance.Read(out)
 }
 
-// verifyChainLimit fails unless a chain of limit steps passes the limit and
-// one more step fails with every want, such as the chain and the limit.
+// verifyChainLimit fails unless a chain of limit steps passes the limit. One
+// more step must fail with every want, such as the chain and the limit.
 func verifyChainLimit(t *testing.T, requirements string, limit int, want ...string) {
 	t.Helper()
 	if out := chainRun(t, requirements, limit); strings.Contains(out, "0001.1 chains") {

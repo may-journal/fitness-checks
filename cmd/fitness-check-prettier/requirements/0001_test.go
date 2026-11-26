@@ -152,9 +152,8 @@ func Test0001_2(t *testing.T) {
 	})
 }
 
-// biomeFormat runs the check in a repo with a Biome config and the Biome
-// package at declared version major[0], where Biome has many files to
-// reformat, and returns what Biome was given.
+// biomeFormat runs the check in a repo with a Biome config at declared version
+// major[0]. It returns what Biome was given.
 func biomeFormat(t *testing.T, major [3]string) (string, int, acceptance.Replays) {
 	t.Helper()
 	files := map[string]string{"biome.jsonc": "{ \"formatter\": { \"enabled\": true } }\n"}
