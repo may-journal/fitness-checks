@@ -36,6 +36,7 @@ jobs:
     outputs:
       checks: ${{ steps.pick.outputs.checks }}
       suite: ${{ steps.suite.outputs.suite }}
+      shares: ${{ steps.shares.outputs.shares }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +56,13 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && 'HEAD^1' || github.event.before }}
         run: scripts/step-output.sh suite scripts/requirement-shard.sh suite "$BASE"
+      - name: Deal the requirement folders into shares
+        id: shares
+        env:
+          # A pull request runs the folders of its changed checks. Main and a
+          # change to the shared suite run every check's folder.
+          CHECKS: ${{ github.event_name == 'pull_request' && steps.suite.outputs.suite != 'true' && steps.pick.outputs.checks || '' }}
+        run: scripts/step-output.sh shares scripts/requirement-shard.sh shares "$CHECKS"
       - name: Report job outcome
         if: ${{ always() }}
         env:
@@ -118,12 +126,18 @@ jobs:
         run: printf '### Job %s (%s)\n' "$GITHUB_JOB ${{ matrix.shard }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   check-requirements:
-    # A pull request runs the requirement folders of the checks it changes.
-    # Main and a change to the shared suite run every check's folder.
+    # The requirement folders of the changed checks are dealt into up to six
+    # shares, heaviest first, that run as parallel jobs. Main and a change to
+    # the shared suite deal every check's folder.
+    name: check-requirements ${{ matrix.share }}
     needs: changed
-    if: ${{ github.event_name != 'pull_request' || needs.changed.outputs.checks != '[]' || needs.changed.outputs.suite == 'true' }}
+    if: ${{ needs.changed.outputs.shares != '[]' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        share: ${{ fromJSON(needs.changed.outputs.shares) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -132,15 +146,16 @@ jobs:
           cache-dependency-path: |
             go.sum
             tests/requirements.sh
-      - name: Run the changed checks' requirement folders
+      - name: Run this share of the changed checks' requirement folders
         timeout-minutes: 2
         env:
           REQUIREMENT_SHARD: checks
           REQUIREMENT_CHECKS: ${{ github.event_name == 'pull_request' && needs.changed.outputs.suite != 'true' && needs.changed.outputs.checks || '' }}
+          REQUIREMENT_CHECK_SHARE: ${{ matrix.share }}
         run: tests/requirements.sh
       - name: Report job outcome
         if: ${{ always() }}
-        run: printf '### Job %s (%s)\n' "$GITHUB_JOB" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+        run: printf '### Job %s (%s)\n' "$GITHUB_JOB ${{ matrix.share }}" "${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   measure:
     # The release build cases build four platforms and the measure case builds

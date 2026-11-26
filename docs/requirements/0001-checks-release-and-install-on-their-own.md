@@ -27,11 +27,11 @@ Checks
    4. GIVEN `go.mod` changes
       1. WHEN CI picks the checks to test
          1. THEN it tests only checks the change can alter
-      2. WHEN CI splits the requirement suite into jobs
+      2. WHEN CI splits the suite into jobs
          1. THEN each root test runs once
-         2. THEN only changed checks' folders run
+         2. THEN only changed checks' folders run once in six shares
 3. Releases follow commits
-   1. GIVEN Developer has merged commits with and without release tags
+   1. GIVEN Developer has commits with and without release tags
       1. WHEN the release workflow plans the releases
          1. THEN each changed check gets the bump its commits call for
          2. THEN no other check releases
@@ -45,13 +45,13 @@ Checks
          1. THEN each points at its newest release
          2. THEN a refused move fails
 6. The index lists new versions
-   1. GIVEN Developer has published and draft releases of several checks
+   1. GIVEN Developer has published and draft releases
       1. WHEN the release workflow builds the release index
          1. THEN it lists each published check's newest version per major
          2. THEN each entry holds artifacts and checksums and describe fields
          3. THEN it fetches only new versions
 7. Sizes stay limited
-   1. GIVEN Developer has a size baseline for the check programs
+   1. GIVEN Developer has a size baseline for the programs
       1. WHEN the size check runs
          1. THEN a program over its limit fails by name
          2. THEN the sizes are recorded
