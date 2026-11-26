@@ -2,45 +2,11 @@
 
 Fails SwiftUI text and requirement test literals that skip the app's [String Catalog](https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog) ([#527](https://github.com/may-journal/fitness-runner/issues/527)). The Swift language module owns the reading and its judgment. A literal passed to `Text` compiles as a [LocalizedStringKey](https://developer.apple.com/documentation/swiftui/localizedstringkey), so a missing entry only shows in another language.
 
-## Views
+## Behavior
 
-An app opts in by tracking a `.xcstrings` file. Without one the check passes with zero files.
+[Requirement 0001](docs/requirements/0001-labels-read-the-string-catalog.md) states what this check does, and a test case named for each step proves it.
 
-- Text views: `Text`, `Label`, `Button`, `Section`, `Link` and `ProgressView`.
-- Input views: `TextField`, `SecureField`, `Toggle`, `Picker` and `Menu`.
-- Container views: `LabeledContent`, `DisclosureGroup`, `GroupBox` and `ContentUnavailableView`.
-- Title modifiers: `navigationTitle`, `navigationBarTitle`, `help` and `badge`.
-- Other modifiers: `accessibilityLabel`, `accessibilityHint`, `alert` and `confirmationDialog`.
-- A `verbatim:` argument counts too.
-- A reference such as `Text(Words.Verb.share)`, a value, a labeled argument such as `systemImage: "photo"`, and a literal without letters pass.
-
-A failure reads:
-
-```
-App/ShareView.swift:7 - "Share" passed to Button skips the String Catalog; use a Words reference for catalog entry "verb.share"
-```
-
-## Expressions
-
-- A literal that is a branch of a ternary or `??` expression in a view's first argument fails.
-- A ternary branch inside a literal's interpolation fails. Another literal there, such as a dictionary key, passes.
-- A multi-line `"""` literal is one literal and is named whole.
-- A test literal assigned with `=` or passed under an argument label, such as `caption: "Share"`, is plain data and passes.
-
-## Tests
-
-- A test file sits in a folder whose name ends in `Tests`, or is named `…Tests.swift`.
-- A test literal fails when it equals an entry's source-language words, plural and device forms included.
-- Stale entries, entries marked not to translate, and the empty key are no labels.
-- So test captions, prices, symbol names, and checks that a removed word is gone pass.
-
-Each failure names the file, line, and literal, the call or catalog entry, and the reference to use. In a pull request, or a staged commit, it judges only the changed Swift files against every catalog.
-
-## Reference and allow list
-
-A repo can name the type that views and tests read entries through, as failures name it. Without one they say `String(localized:)`.
-
-A literal that an allow pattern matches whole passes. Each pattern needs a reason, and one without, or one that does not compile, fails the check. Run `fitness explain localized-text` for the keys:
+An app opts in by tracking a `.xcstrings` file, and may name its reference type and allow literals. Run `fitness explain localized-text` for the keys:
 
 ```
 {
@@ -52,7 +18,3 @@ A literal that an allow pattern matches whole passes. Each pattern needs a reaso
 ```
 
 Org repos cannot turn the check off, as [ADR 0009](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0009/README.md) decides.
-
-## Requirements
-
-[Requirement 0006](https://github.com/may-journal/fitness-checks/blob/main/docs/requirements/0006-code-is-tested-by-its-own-tools.md) proves this check with installed-command cases.

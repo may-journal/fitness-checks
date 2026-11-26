@@ -45,7 +45,6 @@ Only the basename is validated, so directory casing is ignored — `SomeDir/api-
 
 ## Behavior
 
-- No directory is skipped. Run `fitness explain markdown-filename-kebab-case` for the files it reads.
-- Pass: every basename is a standard root doc, a name GitHub requires, or matches the enabled flavor's convention.
-- Fail: `path: filename must be <kebab-case|camelCase>` per non-conforming file.
-- `filesChecked` counts every Markdown file scanned.
+[Requirement 0001](docs/requirements/0001-markdown-names-follow-kebab-case.md) states what this check does, and a test case named for each step proves it.
+
+No directory is skipped. Run `fitness explain markdown-filename-kebab-case` for the files it reads.

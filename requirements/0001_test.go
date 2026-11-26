@@ -145,9 +145,9 @@ func Test0001_2(t *testing.T) {
 		}},
 		{"0001.2.2 only the changed checks' folders run", func(t *testing.T) {
 			t.Parallel()
-			got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["gofmt","swiftlint"]`))
+			got := strings.Fields(runScript(t, "..", "requirement-shard.sh", "checks", `["no-folder-yet","swiftlint"]`))
 			if want := []string{"./cmd/fitness-check-swiftlint/requirements"}; !slices.Equal(got, want) {
-				t.Errorf("folders for gofmt and swiftlint = %v, want %v", got, want)
+				t.Errorf("folders for a check with no folder and swiftlint = %v, want %v", got, want)
 			}
 			if got := runScript(t, "..", "requirement-shard.sh", "checks", "[]"); got != "" {
 				t.Errorf("folders for no changed check = %q, want none", got)
@@ -159,7 +159,7 @@ func Test0001_2(t *testing.T) {
 			if all := runScript(t, "..", "requirement-shard.sh", "checks", ""); len(strings.Fields(all)) < 7 {
 				t.Fatalf("only %q folders, want more than six to prove the cap", all)
 			}
-			for checks, count := range map[string]int{`["gofmt"]`: 0, `["swiftlint"]`: 1, "": 6} {
+			for checks, count := range map[string]int{`["no-folder-yet"]`: 0, `["swiftlint"]`: 1, "": 6} {
 				shares := strings.Fields(strings.NewReplacer("[", "", "]", "", `"`, "", ",", " ").Replace(runScript(t, "..", "requirement-shard.sh", "shares", checks)))
 				if len(shares) != count {
 					t.Errorf("shares for %q = %v, want %d", checks, shares, count)

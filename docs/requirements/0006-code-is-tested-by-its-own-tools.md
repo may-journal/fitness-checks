@@ -30,11 +30,7 @@ repos with code or requirement docs
       1. WHEN the history checks judge my commit
          1. THEN each fails naming the files or ID
          2. THEN a pair passes
-4. Go code is tidy
-   1. GIVEN Developer has Go files with a format or vet problem
-      1. WHEN the Go tooling checks run on them
-         1. THEN each fails naming the file and line
-         2. THEN clean code passes
+4. Removed in 2026.11.26.0200: moved to the go-test and go-vet and gofmt and go-complexity docs
 5. Node code is tidy
    1. GIVEN Developer has JavaScript files with a disable directive
       1. WHEN the Node tooling checks run on them
@@ -46,11 +42,11 @@ repos with code or requirement docs
          1. THEN each fails naming the file and the fix
          2. THEN clean code passes
 7. Tests pass and cover
-   1. GIVEN Developer has tests that fail or cover less than all code
+   1. GIVEN Developer has tests that cover less than all code
       1. WHEN the test and coverage checks run
          1. THEN each shortfall fails naming its cause
 8. Swift views follow rules
-   1. GIVEN Developer has Swift views whose names or localized text break the rules
-      1. WHEN the Swift Storybook and localized text checks run
+   1. GIVEN Developer has Swift pages whose names or repeated IDs break the rules
+      1. WHEN the Swift Storybook checks run
          1. THEN each break fails naming file and line
          2. THEN an app without Storybook passes

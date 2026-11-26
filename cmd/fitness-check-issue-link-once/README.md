@@ -4,11 +4,9 @@ Keeps each Issue's timeline readable ([#153](https://github.com/may-journal/fitn
 
 ## Behavior
 
-- A link is `#NN`, `owner/repo#NN`, or an Issue or PR URL on github.com. A bare `#NN` belongs to origin's repo.
-- Fail: an earlier commit of the branch's own, one no other pushed branch holds, links the same Issue.
-- A branch stacked on a pushed epic branch so starts where that branch ends.
-- Fail: the open PR body links the Issue, and the commit is newer than the PR.
-- Comment lines and anything below the scissors line are ignored, as git drops them.
+[Requirement 0001](docs/requirements/0001-each-issue-is-linked-once.md) states what this check does, and a test case named for each step proves it.
+
+A link is `#NN`, `owner/repo#NN`, or an Issue or PR URL on github.com. A bare `#NN` belongs to origin's repo. An earlier commit counts only when no other pushed branch holds it. A branch stacked on a pushed epic branch starts where that branch ends.
 
 ## Where it runs
 

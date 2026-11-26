@@ -29,7 +29,7 @@ Checks
          1. THEN it tests only checks the change can alter
       2. WHEN CI splits the suite into jobs
          1. THEN each root test runs once
-         2. THEN only changed checks' folders run once in six shares
+         2. THEN only a changed check's own folder runs once in six shares
 3. Releases follow commits
    1. GIVEN Developer has commits with and without release tags
       1. WHEN the release workflow plans the releases

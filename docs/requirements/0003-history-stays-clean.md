@@ -21,10 +21,7 @@ commits and entry files checked
          2. THEN each failure quotes the subject
 2. Removed in 2026.11.26.0000: moved to the plan-trailer check's own requirement
 3. Removed in 2026.11.26.0100: moved to the commit-attribution doc
-4. Issue links are not repeated
-   1. GIVEN Developer has a branch and PR linking issues
-      1. WHEN the commit checks look for repeated issue links
-         1. THEN a second link fails naming the earlier commit or PR
+4. Removed in 2026.11.26.0200: moved to the issue-link-once doc
 5. Removed in 2026.11.25.0800: moved to the `changelog` doc
 6. Removed in 2026.11.25.0800: moved to the `changelog-bullets` doc
 7. Removed in 2026.11.25.0800: moved to the `changelog-updated` doc
