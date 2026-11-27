@@ -18,7 +18,7 @@ Removed lines dropped
    1. GIVEN Developer has a `Removed` line
    2. GIVEN two released versions in the base changelog are newer than its version
       1. WHEN its line is deleted with later acceptances moved up one number
-         1. THEN it passes with each test and step case renamed
+         1. THEN it passes with every moved test case renamed
 2. Moved tests are renamed
    1. GIVEN Developer deleted an old `Removed` line
    2. GIVEN a later acceptance moved up one number
@@ -30,4 +30,6 @@ Removed lines dropped
    1. GIVEN Developer has a `Removed` line
    2. GIVEN fewer than two released versions in the base changelog are newer than its version
       1. WHEN its line is deleted
-         1. THEN it fails saying how to drop old markers and rename their tests by hand
+         1. THEN it fails naming the `Removed` line
+         2. THEN its message says how to drop old markers
+         3. THEN its message says to rename their tests by hand

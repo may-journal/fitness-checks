@@ -71,6 +71,8 @@ func Test0010_2(t *testing.T) {
 func Test0010_3(t *testing.T) {
 	t.Parallel()
 	out, code := agedRun(t, releases[1:], droppedReqs, agedTests("2"), false)
-	acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was Removed in \"2026.11.25.1230\" and 1 released versions are newer; keep its `2. Removed` line until 2 are",
-		"To drop old markers by hand, delete each `Removed` line with 2 or more newer released versions", "rename its test and step cases to match in the same change")
+	// One assertion for each THEN, as a single step has no cases of its own.
+	acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was Removed in \"2026.11.25.1230\" and 1 released versions are newer; keep its `2. Removed` line until 2 are")
+	acceptance.Sees(t, out, code, 1, "To drop old markers by hand, delete each `Removed` line with 2 or more newer released versions")
+	acceptance.Sees(t, out, code, 1, "rename its test and step cases to match in the same change")
 }
