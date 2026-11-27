@@ -85,17 +85,6 @@ func taggedThens(tags []marks.Tag) map[string]bool {
 	return out
 }
 
-// stepTagged reports whether every THEN of s has a tag. A step with no THEN
-// item has none to tag.
-func stepTagged(s requirement.Step, tagged map[string]bool) bool {
-	for _, th := range s.Thens {
-		if !tagged[th.ID] {
-			return false
-		}
-	}
-	return len(s.Thens) > 0
-}
-
 // untaggedErrors fails each THEN of docs that no tag names.
 func untaggedErrors(docs []requirement.Document, tags []marks.Tag) []string {
 	tagged := taggedThens(tags)
@@ -106,4 +95,15 @@ func untaggedErrors(docs []requirement.Document, tags []marks.Tag) []string {
 		}
 	}
 	return errs
+}
+
+// provenDocs is docs without those a fitness/req check proves, which need no tag.
+func provenDocs(docs []requirement.Document, proven map[string]bool) []requirement.Document {
+	var out []requirement.Document
+	for _, d := range docs {
+		if !proven[d.ID] {
+			out = append(out, d)
+		}
+	}
+	return out
 }

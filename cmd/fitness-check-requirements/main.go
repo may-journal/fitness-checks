@@ -55,7 +55,7 @@ func run(root string, args []string) (checkkit.Result, error) {
 
 // judgeAll reads the tags and judges every package and the changed files.
 func judgeAll(root string, roots, paths []string, tests []reqTest, files []string, written []lang.Module, args []string) (checkkit.Result, error) {
-	tags, left, err := taggedRun(root, roots, paths, tests, files, args)
+	tags, err := taggedRun(root, roots, paths, tests, files, args)
 	if err != nil {
 		return checkkit.Result{}, err
 	}
@@ -65,7 +65,7 @@ func judgeAll(root string, roots, paths []string, tests []reqTest, files []strin
 		return checkkit.Result{}, err
 	}
 	pairs, err := pairErrors(root, roots, paths, append(files, checks...), tests)
-	res := result(len(paths)+len(files), append(append(errs, pairs...), left...))
+	res := result(len(paths)+len(files), append(errs, pairs...))
 	res.Info = notes
 	return res, err
 }
@@ -137,7 +137,7 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	errs = append(errs, scopeErrors(docs, p.checks)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
-	errs = append(errs, stepCaseErrors(docs, p.tests, p.tags)...)
+	errs = append(errs, untaggedErrors(provenDocs(docs, p.proven), p.tags)...)
 	errs = append(errs, tagErrors(docs, p.tags)...)
 	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
 }

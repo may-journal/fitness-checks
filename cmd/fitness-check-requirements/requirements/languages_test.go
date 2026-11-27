@@ -1,10 +1,12 @@
 package requirements
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // The Given files a user's repo adds to happyRepo. They live here, not as
@@ -23,11 +25,11 @@ func swiftRepo() map[string]string {
 }
 
 // swiftTestingFile is a Swift Testing suite declaring one empty test per
-// name.
+// name; the test of 0001.1 tags its THEN.
 func swiftTestingFile(names ...string) string {
 	body := "import Testing\n\n@MainActor @Suite struct AdderSpec {\n"
 	for _, n := range names {
-		body += "  @Test func " + n + "() async throws {}\n"
+		body += "  @Test func " + n + "() async throws {" + swiftBody(n) + "}\n"
 	}
 	return body + "}\n"
 }
@@ -36,7 +38,7 @@ func swiftTestingFile(names ...string) string {
 func xcTestFile(names ...string) string {
 	body := "import XCTest\n\nfinal class AdderTests: XCTestCase {\n"
 	for _, n := range names {
-		body += "  func " + n + "() {}\n"
+		body += "  func " + n + "() {" + swiftBody(n) + "}\n"
 	}
 	return body + "}\n"
 }
@@ -55,7 +57,7 @@ func junitRepo() map[string]string {
 func junitFile(class string, names ...string) string {
 	body := "import org.junit.jupiter.api.Test;\n\nclass " + class + " {\n"
 	for _, n := range names {
-		body += "  @Test\n  void " + n + "() {}\n"
+		body += "  @Test" + javaTagFor(n) + "\n  void " + n + "() {}\n"
 	}
 	return body + "}\n"
 }
@@ -72,7 +74,7 @@ func scriptRepo() map[string]string {
 
 // vitestFile is a vitest test file holding the given statements.
 func vitestFile(statements ...string) string {
-	return "import { describe, expect, it, test } from \"vitest\";\n\n" + strings.Join(statements, "\n") + "\n"
+	return "import { describe, expect, it, test } from \"vitest\";\n\n" + strings.Join(statements, "\n") + "\n" + nodeThen(1, thenText) + "\n"
 }
 
 // swiftScreens is the helper that imports apple-ui-testing-library.
@@ -92,14 +94,14 @@ func swiftChecked(t *testing.T, files map[string]string) (string, int) {
 // librarySuite is a Swift Testing file whose test0001_1 runs body on
 // apple-ui-testing-library, after the given extra imports.
 func librarySuite(imports, body string) string {
-	return "import Testing\nimport UITestingLibrary\n" + imports + "\n@MainActor @Test func test0001_1() async throws {\n" + body + "}\n"
+	return "import Testing\nimport UITestingLibrary\n" + imports + "\n@MainActor @Test func test0001_1() async throws {\n" + body + swiftThen(1, thenText) + "}\n"
 }
 
 // systemSuite is an end-to-end XCTest class whose test0001_1 drives the
 // app through UITestingLibrarySystem.
-const systemSuite = "import UITestingLibrary\nimport UITestingLibrarySystem\nimport XCTest\n\n@MainActor\nfinal class SystemRequirements: XCTestCase {\n" +
+var systemSuite = "import UITestingLibrary\nimport UITestingLibrarySystem\nimport XCTest\n\n@MainActor\nfinal class SystemRequirements: XCTestCase {\n" +
 	"  func test0001_1() throws {\n    let session = SystemSession(bundleIdentifier: \"org.example.app\", timeout: 10)\n" +
-	"    session.launch()\n    let reset = [\"xcrun\", \"simctl\", \"erase\", \"all\"]\n    XCTAssertFalse(reset.isEmpty)\n    try session.taps(.button(\"Share\"))\n  }\n}\n"
+	"    session.launch()\n    let reset = [\"xcrun\", \"simctl\", \"erase\", \"all\"]\n    XCTAssertFalse(reset.isEmpty)\n    try session.taps(.button(\"Share\"))\n" + swiftThen(1, thenText) + "  }\n}\n"
 
 // swiftJudged runs fitness on swiftRepo with files written over it.
 func swiftJudged(t *testing.T, files map[string]string) (string, int) {
@@ -136,10 +138,10 @@ var notTests = []string{
 func junitOwners(t *testing.T) {
 	t.Helper()
 	for _, owner := range []string{
-		"class AdderTest {\n  @ParameterizedTest\n  @ValueSource(ints = {1, 2})\n  void test0001_1(int n) {}\n}\n",
-		"class AdderTest {\n  @TestFactory\n  Stream<DynamicTest> test0001_1() {\n    return Stream.empty();\n  }\n}\n",
+		"class AdderTest {\n  " + javaThen(1, thenText) + "\n  @ParameterizedTest\n  @ValueSource(ints = {1, 2})\n  void test0001_1(int n) {}\n}\n",
+		"class AdderTest {\n  " + javaThen(1, thenText) + "\n  @TestFactory\n  Stream<DynamicTest> test0001_1() {\n    return Stream.empty();\n  }\n}\n",
 		// TestNG runs a marked class's public methods, but not its setup.
-		"@Test\npublic class AdderTest {\n  public AdderTest() {}\n\n  @BeforeTest\n  public void setUp() {}\n\n  public void test0001_1() {}\n}\n",
+		"@Test " + javaThen(1, thenText) + "\npublic class AdderTest {\n  public AdderTest() {}\n\n  @BeforeTest\n  public void setUp() {}\n\n  public void test0001_1() {}\n}\n",
 	} {
 		out, code := checked(t, acceptance.With(junitRepo(), map[string]string{"src/test/java/AdderTest.java": owner}))
 		acceptance.Sees(t, out, code, 0)
@@ -192,4 +194,38 @@ func unchangedTestFails(t *testing.T, files map[string]string, want string) {
 			acceptance.Sees(t, out, code, 1, want)
 		}
 	}
+}
+
+// stepThenID is the ID of the n-th THEN of 0001.1, which has one GIVEN and one WHEN per step.
+func stepThenID(n int) string { return "0001.1.1." + strconv.Itoa(n) + ".1" }
+
+// swiftThen is the Swift activity tagging the n-th THEN of 0001.1, whose text is then.
+func swiftThen(n int, then string) string {
+	return "    XCTContext.runActivity(named: \"req " + stepThenID(n) + "#" + req.Hash(then) + "\") { _ in }\n"
+}
+
+// javaThen is the JUnit tag of the n-th THEN of 0001.1, whose text is then.
+func javaThen(n int, then string) string {
+	return "@Tag(\"req:" + stepThenID(n) + "#" + req.Hash(then) + "\")"
+}
+
+// nodeThen is the Node wrapper call tagging the n-th THEN of 0001.1, whose text is then.
+func nodeThen(n int, then string) string {
+	return "then(\"" + stepThenID(n) + "\", \"" + req.Hash(then) + "\", () => {});"
+}
+
+// swiftBody is the tag a Swift test body holds when the test proves 0001.1.
+func swiftBody(name string) string {
+	if name != "test0001_1" {
+		return ""
+	}
+	return "\n" + swiftThen(1, thenText) + "  "
+}
+
+// javaTagFor is the tag a JUnit test holds on its @Test line when the test proves 0001.1.
+func javaTagFor(name string) string {
+	if name != "test0001_1" {
+		return ""
+	}
+	return " " + javaThen(1, thenText)
 }

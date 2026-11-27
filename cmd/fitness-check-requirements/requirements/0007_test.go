@@ -16,7 +16,7 @@ func Test0007_1(t *testing.T) {
 			out, _ := swiftJudged(t, nil)
 			acceptance.PassedWith(t, out, "requirements", "2")
 			out, _ = swiftJudged(t, map[string]string{
-				"Tests/AdderTests/AdderTests.swift": "import Testing\n\nstruct AdderSpec {\n  @Test(\"adds\") func test0001_1() {}\n}\n",
+				"Tests/AdderTests/AdderTests.swift": "import Testing\n\nstruct AdderSpec {\n  @Test(\"adds\") func test0001_1() {\n" + swiftThen(1, thenText) + "  }\n}\n",
 			})
 			acceptance.PassedWith(t, out, "requirements", "2")
 			for _, owner := range []string{
@@ -56,7 +56,10 @@ func Test0007_1(t *testing.T) {
 	t.Run("0007.1.3 a chain of steps in Node or Swift needs only its test", func(t *testing.T) {
 		t.Parallel()
 		req.Then(t, "0007.1.1.3.1", "8a958cdb", func(_ req.A) {
-			for _, repo := range []map[string]string{scriptRepo(), swiftRepo()} {
+			for _, repo := range []map[string]string{
+				acceptance.With(scriptRepo(), map[string]string{"tests/adder.test.ts": vitestFile(`test("0001.1 adds two numbers", () => {});`, nodeThen(2, "the total is even"))}),
+				acceptance.With(swiftRepo(), map[string]string{swiftTest: strings.Replace(swiftTestingFile("test0001_1"), "  }\n}\n", swiftThen(2, "the total is even")+"  }\n}\n", 1)}),
+			} {
 				out, code := checked(t, acceptance.With(repo, map[string]string{acceptance.PairedDoc: acceptance.DocWith(acceptance.Chain("0001.1", 2))}))
 				acceptance.Sees(t, out, code, 0)
 			}
@@ -157,7 +160,7 @@ func Test0007_3(t *testing.T) {
 		t.Parallel()
 		// Words in comments and strings are no import or call.
 		req.Then(t, "0007.3.1.2.1", "07b8e753", func(_ req.A) {
-			quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n}\n"
+			quiet := "import Testing\n// import XCTest\n/* XCUIApplication() */\n@MainActor @Test(\"never shells out to simctl\") func test0001_1() async throws {\n  let note = \"XCUIApplication\"\n  _ = note\n" + swiftThen(1, thenText) + "}\n"
 			for _, body := range []string{swiftTestingFile("test0001_1"), librarySuite("", ""), quiet} {
 				out, code := swiftChecked(t, map[string]string{swiftTest: body})
 				acceptance.Sees(t, out, code, 0)

@@ -53,9 +53,9 @@ func Test0010_1(t *testing.T) {
 			acceptance.Sees(t, out, code, 1, "also at adder_test.go:10")
 		})
 	})
-	t.Run("0010.1.3 current tags pass beside named cases", func(t *testing.T) {
+	t.Run("0010.1.3 current tags pass", func(t *testing.T) {
 		t.Parallel()
-		req.Then(t, "0010.1.2.3.1", "1ff11095", func(_ req.A) {
+		req.Then(t, "0010.1.2.3.1", "07b8e753", func(_ req.A) {
 			out, code := checked(t, acceptance.With(acceptance.GoRepo(), tagged(currentTag())))
 			acceptance.Sees(t, out, code, 0)
 			acceptance.PassedWith(t, out, "requirements", "2")
@@ -104,6 +104,33 @@ func Test0010_2(t *testing.T) {
 			after, err := os.ReadFile(filepath.Join(repo, "adder_test.go"))
 			a.NoError(err)
 			a.Equal(string(before), string(after))
+		})
+	})
+}
+func Test0010_3(t *testing.T) {
+	t.Parallel()
+	t.Run("0010.3.1 a THEN with no tag fails", func(t *testing.T) {
+		t.Parallel()
+		out, code := checked(t, acceptance.With(acceptance.GoRepo(), map[string]string{"adder_test.go": "package adder\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {}\n"}))
+		req.Then(t, "0010.3.1.1.1", "f0ff953d", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "THEN "+thenID+" has no tagged test case")
+		})
+		req.Then(t, "0010.3.1.1.2", "e4d23d46", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "give its case the tag "+thenID+"#"+req.Hash(thenText))
+		})
+	})
+	t.Run("0010.3.2 tagged THENs pass", func(t *testing.T) {
+		t.Parallel()
+		req.Then(t, "0010.3.1.2.1", "07b8e753", func(_ req.A) {
+			out, code := checked(t, acceptance.With(acceptance.GoRepo(), tagged(currentTag())))
+			acceptance.Sees(t, out, code, 0)
+		})
+	})
+	t.Run("0010.3.3 a doc a check proves needs no tag", func(t *testing.T) {
+		t.Parallel()
+		req.Then(t, "0010.3.1.3.1", "7f06d797", func(_ req.A) {
+			out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", provenRepo()), nil, "requirements")
+			acceptance.Sees(t, out, code, 0)
 		})
 	})
 }

@@ -1,9 +1,12 @@
 package requirements
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/internal/requirement"
 	"github.com/may-journal/fitness-checks/req"
 )
 
@@ -14,11 +17,27 @@ func chain(when1, then1, when2, then2 string) string {
 		"      2. " + when2 + "\n         1. " + then2 + "\n"
 }
 
+// tagsFor is adder_test.go with a tagged test for each acceptance of the doc that reqs makes.
+func tagsFor(reqs string) string {
+	doc, _ := requirement.Parse(rootDoc, acceptance.DocWith(reqs))
+	body := "package adder\n\nimport (\n\t\"testing\"\n\n\t\"github.com/may-journal/fitness-checks/req\"\n)\n"
+	for _, a := range doc.Acceptances {
+		body += "\nfunc Test" + strings.Replace(a.ID, ".", "_", 1) + "(t *testing.T) {\n"
+		for _, s := range a.Steps {
+			for _, th := range s.Thens {
+				body += "\treq.Then(t, " + strconv.Quote(th.ID) + ", " + strconv.Quote(th.Hash()) + ", func(a req.A) { a.Equal(1, 1) })\n"
+			}
+		}
+		body += "}\n"
+	}
+	return body
+}
+
 // passes fails unless requirements passes reqs, whose second acceptance chains
 // two steps.
 func passes(t *testing.T, reqs string) {
 	t.Helper()
-	out, code := judged(t, gherkinRepo(t, reqs, provingTests("0001.2.1 first", "0001.2.2 second")))
+	out, code := judged(t, gherkinRepo(t, reqs, tagsFor(reqs)))
 	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 }
 

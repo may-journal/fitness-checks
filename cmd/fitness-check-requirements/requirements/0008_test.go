@@ -30,7 +30,8 @@ func Test0008_1(t *testing.T) {
 		t.Parallel()
 		req.Then(t, "0008.1.1.2.1", "07b8e753", func(_ req.A) {
 			reqs := oneAcceptance("GIVEN two numbers such as `1 and 2`", "WHEN I add a GIVEN or an AND", `THEN I get the word "and" or “but” from read-and-write input`)
-			out, code := judged(t, gherkinRepo(t, reqs, acceptance.TestFile("adder", "Test0001_1")))
+			tests := testHeader + "\nfunc Test0001_1(t *testing.T) {\n" + acceptance.Tag("0001.1.1.1.1", `I get the word "and" or “but” from read-and-write input`) + "}\n"
+			out, code := judged(t, gherkinRepo(t, reqs, tests))
 			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
 	})

@@ -24,7 +24,7 @@ THENs
          1. THEN it fails naming the THEN
          2. THEN it names both places
       3. WHEN every tag names a THEN with its current hash
-         1. THEN it passes beside cases named for steps
+         1. THEN it passes
       4. WHEN a tag sits outside the test of its acceptance
          1. THEN it fails naming the test to move it to
 2. A tag mode writes the tags
@@ -34,3 +34,12 @@ THENs
          2. THEN it lists each THEN still untagged
       2. WHEN `--tag --dry-run` runs
          1. THEN it writes no file
+3. Each THEN has a tagged case
+   1. GIVEN Developer has a repo with requirement docs plus tests
+      1. WHEN a THEN has no tag
+         1. THEN it fails naming the THEN
+         2. THEN it prints the tag to add
+      2. WHEN every THEN has a tag
+         1. THEN it passes
+      3. WHEN a check proves a doc
+         1. THEN its THENs need no tag

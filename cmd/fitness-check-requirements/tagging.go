@@ -433,33 +433,16 @@ func tagMode(root string, roots, paths []string, tests []reqTest, tags []marks.T
 	return all, nil
 }
 
-// leftovers fails each THEN no tag names, for the packages under roots.
-func leftovers(root string, roots, paths []string, tags []marks.Tag) []string {
-	var errs []string
-	for _, r := range roots {
-		docs, _, _ := requirement.Load(root, packages.Owned(roots, r, paths))
-		errs = append(errs, untaggedErrors(docs, inRoot(roots, r, tags, tagFile))...)
-	}
-	return errs
-}
-
 // taggedRun reads the tags of the test files. With `--tag` it first writes
-// the tags it can, or counts them as written with `--dry-run`, and lists
-// the THENs left untagged.
-func taggedRun(root string, roots, paths []string, tests []reqTest, files, args []string) ([]marks.Tag, []string, error) {
+// the tags it can, or counts them as written with `--dry-run`.
+func taggedRun(root string, roots, paths []string, tests []reqTest, files, args []string) ([]marks.Tag, error) {
 	tags := marks.Tags(root, files)
 	if !slices.Contains(args, tagFlag) {
-		return tags, nil, nil
+		return tags, nil
 	}
-	dry := slices.Contains(args, dryFlag)
-	wrote, err := tagMode(root, roots, paths, tests, tags, dry)
-	if err != nil {
-		return nil, nil, err
+	wrote, err := tagMode(root, roots, paths, tests, tags, slices.Contains(args, dryFlag))
+	if slices.Contains(args, dryFlag) {
+		return append(tags, wrote...), err
 	}
-	if dry {
-		tags = append(tags, wrote...)
-	} else {
-		tags = marks.Tags(root, files)
-	}
-	return tags, leftovers(root, roots, paths, tags), nil
+	return marks.Tags(root, files), err
 }

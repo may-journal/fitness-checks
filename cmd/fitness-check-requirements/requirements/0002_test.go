@@ -120,7 +120,13 @@ func Test0002_3(t *testing.T) {
 		req.Then(t, "0002.3.1.2.1", "07b8e753", func(_ req.A) {
 			plain := strings.Replace(named, "the `semantic-commit` check", "he", 1)
 			removed := plain + "2. Removed in 2026.11.26.0400: moved to the semantic-commit check's own requirement\n"
-			out, code := checked(t, given(removed, named))
+			gets := func(pkg string) string {
+				return strings.Replace(testHeader, "adder", pkg, 1) + "\nfunc Test0001_1(t *testing.T) {\n" + acceptance.Tag("0001.1.1.1.1", "it gets their sum") + "}\n"
+			}
+			out, code := checked(t, acceptance.With(given(removed, named), map[string]string{
+				"adder_test.go": gets("adder"),
+				"pkgs/fitness-check-semantic-commit/requirements/0001_test.go": gets("requirements"),
+			}))
 			acceptance.Sees(t, out, code, 0)
 		})
 	})

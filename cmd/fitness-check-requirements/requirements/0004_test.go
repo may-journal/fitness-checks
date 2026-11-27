@@ -240,7 +240,7 @@ const bulletDoc = "- 0001.1\n  - Given two numbers\n    - When I add them\n     
 
 func Test0004_6(t *testing.T) {
 	t.Parallel()
-	out, code := judged(t, gherkinRepo(t, bulletDoc, acceptance.TestFile("adder", "Test0001_1", "Test0001_2")))
+	out, code := judged(t, gherkinRepo(t, bulletDoc, "package adder\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {}\n\nfunc Test0001_2(t *testing.T) {}\n"))
 	req.Then(t, "0004.6.1.1.1", "8df57e03", func(_ req.A) {
 		acceptance.Sees(t, out, code, 1, rootDoc+":17: this is the bullet acceptance form, which `requirements` no longer reads",
 			rootDoc+":21: this is the bullet acceptance form")

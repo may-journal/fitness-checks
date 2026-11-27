@@ -4,9 +4,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // The Given files a user's repo adds to an example repo. They live here, not
@@ -22,14 +25,32 @@ func GoRepo() map[string]string {
 	}
 }
 
-// TestFile is a Go test file in pkg declaring one passing test per name.
+// TestFile is a Go test file in pkg declaring one passing test per name. A test
+// named for an acceptance tags the one THEN that Acceptances renders for it.
 func TestFile(pkg string, names ...string) string {
-	body := "package " + pkg + "\n\nimport \"testing\"\n"
+	body := "package " + pkg + "\n\nimport (\n\t\"testing\"\n\n\t\"github.com/may-journal/fitness-checks/req\"\n)\n"
 	for _, n := range names {
-		body += "\nfunc " + n + "(t *testing.T) {}\n"
+		body += "\nfunc " + n + "(t *testing.T) {\n" + thenTag(strings.Replace(strings.TrimPrefix(n, "Test"), "_", ".", 1), 1) + "}\n"
 	}
 	return body
 }
+
+// thenTag is the Go statement tagging the THEN of step n of acceptance id, or nothing for no acceptance.
+func thenTag(id string, n int) string {
+	if !acceptanceID.MatchString(id) || n < 1 || n > len(chainSteps) {
+		return ""
+	}
+	return Tag(id+".1."+strconv.Itoa(n)+".1", chainSteps[n-1][1])
+}
+
+// Tag is the Go statement tagging the THEN with ID then and text text, holding
+// one counted assertion.
+func Tag(then, text string) string {
+	return "\treq.Then(t, " + strconv.Quote(then) + ", " + strconv.Quote(req.Hash(text)) + ", func(a req.A) { a.Equal(1, 1) })\n"
+}
+
+// acceptanceID matches an acceptance ID such as 0001.1.
+var acceptanceID = regexp.MustCompile(`^\d{4}\.\d+$`)
 
 // RequirementDoc is requirement 0001 with one Given/When/Then per ID.
 func RequirementDoc(ids ...string) string {
@@ -117,11 +138,24 @@ func Occurrences(path, want string) int {
 // CaseFile is a Go test file in pkg declaring test name, which runs one
 // empty case per case name.
 func CaseFile(pkg, name string, cases ...string) string {
-	body := "package " + pkg + "\n\nimport \"testing\"\n\nfunc " + name + "(t *testing.T) {\n"
+	body := "package " + pkg + "\n\nimport (\n\t\"testing\"\n\n\t\"github.com/may-journal/fitness-checks/req\"\n)\n\nfunc " + name + "(t *testing.T) {\n"
 	for _, c := range cases {
-		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n"
+		body += "\tt.Run(" + strconv.Quote(c) + ", func(t *testing.T) {})\n" + caseTag(c)
 	}
 	return body + "}\n"
+}
+
+// stepName matches a case name that opens with a step ID such as 0001.1.2.
+var stepName = regexp.MustCompile(`^(\d{4}\.\d+)\.(\d+)\b`)
+
+// caseTag tags the THEN of the step a case name opens with, or is empty.
+func caseTag(name string) string {
+	m := stepName.FindStringSubmatch(name)
+	if m == nil {
+		return ""
+	}
+	n, _ := strconv.Atoi(m[2])
+	return thenTag(m[1], n)
 }
 
 // StepCases names one case for each of id's first steps, such as

@@ -95,10 +95,10 @@ func replayed(t *testing.T, replay []string, finish ...[]string) (out string, co
 	t.Helper()
 	repo := hooked(t, acceptance.PairedRepo())
 	base := acceptance.TestFile("reqs", "Test0001_1")
-	acceptance.Write(t, repo, map[string]string{pairedTest: strings.Replace(base, "{}", "{ _ = 1 }", 1)})
+	acceptance.Write(t, repo, map[string]string{pairedTest: strings.Replace(base, "a.Equal(1, 1) }", "a.Equal(1, 1); _ = 1 }", 1)})
 	userSteps(t, repo, []string{"checkout", "-q", "-b", "side"}, []string{"add", "-A"},
 		[]string{"commit", "-q", "--no-verify", "-m", "test(reqs): reword the test"}, []string{"checkout", "-q", "-"})
-	acceptance.Write(t, repo, map[string]string{pairedTest: strings.Replace(base, "{}", "{ _ = 2 }", 1), acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))})
+	acceptance.Write(t, repo, map[string]string{pairedTest: strings.Replace(base, "a.Equal(1, 1) }", "a.Equal(1, 1); _ = 2 }", 1), acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))})
 	userSteps(t, repo, []string{"add", "-A"}, []string{"commit", "-q", "-m", "test(reqs): check sums again"})
 	if _, code := acceptance.User(t, repo, nil, replay...); code == 0 {
 		t.Fatalf("git %v did not conflict", replay)
@@ -133,7 +133,7 @@ func twoRepo() map[string]string {
 	doubles := "1. Doubles\n   1. GIVEN one number\n      1. WHEN I double it\n         1. THEN I get twice that number\n"
 	return acceptance.With(acceptance.PairedRepo(), map[string]string{
 		"reqs/0001_test.go":                    "",
-		twoTest:                                acceptance.TestFile("reqs", "Test0001_1", "Test0002_1"),
+		twoTest:                                acceptance.TestFile("reqs", "Test0001_1") + "\nfunc Test0002_1(t *testing.T) {\n" + acceptance.Tag("0002.1.1.1.1", "I get twice that number") + "}\n",
 		"docs/requirements/0002-adds-again.md": strings.Replace(acceptance.DocWith(doubles), "0001 Adds Numbers", "0002 Adds Again", 1),
 	})
 }

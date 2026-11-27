@@ -41,7 +41,7 @@ users who have lost connection
 
 ## Rules
 
-[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance names and their cap, sections, measurement, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, no test that proves nothing and a case for each step. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
+[Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the doc rules: IDs, acceptance names and their cap, sections, measurement, steps and never reusing an ID. [Requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) states ownership: one test named for each acceptance, and no test that proves nothing. The first GIVEN of an acceptance starts with an [actor](../fitness-check-architecture-actors/README.md), as the template shows. IDs follow [ADR 0004](https://github.com/may-journal/fitness-runner/blob/main/fitness/adr-0004/README.md).
 
 [Requirement 0006](docs/requirements/0006-changes-come-paired.md) states that a test and its doc change together. [Requirement 0007](docs/requirements/0007-tests-fit-their-language.md) states how each language finds its tests.
 
@@ -51,11 +51,7 @@ The error for a missing test names the one it expects, and deleting an ID delete
 
 An acceptance may chain 2 to `requirements.maxSteps` WHENs under its last GIVEN, as item 2 of the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
 
-Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) the cases they need.
-
-- Cases: Go reads `t.Run` names and case table rows, and Java dynamic tests and `Named` arguments.
-- Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
-- Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
+Each THEN of a chain needs its own tagged case in the acceptance's test, as the Tags section shows. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0010](docs/requirements/0010-each-then-has-a-tagged-case.md) the tags they need.
 
 ## Tags
 
@@ -66,9 +62,9 @@ A test case carries a tag of its THEN, the ID plus a hash. The ID is `doc.accept
 - Swift: `XCTContext.runActivity(named: "req 0002.1.1.1.2#a3f9c1d2")`.
 - Node: a `then("0002.1.1.1.2", "a3f9c1d2", ...)` wrapper around `it`.
 
-A tag that names no THEN, a stale hash and two tags on one THEN fail. A stale tag prints the new hash. `fitness requirements --tag` writes the tag of each Go case matched to one THEN by step name, and lists the THENs still untagged. `--dry-run` beside it writes nothing.
+A tag that names no THEN, a stale hash, two tags on one THEN and a THEN with no tag fail. A stale tag prints the new hash. `fitness requirements --tag` writes the tag of each Go case matched to one THEN by step name. `--dry-run` beside it writes nothing.
 
-Case names stay free, so a rename of cases needs no doc change. An assertion helper calls `req.Asserted(t)`, and a case that asserts with `t.Errorf` stays untagged.
+Case names stay free, so a rename of cases needs no doc change. An assertion helper calls `req.Asserted(t)`, and a case that asserts with `t.Errorf` stays untagged. A `req.Then` counts only the assertions made with its own `t`, not those of a sub-test or goroutine.
 
 ## Gherkin
 

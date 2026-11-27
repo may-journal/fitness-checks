@@ -25,14 +25,31 @@ func oneAcceptance(given, when, then string) string {
 	return "1. Adds\n   1. " + given + "\n      1. " + when + "\n         1. " + then + "\n"
 }
 
+// testHeader opens a Go test file of package adder importing req.
+const testHeader = "package adder\n\nimport (\n\t\"testing\"\n\n\t\"github.com/may-journal/fitness-checks/req\"\n)\n"
+
+// stepTags tags the THENs of each step of 0001.2, keyed by the opening of its case name.
+var stepTags = map[string]string{
+	"0001.2.1": acceptance.Tag("0001.2.1.1.1", "I get their sum") + acceptance.Tag("0001.2.1.1.2", "it is a number"),
+	"0001.2.2": acceptance.Tag("0001.2.1.2.1", "it is even"),
+}
+
+// firstTest is Test0001_1 tagging the THEN of 0001.1's second GIVEN.
+var firstTest = "\nfunc Test0001_1(t *testing.T) {\n" + acceptance.Tag("0001.1.2.1.1", "I get their sum") + "}\n"
+
+// secondTest is Test0001_2 with one tagged case per step named.
+func secondTest(steps ...string) string {
+	body := "\nfunc Test0001_2(t *testing.T) {\n"
+	for _, s := range steps {
+		body += "\tt.Run(\"" + s + "\", func(t *testing.T) {\n" + stepTags[s[:8]] + "\t})\n"
+	}
+	return body + "}\n"
+}
+
 // provingTests is adder_test.go proving 0001.1, and 0001.2 with one case per
 // step named.
 func provingTests(steps ...string) string {
-	body := "package adder\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {}\n\nfunc Test0001_2(t *testing.T) {\n"
-	for _, s := range steps {
-		body += "\tt.Run(\"" + s + "\", func(t *testing.T) {})\n"
-	}
-	return body + "}\n"
+	return testHeader + firstTest + secondTest(steps...)
 }
 
 // gherkinRepo is a Go repo whose root requirement doc holds the Requirements
@@ -73,7 +90,7 @@ func Test0003_1(t *testing.T) {
 			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 			// A step without its test case fails as it would for bullets.
 			out, code = judged(t, gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add")))
-			acceptance.Sees(t, out, code, 1, "0001.2.2")
+			acceptance.Sees(t, out, code, 1, "0001.2.1.2.1")
 		})
 	})
 	t.Run("0003.1.2 a keyword not in caps fails", func(t *testing.T) {
@@ -143,7 +160,7 @@ func movedRun(t *testing.T, reqs string) (string, int) {
 		".fitnessrc.json": `{"policy": "external", "checks": ["requirements"]}` + "\n",
 		rootDoc:           acceptance.DocWith("- 0001.1\n  - Given two numbers, a calculator\n    - When I add them\n      - Then I get their sum\n"),
 	}))
-	acceptance.Write(t, repo, map[string]string{rootDoc: acceptance.DocWith(reqs)})
+	acceptance.Write(t, repo, map[string]string{rootDoc: acceptance.DocWith(reqs), "adder_test.go": testHeader + firstTest})
 	acceptance.Git(t, repo, "add", "-A")
 	return judged(t, repo)
 }
@@ -208,8 +225,7 @@ func Test0003_4(t *testing.T) {
 var firstRemoved = "1. Removed in 2026.11.25.1230: folded into 0001.2\n" + twoAcceptances[strings.Index(twoAcceptances, "2. Doubles"):]
 
 // onlySecond is adder_test.go proving 0001.2 alone, a case per step.
-var onlySecond = "package adder\n\nimport \"testing\"\n\nfunc Test0001_2(t *testing.T) {\n" +
-	"\tt.Run(\"0001.2.1 add\", func(t *testing.T) {})\n\tt.Run(\"0001.2.2 double\", func(t *testing.T) {})\n}\n"
+var onlySecond = testHeader + secondTest("0001.2.1 add", "0001.2.2 double")
 
 // removedRun commits twoAcceptances with their tests, then commits the doc
 // with each Requirements section of edits in turn beside tests, and runs
@@ -265,7 +281,7 @@ func Test0003_5(t *testing.T) {
 		t.Parallel()
 		req.Then(t, "0003.5.1.5.1", "c56fde0d", func(_ req.A) {
 			appended := firstRemoved + "3. Adds on a calculator\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
-			tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {}\n\nfunc Test0001_2", 1)
+			tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {\n"+acceptance.Tag("0001.3.1.1.1", "I get their sum")+"}\n\nfunc Test0001_2", 1)
 			out, code := removedRun(t, tests, appended)
 			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
@@ -275,14 +291,14 @@ func Test0003_5(t *testing.T) {
 // atCap is a Requirements section of ten numbered items: eight acceptances,
 // the default cap, and Removed lines at 3 and 7.
 func atCap() (string, string) {
-	reqs, tests := "", "package adder\n\nimport \"testing\"\n"
+	reqs, tests := "", testHeader
 	for n := 1; n <= 10; n++ {
 		if n == 3 || n == 7 {
 			reqs += fmt.Sprintf("%d. Removed in 2026.11.25.1230: folded into 0001.%d\n", n, n+1)
 			continue
 		}
 		reqs += fmt.Sprintf("%d. Adds pair %d\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n", n, n)
-		tests += fmt.Sprintf("\nfunc Test0001_%d(t *testing.T) {}\n", n)
+		tests += fmt.Sprintf("\nfunc Test0001_%d(t *testing.T) {\n%s}\n", n, acceptance.Tag(fmt.Sprintf("0001.%d.1.1.1", n), "I get their sum"))
 	}
 	return reqs, tests
 }
@@ -320,7 +336,7 @@ func Test0003_8(t *testing.T) {
 	t.Run("0003.8.1 the last acceptance as a Removed line passes", func(t *testing.T) {
 		t.Parallel()
 		req.Then(t, "0003.8.1.1.1", "07b8e753", func(_ req.A) {
-			out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst+"2. Removed in 2026.11.25.1230: folded into 0001.1\n")
+			out, code := removedRun(t, testHeader+firstTest, onlyFirst+"2. Removed in 2026.11.25.1230: folded into 0001.1\n")
 			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
 	})
