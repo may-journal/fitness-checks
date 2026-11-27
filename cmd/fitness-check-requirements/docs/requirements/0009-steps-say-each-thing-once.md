@@ -20,6 +20,8 @@ numbered acceptances
          1. THEN it names the shared words to move into the GIVEN
       2. WHEN the words they share are filler or fewer than three
          1. THEN it passes
+      3. WHEN a code span sits in the shared words
+         1. THEN the span counts as one word
 2. THENs that repeat
    1. GIVEN Developer has numbered acceptances `requirements` reads
       1. WHEN two THENs of one acceptance match apart from case or trailing punctuation

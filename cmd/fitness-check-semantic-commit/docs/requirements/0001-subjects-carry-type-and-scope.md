@@ -43,3 +43,11 @@ commit subjects judged
          2. THEN the inherited parent subject is not judged
       2. WHEN an earlier commit on the branch has a bad subject
          1. THEN the next commit fails quoting that subject
+4. Each run picks its message
+   1. GIVEN Developer has a branch whose HEAD subject has no scope
+      1. WHEN a commit-msg hook passes a message file
+         1. THEN the first line of the file is judged
+      2. WHEN Developer passes a message with `--message`
+         1. THEN it wins over the commit subjects
+      3. WHEN a pre-commit hook runs beside a commit-msg hook
+         1. THEN no commit is judged

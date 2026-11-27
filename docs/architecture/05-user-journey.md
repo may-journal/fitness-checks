@@ -48,13 +48,14 @@ flowchart TB
     end
 
     subgraph judge["Keep the docs"]
-        %% journey-nodes:start 0008 0010
+        %% journey-nodes:start 0008 0010 0012
         req0008[(4 Check Docs Are Markdown<br/>Req 0008)]:::system
         req0010[(6 Requirement Docs Say Each Thing Once<br/>Req 0010)]:::system
+        req0012[(7 Describe Answers Are Compared<br/>Req 0012)]:::system
         %% journey-nodes:end
     end
 
-    red[7 Finding names the file, the line and the fix<br/>Req 0002, 0008]:::blocked
+    red[8 Finding names the file, the line and the fix<br/>Req 0002, 0008]:::blocked
 
     dev -->|A| req0001
     req0001 --> req0002
@@ -84,7 +85,8 @@ Numbers match the callout table. System context: [01-system-context.md](01-syste
 | 4   | Check docs and their move to Markdown.             | System    | People edit each rule as Markdown that GitHub renders.                 |
 | 5   | A published check wakes the org's fitness rerun.   | System    | No open pull request keeps a green from before the release.            |
 | 6   | Requirement docs say each thing once.              | System    | A repeat tells the author to group steps, so each doc reads once.      |
-| 7   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
+| 7   | A release's describe answer is compared with the batch's. | System    | A batch of docs and tests moves no check's answer.                    |
+| 8   | A red row in the results table.                    | Finding   | Each finding says where it is and what to change.                      |
 | A   | Run `fitness`, a hook or one check in any repo.    | Connector | The engine installs the latest release first.                          |
 | B   | Every check that fits the change runs.             | Connector | A check that does not fit passes with zero files.                      |
 | C   | Fix the code, not the check, and rerun.            | Connector | The check measures the real code, so the code changes.                 |

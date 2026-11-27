@@ -34,7 +34,7 @@ workflow jobs
       1. WHEN a file is not valid YAML or holds a value GitHub rejects
          1. THEN it fails naming the line
          2. THEN it fails naming the column
-         3. THEN the quoted or reshaped forms pass
+         3. THEN the quoted form passes
       2. WHEN the repo has no workflow files
          1. THEN it passes with no files
       3. WHEN the repo's own workflows are read
