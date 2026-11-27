@@ -73,10 +73,7 @@ func (a A) NoError(err error) {
 // that wraps it.
 type Body interface{ func(t *testing.T) | func(a A) }
 
-// A call of Then tags body with the ID and hash of its THEN and runs it in a
-// nested case of t. A body of func(t *testing.T) gets that case's test, so
-// code written for a plain test runs as it was. The nested case fails when
-// body makes no assertion, and neither fails nor skips.
+// A call of Then tags body with the ID and hash of its THEN and runs it in a nested case of t, which fails when body asserts nothing and neither fails nor skips.
 func Then[B Body](t *testing.T, id, hash string, body B) {
 	t.Helper()
 	t.Run("then", func(t *testing.T) {
