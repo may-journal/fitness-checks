@@ -56,5 +56,6 @@ func judge(root, dir string, fix bool) (errs, notes []string, files int, err err
 	model, err := architecture.LoadJourney(root, dir)
 	errs, notes = model.JourneyErrors()
 	errs = append(errs, model.JourneyRegionErrors()...)
+	errs = append(errs, sectionErrors(root, dir, model.Files)...)
 	return errs, notes, model.JourneyFiles(), err
 }
