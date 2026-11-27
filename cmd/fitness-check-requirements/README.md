@@ -80,6 +80,17 @@ An acceptance's place sets its ID, so item 2 of 0001 is 0001.2, and tests, histo
 
 History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add. The nested bullet form, `- NNNN.N` over `- Given`, `- When` and `- Then`, is retired. A doc still in it fails at each acceptance, pointing to the template above, while its tests keep owning their IDs.
 
+### Steps say each thing once
+
+[Requirement 0009](docs/requirements/0009-steps-say-each-thing-once.md) states both rules. They read each acceptance on its own.
+
+- Alike WHENs: sibling WHENs that open with the same three words that carry meaning fail, naming the words to move into the GIVEN.
+- Filler: articles and linking words such as `a`, `the`, `it`, `is` and `has` do not count, so "a name is" shares nothing.
+- Code: a code span counts as one word.
+- Repeated THENs: a THEN matching an earlier THEN of its acceptance, once whitespace collapses, fails naming both lines.
+- Grouping: the error asks to group the WHENs that give it, so one WHEN lists each distinct result.
+- Scope: the same THEN in two acceptances passes, since each acceptance stands alone.
+
 ## Behavior
 
 [Requirements](docs/requirements)
