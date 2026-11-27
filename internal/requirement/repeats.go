@@ -136,8 +136,8 @@ func thenKey(t item) string {
 	return strings.ToLower(strings.TrimRight(text, ".,;:!?"))
 }
 
-// repeatMessage tells the author what to do about a THEN that repeats the
-// earlier one: drop it under the same WHEN, or group the WHENs.
+// repeatMessage tells the author to drop a THEN repeated under its own WHEN.
+// A THEN repeated under another WHEN means those WHENs belong together.
 func repeatMessage(first, again sameThen) string {
 	if first.parent == again.parent {
 		return fmt.Sprintf("this THEN repeats the THEN on line %d; drop the repeated THEN", first.n)
