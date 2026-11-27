@@ -28,13 +28,11 @@ epic bodies
          1. THEN it never counts
 2. The list holds plain references in run order
    1. GIVEN Developer has an epic issue body with a list under What needs to happen
-      1. WHEN an item is a checkbox or holds an emoji or a status word or is not a plain reference
+      1. WHEN an item is a checkbox or holds an emoji or status word or is no plain reference or precedes its `after` target
          1. THEN it fails naming the item
       2. WHEN a reference is listed twice
          1. THEN it fails naming the reference
-      3. WHEN an item comes before an item its `after` note names
-         1. THEN it fails naming the item
-      4. WHEN the body holds a table
+      3. WHEN the body holds a table
          1. THEN it fails
 3. No body means nothing to check
    1. GIVEN Developer has no epic body

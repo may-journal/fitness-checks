@@ -39,25 +39,28 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0, "All 1 checks passed")
 		passedWith(t, out, "changelog-bullets", "3")
 	})
-	t.Run("0001.1.2 too few or too many bullets fail naming the file, section or count", func(t *testing.T) {
+	t.Run("0001.1.2 a section or bullet outside its limits fails naming the file", func(t *testing.T) {
 		t.Parallel()
-		out, code := changelogBullets(t, changelogBulletsDoc("Docs: add the readme.", "Docs: add the changelog."))
-		sees(t, out, code, 1, bulletsFile+` section "2026.10.08.1400" has 2 bullets; keep entries to 3-5 bullets`)
-		out, code = changelogBullets(t, changelogBulletsDoc("Feat: one.", "Fix: two.", "Fix: three.", "Test: four.", "Docs: five.", "Docs: six."))
-		sees(t, out, code, 1, `"2026.10.08.1400" has 6 bullets`)
-		out, code = changelogBullets(t, "### 2026.10.08.1400\n\n* Fix: one.\n* Fix: two.\n* Fix: three.\n")
-		sees(t, out, code, 1, `"2026.10.08.1400" has 0 bullets`)
+		t.Run("too few or too many bullets fail naming the file, section or count", func(t *testing.T) {
+			t.Parallel()
+			out, code := changelogBullets(t, changelogBulletsDoc("Docs: add the readme.", "Docs: add the changelog."))
+			sees(t, out, code, 1, bulletsFile+` section "2026.10.08.1400" has 2 bullets; keep entries to 3-5 bullets`)
+			out, code = changelogBullets(t, changelogBulletsDoc("Feat: one.", "Fix: two.", "Fix: three.", "Test: four.", "Docs: five.", "Docs: six."))
+			sees(t, out, code, 1, `"2026.10.08.1400" has 6 bullets`)
+			out, code = changelogBullets(t, "### 2026.10.08.1400\n\n* Fix: one.\n* Fix: two.\n* Fix: three.\n")
+			sees(t, out, code, 1, `"2026.10.08.1400" has 0 bullets`)
+		})
+		t.Run("a bullet over the length limit fails naming the file, line or length", func(t *testing.T) {
+			t.Parallel()
+			long := "Feat: " + strings.Repeat("x", 359)
+			wrapped := "Fix: " + strings.Repeat("x", 200) + "\n  " + strings.Repeat("y", 200)
+			out, code := changelogBullets(t, changelogBulletsDoc(long, wrapped, "Docs: three."))
+			sees(t, out, code, 1,
+				bulletsFile+":3: bullet is 365 characters; keep each under 365",
+				bulletsFile+":4: bullet is 406 characters; keep each under 365")
+		})
 	})
-	t.Run("0001.1.3 a bullet over the length limit fails naming the file, line or length", func(t *testing.T) {
-		t.Parallel()
-		long := "Feat: " + strings.Repeat("x", 359)
-		wrapped := "Fix: " + strings.Repeat("x", 200) + "\n  " + strings.Repeat("y", 200)
-		out, code := changelogBullets(t, changelogBulletsDoc(long, wrapped, "Docs: three."))
-		sees(t, out, code, 1,
-			bulletsFile+":3: bullet is 365 characters; keep each under 365",
-			bulletsFile+":4: bullet is 406 characters; keep each under 365")
-	})
-	t.Run("0001.1.4 only the untyped bullet fails", func(t *testing.T) {
+	t.Run("0001.1.3 only the untyped bullet fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogBullets(t, changelogBulletsDoc("Feat: one.", "fix(release)!: two.", "chore(ci): three.", "Revert: four.", "Added the readme."))
 		sees(t, out, code, 1, bulletsFile+":7: bullet must start with a semantic type")
@@ -65,7 +68,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("only the untyped bullet must fail, got %d failures:\n%s", n, out)
 		}
 	})
-	t.Run("0001.1.5 each error names its own entry file", func(t *testing.T) {
+	t.Run("0001.1.4 each error names its own entry file", func(t *testing.T) {
 		t.Parallel()
 		files := withEntries(map[string]string{
 			"short-entry":   "### 2026.10.11.0900\n\n- Feat: one.\n- Fix: two.\n",
@@ -75,7 +78,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 1, `changelog/short-entry.md section "2026.10.11.0900" has 2 bullets`,
 			"changelog/untyped-entry.md:5: bullet must start with a semantic type")
 	})
-	t.Run("0001.1.6 upstream lists and no entry files pass", func(t *testing.T) {
+	t.Run("0001.1.5 upstream lists and no entry files pass", func(t *testing.T) {
 		t.Parallel()
 		repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": upstreamChangelog})
 		out, code := fitness(t, repo, nil, "changelog-bullets")

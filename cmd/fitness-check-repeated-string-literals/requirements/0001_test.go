@@ -84,27 +84,18 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a module specifier passes", func(t *testing.T) {
-		t.Parallel()
-		src := "import a from './shared';\nimport b from './shared';\nconst c = require('./shared');\nexport { a, b, c };\n"
-		out, code := repeated(t, map[string]string{"src/a.ts": src})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.2.2 a buffer encoding or a typeof result passes", func(t *testing.T) {
-		t.Parallel()
-		src := "export const a = typeof x === 'object';\nexport const b = typeof y === 'object';\nexport const c = typeof z === 'object';\n" +
-			"export const d = buf.toString('utf8');\nexport const e = buf.toString('utf8');\nexport const f = buf.toString('utf8');\n"
-		out, code := repeated(t, map[string]string{"src/a.ts": src})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.2.3 template literals and regexes and comments pass", func(t *testing.T) {
-		t.Parallel()
-		src := "export const a = `status`;\nexport const b = `status`;\nexport const c = `status`;\n" +
-			"export const d = /status/;\nexport const e = /status/;\nexport const f = /status/;\n" +
-			"// 'status' 'status' 'status'\n"
-		out, code := repeated(t, map[string]string{"src/a.ts": src})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
+	src := "import a from './shared';\nimport b from './shared';\nconst c = require('./shared');\nexport { a, b, c };\n"
+	out, code := repeated(t, map[string]string{"src/a.ts": src})
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	src = "export const a = typeof x === 'object';\nexport const b = typeof y === 'object';\nexport const c = typeof z === 'object';\n" +
+		"export const d = buf.toString('utf8');\nexport const e = buf.toString('utf8');\nexport const f = buf.toString('utf8');\n"
+	out, code = repeated(t, map[string]string{"src/a.ts": src})
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	src = "export const a = `status`;\nexport const b = `status`;\nexport const c = `status`;\n" +
+		"export const d = /status/;\nexport const e = /status/;\nexport const f = /status/;\n" +
+		"// 'status' 'status' 'status'\n"
+	out, code = repeated(t, map[string]string{"src/a.ts": src})
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0001_3(t *testing.T) {

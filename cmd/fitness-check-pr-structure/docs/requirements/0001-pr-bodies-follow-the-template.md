@@ -22,7 +22,7 @@ PR bodies
          1. THEN it fails
          2. THEN it asks for a one-line summary
       3. WHEN its summary is still the template placeholder
-         1. THEN it fails
+         1. THEN it fails as the template placeholder
          2. THEN it asks for the real summary
       4. WHEN it has no Background section
          1. THEN it fails naming the missing section

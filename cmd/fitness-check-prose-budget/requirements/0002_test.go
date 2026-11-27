@@ -16,7 +16,7 @@ func Test0002_1(t *testing.T) {
 		out, code = proseBudget(t, acceptance.InComments("One. Two. Three. Four. Five."))
 		acceptance.Sees(t, out, code, 1, acceptance.AtEachFile("a paragraph has 5 sentences (max 4)")...)
 	})
-	t.Run("0002.1.2 a sentence starting with So fails", func(t *testing.T) {
+	t.Run("0002.1.2 a sentence starting with So fails asking to join it or drop it", func(t *testing.T) {
 		t.Parallel()
 		out, code := proseBudget(t, acceptance.InComments(split...))
 		acceptance.Sees(t, out, code, 1, acceptance.AtEachFile(`comment-fragment: a sentence starts with "So"; join it to the sentence before it or drop it`)...)
@@ -180,25 +180,19 @@ func Test0002_3(t *testing.T) {
 
 func Test0002_4(t *testing.T) {
 	t.Parallel()
-	t.Run("0002.4.1 hedge-like words and Markdown pass", func(t *testing.T) {
-		t.Parallel()
-		files := acceptance.InComments("Retries just once, since the first call warms the cache.")
-		files["app/state.go"] = "package main\n\n// Maps each state → its next state on every tick.\nvar next = map[int]int{}\n"
-		files["app/expiry.ts"] = "export {};\n\n// The cache no longer expires once it holds a value.\nexport const keep = true;\n"
-		files["app/store.go"] = "package main\n\n// Returns the previously stored value.\nfunc stored() int { return 0 }\n"
-		files["README.md"] = readme + "\nIt basically worked previously. 🚀\n\n-----\n"
-		out, code := proseBudget(t, files)
-		acceptance.Sees(t, out, code, 0)
-	})
-	t.Run("0002.4.2 tutorial-like phrases and Markdown pass", func(t *testing.T) {
-		t.Parallel()
-		files := acceptance.InComments("Writes a note that names the cache.")
-		files["app/plan.go"] = "package main\n\n// Lets the caller retry once on a miss; note that empty keys fail.\nfunc plan() {}\n"
-		files["app/greet.ts"] = "export {};\n\n// Prints \"Let's go\" when the run starts.\nexport const greet = 1;\n"
-		files["README.md"] = readme + "\nNote that it works. Let's see.\n"
-		out, code := proseBudget(t, files)
-		acceptance.Sees(t, out, code, 0)
-	})
+	files := acceptance.InComments("Retries just once, since the first call warms the cache.")
+	files["app/state.go"] = "package main\n\n// Maps each state → its next state on every tick.\nvar next = map[int]int{}\n"
+	files["app/expiry.ts"] = "export {};\n\n// The cache no longer expires once it holds a value.\nexport const keep = true;\n"
+	files["app/store.go"] = "package main\n\n// Returns the previously stored value.\nfunc stored() int { return 0 }\n"
+	files["README.md"] = readme + "\nIt basically worked previously. 🚀\n\n-----\n"
+	out, code := proseBudget(t, files)
+	acceptance.Sees(t, out, code, 0)
+	files = acceptance.InComments("Writes a note that names the cache.")
+	files["app/plan.go"] = "package main\n\n// Lets the caller retry once on a miss; note that empty keys fail.\nfunc plan() {}\n"
+	files["app/greet.ts"] = "export {};\n\n// Prints \"Let's go\" when the run starts.\nexport const greet = 1;\n"
+	files["README.md"] = readme + "\nNote that it works. Let's see.\n"
+	out, code = proseBudget(t, files)
+	acceptance.Sees(t, out, code, 0)
 }
 
 func Test0002_5(t *testing.T) {

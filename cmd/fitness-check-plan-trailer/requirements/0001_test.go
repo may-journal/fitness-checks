@@ -5,6 +5,7 @@ package requirements
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
@@ -51,8 +52,14 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github#144\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		if strings.Contains(out, "plan trailer") {
+			t.Errorf("a Plan of another repo was flagged:\n%s", out)
+		}
 		out, code = planTrailer(t, "feat(app): add a feature\n\nPlan https://github.com/may-journal/.github/issues/144\n")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		if strings.Contains(out, "plan trailer") {
+			t.Errorf("a Plan issue URL of another repo was flagged:\n%s", out)
+		}
 	})
 	t.Run("0001.1.7 a misspelled plan line of another repo fails", func(t *testing.T) {
 		t.Parallel()

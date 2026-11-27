@@ -50,6 +50,12 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		out, code := prCloses(t, "Merging `Closes #12` closed it.\n\n```\nFixes #12\n```\n\n<!-- Resolves #12 -->\n")
 		acceptance.Sees(t, out, code, 1, prClosesNoKeyword)
+		if n := strings.Count(out, "has no GitHub closing keyword"); n != 1 {
+			t.Errorf("want the hidden keywords to count as no closing keyword, once, got %d:\n%s", n, out)
+		}
+		if strings.Contains(out, "says it implements") {
+			t.Errorf("a hidden keyword was reported as an unclosed implemented issue:\n%s", out)
+		}
 	})
 	t.Run("0001.1.5 a required issue left open fails naming it", func(t *testing.T) {
 		t.Parallel()

@@ -32,11 +32,10 @@ repos checked
          2. THEN it fails the same way for each `import()`
          3. THEN it fails the same way for each `require()`
          4. THEN tests are judged like any other file
-      5. WHEN that import is commented out
-         1. THEN it passes
+      5. WHEN no tracked file imports from a `dist/` path
+         1. THEN a commented-out import passes
          2. THEN an untracked file passes too
-      6. WHEN `dist` is ignored with every import local
-         1. THEN it passes
-         2. THEN it counts the scanned sources plus one for the `dist` rules
-      7. WHEN the repo has neither build output nor TypeScript
+         3. THEN an ignored `dist` with every import local passes
+         4. THEN it counts the scanned sources plus one for the `dist` rules
+      6. WHEN the repo has neither build output nor TypeScript
          1. THEN it passes with no files

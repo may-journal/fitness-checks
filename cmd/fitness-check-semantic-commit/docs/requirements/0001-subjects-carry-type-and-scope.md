@@ -24,7 +24,7 @@ commit subjects judged
          2. THEN it gives the suggested format
          3. THEN it gives the allowed types
       3. WHEN the subject has an unlisted type or a breaking mark
-         1. THEN it fails quoting the subject
+         1. THEN it fails naming the subject with the format to use
       4. WHEN the message is empty or no repo can be read
          1. THEN it fails with a no-message error
 2. A full run judges only the branch's own commits

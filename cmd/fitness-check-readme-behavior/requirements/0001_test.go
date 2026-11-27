@@ -64,14 +64,11 @@ func Test0001_2(t *testing.T) {
 		out, code := judged(t, "gofmt", readmeOf("[Requirements](docs/requirements)\n", command("gofmt")))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.2.2 another folder fails naming the line", func(t *testing.T) {
+	t.Run("0001.2.2 a link to another folder or to nothing fails naming the line", func(t *testing.T) {
 		t.Parallel()
 		out, code := judged(t, "gofmt", readmeOf("[Requirements](../fitness-check-gofmt/README.md)\n", command("gofmt")))
 		acceptance.Sees(t, out, code, 1, "cmd/fitness-check-gofmt/README.md:7: the link ../fitness-check-gofmt/README.md is not this folder's docs/requirements")
-	})
-	t.Run("0001.2.3 a link to nothing fails naming the line", func(t *testing.T) {
-		t.Parallel()
-		out, code := judged(t, "gofmt", readmeOf("[Requirement 0002](docs/requirements/0002-gone.md)\n", command("gofmt")))
+		out, code = judged(t, "gofmt", readmeOf("[Requirement 0002](docs/requirements/0002-gone.md)\n", command("gofmt")))
 		acceptance.Sees(t, out, code, 1, "cmd/fitness-check-gofmt/README.md:7: the link docs/requirements/0002-gone.md names nothing that exists")
 	})
 }

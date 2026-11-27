@@ -24,11 +24,11 @@ run steps
          2. THEN it fails naming the line
          3. THEN it names the script to write
       3. WHEN a step holds a pipe or a chain or control flow
-         1. THEN it fails naming the file
-         2. THEN it fails naming the line
+         1. THEN it fails naming the file of the step
+         2. THEN it fails naming the line of the step
          3. THEN it fails naming what it holds
       4. WHEN operators sit in quotes or expressions or a trailing comment
-         1. THEN it passes
+         1. THEN it passes as plain text
       5. WHEN a plain scalar spans lines or a block holds `run:` text
          1. THEN the scalar is judged
          2. THEN the block text is left alone

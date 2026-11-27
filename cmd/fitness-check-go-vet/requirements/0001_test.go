@@ -31,7 +31,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "go-vet", "1")
 	})
-	t.Run("0001.1.4 a repo with no module to vet passes", func(t *testing.T) {
+	t.Run("0001.1.4 a repo with no module to vet or a run scoped to changed files with none of them Go passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := goVet(t, acceptance.Example(t, "happyRepo", map[string]string{"main.go": goVetBad}))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -44,22 +44,19 @@ func Test0001_1(t *testing.T) {
 		out, code = goVet(t, acceptance.Example(t, "happyRepo", files))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "go-vet")
-	})
-	t.Run("0001.1.5 a run scoped to changed files with none of them Go passes", func(t *testing.T) {
-		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad))
 		acceptance.Write(t, repo, map[string]string{"README.md": "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n\nMore text.\n"})
 		acceptance.Git(t, repo, "add", "README.md")
-		out, code := goVet(t, repo)
+		out, code = goVet(t, repo)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWithNoFiles(t, out, "go-vet")
 	})
-	t.Run("0001.1.6 a missing Go shows the install hint", func(t *testing.T) {
+	t.Run("0001.1.5 a missing Go shows the install hint", func(t *testing.T) {
 		t.Parallel()
 		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)), acceptance.PathWithout(t, "go"))
 		acceptance.ShowsInfo(t, out, code, "go-vet", "Go not installed: see https://go.dev/dl")
 	})
-	t.Run("0001.1.7 a run that fails without a finding shows why", func(t *testing.T) {
+	t.Run("0001.1.6 a run that fails without a finding shows why", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", goVetModule(".", goVetBad))
 		out, code := goVet(t, repo, acceptance.CrashingGo(t, "vet", "go: unexpected internal error"))

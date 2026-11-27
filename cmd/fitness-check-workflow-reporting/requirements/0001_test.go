@@ -43,6 +43,9 @@ func Test0001_1(t *testing.T) {
 			"  fitness:\n    uses: may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1\n    secrets: inherit\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		acceptance.PassedWith(t, out, "workflow-reporting", "1")
+		if strings.Contains(out, "job fitness") {
+			t.Errorf("a job that only calls a reusable workflow was asked for a step:\n%s", out)
+		}
 	})
 	t.Run("0001.1.5 a matrix job is judged and named once", func(t *testing.T) {
 		t.Parallel()

@@ -41,6 +41,9 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		out, code := prStructure(t, "> REPLACE-ME\n\n"+prStructureBackground+prStructureChangelog)
 		acceptance.Sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
+		if strings.Contains(out, "Missing pitch") {
+			t.Errorf("a placeholder pitch was reported as missing, want it named as the placeholder:\n%s", out)
+		}
 	})
 	t.Run("0001.1.4 no Background section fails", func(t *testing.T) {
 		t.Parallel()

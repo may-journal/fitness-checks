@@ -34,12 +34,8 @@ repos with JavaScript or TypeScript sources
       7. WHEN the repo has no source files
          1. THEN it passes with zero files
 2. Spellings with no shared constant pass
-   1. GIVEN Developer has sources with strings that repeat
-      1. WHEN a module specifier repeats
-         1. THEN it passes
-      2. WHEN a buffer encoding or a `typeof` result repeats
-         1. THEN it passes
-      3. WHEN a template literal or a regex or a comment repeats text
+   1. GIVEN Developer has module specifiers or buffer encodings or `typeof` results or template literals or regexes or comments
+      1. WHEN the same text repeats three times
          1. THEN it passes
 3. A repo allows a value
    1. GIVEN Developer sets `repeatedStringLiterals.allow` in `.fitnessrc.json`

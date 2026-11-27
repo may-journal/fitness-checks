@@ -118,7 +118,7 @@ func Test0001_1(t *testing.T) {
 			passedWith(t, out, acCheck, "5")
 		}
 	})
-	t.Run("0001.1.5 a pull request changing only tests, changelog or docs passes with no files", func(t *testing.T) {
+	t.Run("0001.1.5 only tests, changelog or docs changing in a pull request passes with no files", func(t *testing.T) {
 		t.Parallel()
 		broken := acEdit(acComponent, acEvidence, "#L900)")
 		for _, changed := range []string{"src/store/store_test.go", "CHANGELOG.md", "docs/guide.md"} {
@@ -198,7 +198,7 @@ func Test0001_2(t *testing.T) {
 			{acComponent, "service/main.go" + acEvidence, "service/gone.go" + acEvidence, "architecture/03-components.md:17: unresolved evidence src/cmd/service/gone.go#L3"},
 		})
 	})
-	t.Run("0001.2.6 an unresolved requirement reference fails, leaving doc shape alone", func(t *testing.T) {
+	t.Run("0001.2.6 an unresolved requirement reference fails naming the reference line, leaving doc shape alone", func(t *testing.T) {
 		t.Parallel()
 		acFails(t, []acBreak{
 			{acJourney, "`0001.1`", "`0001.9`", "architecture/05-user-journey.md:28: unresolved requirement 0001.9 in docs/requirements"},

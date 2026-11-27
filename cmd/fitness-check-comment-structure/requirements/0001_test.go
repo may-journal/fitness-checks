@@ -18,21 +18,18 @@ func TestMain(m *testing.M) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a comment over the word budget fails naming the count and the budget", func(t *testing.T) {
+	t.Run("0001.1.1 a comment over a word or table budget fails naming the count and the budget", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, overBudget, nil)
 		acceptance.Sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams; the budget is 100")
+		table := "| A | B |\n| - | - |\n| 1 | 2 |\n"
+		out, code = commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
+		acceptance.Sees(t, out, code, 1, "(comment): 2 tables besides callout tables; the budget is 1")
 	})
 	t.Run("0001.1.2 a repo can raise the word budget", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, overBudget, map[string]string{".fitnessrc.json": `{"comment": {"maxWords": 150}}`})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.1.3 two plain tables fail", func(t *testing.T) {
-		t.Parallel()
-		table := "| A | B |\n| - | - |\n| 1 | 2 |\n"
-		out, code := commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
-		acceptance.Sees(t, out, code, 1, "(comment): 2 tables besides callout tables; the budget is 1")
 	})
 }
 
@@ -53,29 +50,20 @@ func Test0001_2(t *testing.T) {
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.3.1 a change-log note fails naming the line and the note", func(t *testing.T) {
+	t.Run("0001.3.1 agent noise outside code fails naming the line and the noise", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, "The parser works.\n\nEdit 2: it handles tabs too.\n", nil)
 		acceptance.Sees(t, out, code, 1, `(comment): line 3: "Edit 2:": change-log note; edit the text in place and drop the note`)
 		out, code = commentStructure(t, "The cache is updated after every push.\n", nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.3.2 an agent frame fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := commentStructure(t, "Done.\n\n<system-reminder>\n", nil)
+		out, code = commentStructure(t, "Done.\n\n<system-reminder>\n", nil)
 		acceptance.Sees(t, out, code, 1, `(comment): line 3: "<system-reminder": agent frame; post only the finished text`)
-	})
-	t.Run("0001.3.3 a model identifier outside code fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := commentStructure(t, "Done.\n\nRan on claude-opus-4-1 today.\n", nil)
+		out, code = commentStructure(t, "Done.\n\nRan on claude-opus-4-1 today.\n", nil)
 		acceptance.Sees(t, out, code, 1, `(comment): line 3: "claude-opus-4-1": model identifier; name the agent, not the model`)
-	})
-	t.Run("0001.3.4 a fitness marker outside code fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := commentStructure(t, "Done.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
+		out, code = commentStructure(t, "Done.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
 		acceptance.Sees(t, out, code, 1, `(comment): line 3: "<!-- fitness:": carries a fitness marker; only fitness writes those, so remove it`)
 	})
-	t.Run("0001.3.5 a model named inside a code span passes", func(t *testing.T) {
+	t.Run("0001.3.2 a model named inside a code span passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, "Pinned to `claude-opus-4-1` in config.\n", nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")

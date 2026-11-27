@@ -23,14 +23,12 @@ labels in SwiftUI views and requirement tests
          3. THEN it names the entry or reference to use
       2. WHEN a literal goes to a modifier such as `navigationTitle`
          1. THEN it fails naming that modifier
-      3. WHEN a literal is a branch of a ternary or `??` expression
-         1. THEN it fails
-      4. WHEN a literal is a ternary branch inside an interpolation
+      3. WHEN a literal is a branch of a ternary or `??` expression or of a ternary inside an interpolation
          1. THEN it fails
          2. THEN a reference in the interpolation passes
-      5. WHEN a literal spans several lines
+      4. WHEN a literal spans several lines
          1. THEN it is named whole
-      6. WHEN a view passes a reference or a value
+      5. WHEN a view passes a reference or a value
          1. THEN it passes
          2. THEN a literal without letters passes
 2. Test literals never retype a catalog label

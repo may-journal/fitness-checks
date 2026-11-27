@@ -77,7 +77,7 @@ func Test0001_1(t *testing.T) {
 			"docs/ruled.md": "---\n\nrelatedConfigurations: a note set between two rules.\n\n---\n\n# Ruled\n",
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "strip-front-matter") {
+		if strings.Contains(out, "strip-front-matter") || strings.Contains(out, "docs/ruled.md") {
 			t.Errorf("a leading rule was flagged:\n%s", out)
 		}
 	})

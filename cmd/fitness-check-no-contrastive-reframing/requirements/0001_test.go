@@ -36,33 +36,34 @@ func Test0001_1(t *testing.T) {
 		out, code := reframing(t, "This isn't about speed; it's about consistency.\n")
 		acceptance.Sees(t, out, code, 1, hint+`"This isn't about speed; it's about consistency"`)
 	})
-	t.Run("0001.1.3 ordinary negations and the not only X but also Y form pass", func(t *testing.T) {
+	t.Run("0001.1.3 ordinary negations and the pattern in code or front matter or a quote pass", func(t *testing.T) {
 		t.Parallel()
-		out, code := reframing(t, "It's not ready yet. The file is not found, but the fallback loads.\n\n"+
-			"We should not merge, but wait for review. Not only fast, but also correct.\n\n"+
-			"It's not X. It's not Y.\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		{
+			out, code := reframing(t, "It's not ready yet. The file is not found, but the fallback loads.\n\n"+
+				"We should not merge, but wait for review. Not only fast, but also correct.\n\n"+
+				"It's not X. It's not Y.\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		}
+		{
+			repo := acceptance.Example(t, "happyRepo", map[string]string{
+				"README.md": "---\ntitle: It's not X. It's Y.\n---\n\n# App\n\n```\nIt's not a workout. It's a lifestyle.\n```\n\n" +
+					"## It's not a workout. It's a lifestyle.\n\n" +
+					"Use `It's not a workout. It's a lifestyle.` verbatim.\n",
+			})
+			out, code := acceptance.Fitness(t, repo, nil, "no-contrastive-reframing")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			out, code = reframing(t, `The phrase "It's not a workout. It's a lifestyle." is banned.`+"\n\n"+
+				"The phrase “It's not a workout. It's a lifestyle.” is banned.\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		}
 	})
-	t.Run("0001.1.4 the pattern in code or front matter or a quote passes", func(t *testing.T) {
-		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
-			"README.md": "---\ntitle: It's not X. It's Y.\n---\n\n# App\n\n```\nIt's not a workout. It's a lifestyle.\n```\n\n" +
-				"## It's not a workout. It's a lifestyle.\n\n" +
-				"Use `It's not a workout. It's a lifestyle.` verbatim.\n",
-		})
-		out, code := acceptance.Fitness(t, repo, nil, "no-contrastive-reframing")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = reframing(t, `The phrase "It's not a workout. It's a lifestyle." is banned.`+"\n\n"+
-			"The phrase “It's not a workout. It's a lifestyle.” is banned.\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.1.5 a long matching sentence is shortened", func(t *testing.T) {
+	t.Run("0001.1.4 a long matching sentence is shortened", func(t *testing.T) {
 		t.Parallel()
 		long := "It's not " + strings.Repeat("a very long clause ", 10) + ", but simple."
 		out, code := reframing(t, long+"\n")
 		acceptance.Sees(t, out, code, 1, hint+`"`+long[:80]+`…"`)
 	})
-	t.Run("0001.1.6 a code comment holding the pattern fails naming its line", func(t *testing.T) {
+	t.Run("0001.1.5 a code comment holding the pattern fails naming its line", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{
 			"app/main.go":   "package main\n\n// It's not a cache. It's the source of truth.\nfunc main() {}\n",

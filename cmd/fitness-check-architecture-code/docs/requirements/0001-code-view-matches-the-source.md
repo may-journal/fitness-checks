@@ -22,7 +22,7 @@ code view classes and edges
          2. THEN it passes with extensions
          3. THEN it passes with any spacing or methods elsewhere
       2. WHEN a class's linked lines lack its symbol
-         1. THEN it fails naming where it is declared if anywhere
+         1. THEN it fails naming its declaration if any
       3. WHEN a kind or signature or member differs from the source
          1. THEN it fails naming the class line
          2. THEN it fails naming the source line
@@ -34,7 +34,7 @@ code view classes and edges
          1. THEN it fails unless the class is `<<abstract>>`
          2. THEN a label naming no symbol fails too
       7. WHEN a shown folder holds an exported type no class names
-         1. THEN it fails
+         1. THEN it fails naming the type
 2. Edges allow only what the source uses
    1. GIVEN Developer has a code view drawing edges between its classes
       1. WHEN the source uses a class no edge allows
@@ -52,4 +52,4 @@ code view classes and edges
          1. THEN it fails as unsupported
       7. WHEN the repo has no views
          1. THEN it passes with no files
-         2. THEN a pull request changing only tests passes too
+         2. THEN a test-only pull request passes too

@@ -25,9 +25,9 @@ JS and TS source files
       2. WHEN no file holds a directive
          1. THEN it passes
          2. THEN it counts the files scanned
-      3. WHEN directive text sits in a string in a file of any scanned extension
+      3. WHEN a string in a file of any scanned extension holds directive text
          1. THEN it fails like any other hit
-      4. WHEN directive text sits in a Markdown file
+      4. WHEN a Markdown file holds directive text
          1. THEN the file passes
       5. WHEN the repo has no JS or TS source
          1. THEN the check passes with no files

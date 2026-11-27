@@ -16,20 +16,19 @@ staged commits
 
 1. Staged changes carry their entry
    1. GIVEN Developer has staged a change in a repo
-      1. WHEN Git is mid-merge
-         1. THEN it skips
-         2. THEN a mid-cherry-pick run skips too
-         3. THEN a mid-revert run skips too
-      2. WHEN nothing is staged
-         1. THEN it skips
-      3. WHEN no entry file is staged
+      1. WHEN the run has no staged change to judge
+         1. THEN a mid-merge run skips
+         2. THEN a mid-cherry-pick run skips
+         3. THEN a mid-revert run skips
+         4. THEN a run with nothing staged skips
+      2. WHEN no entry file is staged
          1. THEN it fails asking to stage a `changelog/<yyyy-mm-dd-HHMM>-<change>.md` entry file about the change
-      4. WHEN the entry's added lines share 3 words with the rest of the staged diff
+      3. WHEN the entry's added lines share 3 words with the rest of the staged diff
          1. THEN it passes whatever `CHANGELOG.md` holds
-      5. WHEN they share fewer words
+      4. WHEN they share fewer words
          1. THEN it counts `CHANGELOG.md` as part of the rest
          2. THEN it fails with the count
-      6. WHEN words are short or cased differently or on unchanged lines
+      5. WHEN words are short or cased differently or on unchanged lines
          1. THEN only added words of 3 or more letters count
 2. A branch adds one entry per commit
    1. GIVEN Developer has a branch with release tags

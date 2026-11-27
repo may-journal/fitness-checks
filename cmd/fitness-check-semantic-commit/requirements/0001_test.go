@@ -45,7 +45,7 @@ func Test0001_1(t *testing.T) {
 		out, code := semanticCommit(t, "--message", "feat: add endpoint")
 		acceptance.Sees(t, out, code, 1, `Commit message: "feat: add endpoint" — use type(scope): description `+types)
 	})
-	t.Run("0001.1.3 an unlisted type or a breaking mark fails", func(t *testing.T) {
+	t.Run("0001.1.3 an unlisted type or a breaking mark fails naming the subject with the format to use", func(t *testing.T) {
 		t.Parallel()
 		for _, subject := range []string{`Revert "feat(api): add endpoint"`, "feat(api)!: drop the old endpoint"} {
 			out, code := semanticCommit(t, "--message", subject)

@@ -108,8 +108,11 @@ func parseGherkin(p *problems, docID string, s section) []IDLine {
 			checkRemoved(p, a, g)
 			continue
 		}
-		if sc := byLine[a.Line]; checkNumbered(p, a.ID, g, kinds) && sc != nil {
-			a = fromScenario(a, sc, at)
+		if sc := byLine[a.Line]; checkNumbered(p, a.ID, g, kinds) {
+			checkRepeats(p, g, kinds)
+			if sc != nil {
+				a = fromScenario(a, sc, at)
+			}
 		}
 		out = append(out, a)
 	}

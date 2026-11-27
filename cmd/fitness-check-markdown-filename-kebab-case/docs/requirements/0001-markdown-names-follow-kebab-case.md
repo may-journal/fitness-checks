@@ -21,16 +21,14 @@ Markdown files in repos that use kebab-case
       2. WHEN a name is snake case or PascalCase
          1. THEN each fails as `path: filename must be kebab-case`
          2. THEN a name with a space fails alike
-      3. WHEN every name is kebab-case
+      3. WHEN every name is kebab-case or a standard root doc
          1. THEN it passes
          2. THEN digits in a name pass
+         3. THEN a GitHub template name passes
       4. WHEN a kebab-case doc sits in a capitalized folder
          1. THEN it passes since only the basename is judged
       5. WHEN a commit stages one camelCase doc
          1. THEN it fails that doc alone
-      6. WHEN a name is a standard root doc
-         1. THEN it passes
-         2. THEN a GitHub template name passes
 2. A repo with another case is judged by a tie
    1. GIVEN Developer has a repo whose Markdown names are mostly camelCase
       1. WHEN most names are camelCase

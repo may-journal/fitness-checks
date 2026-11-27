@@ -29,7 +29,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("the adr folder's README lists ADRs, yet it was reported:\n%s", out)
 		}
 	})
-	t.Run("0001.1.2 a file titled as an ADR fails", func(t *testing.T) {
+	t.Run("0001.1.2 a file reads as an ADR by its title or its sections fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, map[string]string{
 			"docs/storage.md":    "# ADR 12: Use SQLite\n\nWe sync offline.\n",
@@ -42,10 +42,7 @@ func Test0001_1(t *testing.T) {
 				t.Errorf("%s has no title starting with the word ADR, yet it was reported:\n%s", kept, out)
 			}
 		}
-	})
-	t.Run("0001.1.3 a file holding the three decision sections fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := adrAsIssue(t, acceptance.With(acceptance.HeldCheck(), map[string]string{
+		out, code = adrAsIssue(t, acceptance.With(acceptance.HeldCheck(), map[string]string{
 			"docs/writing-checks.md": "# Writing checks\n\n```markdown\n" + acceptance.HeldDecision + "```\n",
 		}))
 		acceptance.Sees(t, out, code, 1, "fitness/adr-0001/README.md: `## Context`, `## Decision` and `## Consequences` sections make the file an ADR; "+toADRIssue)
@@ -53,7 +50,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("an ADR in a code block is an example, yet it was reported:\n%s", out)
 		}
 	})
-	t.Run("0001.1.4 every ADR kept as a linked issue passes", func(t *testing.T) {
+	t.Run("0001.1.3 every ADR kept as a linked issue passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, map[string]string{
 			"docs/architecture/adr/0001-use-sqlite.md": "https://github.com/may-journal/example/issues/41\n",
@@ -66,7 +63,7 @@ func Test0001_1(t *testing.T) {
 		// The example repo's three files and the five written here are judged.
 		acceptance.PassedWith(t, out, "adr-as-issue", "8")
 	})
-	t.Run("0001.1.5 allowed ADR files with reasons wait", func(t *testing.T) {
+	t.Run("0001.1.4 allowed ADR files with reasons wait", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, acceptance.With(acceptance.HeldCheck(), map[string]string{
 			".fitnessrc.json": acceptance.AllowADRs(`{"path": "docs/architecture/adr/*.md", "reason": "the migration waits on repo access"}, ` +
@@ -82,7 +79,7 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.6 an allow entry without reason, glob or match fails", func(t *testing.T) {
+	t.Run("0001.1.5 an allow entry without reason, glob or match fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := adrAsIssue(t, map[string]string{
 			".fitnessrc.json": acceptance.AllowADRs(`{"path": "docs/architecture/adr/*.md"}, {"path": "docs/old/adr/*.md", "reason": "moved"}, ` +
@@ -96,7 +93,7 @@ func Test0001_1(t *testing.T) {
 			inADRFolder("docs/architecture/adr/0001-use-sqlite.md"),
 		)
 	})
-	t.Run("0001.1.7 a repo git cannot list fails", func(t *testing.T) {
+	t.Run("0001.1.6 a repo git cannot list fails naming the files", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", nil)
 		acceptance.MustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index\n"), 0o644))

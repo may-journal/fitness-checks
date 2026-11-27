@@ -19,13 +19,11 @@ Mermaid diagrams
       1. WHEN a C4 relationship label has prose after its callout
          1. THEN it fails naming the label
          2. THEN it names the diagram line
-      2. WHEN a flowchart pipe label has prose after its callout
+      2. WHEN a flowchart pipe label or a colon edge label has prose after its callout
          1. THEN it fails naming each label
-      3. WHEN a colon edge label has prose after its callout
-         1. THEN it fails naming each label
-      4. WHEN every edge label is a bare number or letter
+      3. WHEN every edge label is a bare number or letter
          1. THEN the diagram passes
-      5. WHEN a diagram has no callout table
+      4. WHEN a diagram has no callout table
          1. THEN a prose label still fails
 2. Prose belongs in node names
    1. GIVEN Developer has Markdown files or a PR body with mermaid diagrams

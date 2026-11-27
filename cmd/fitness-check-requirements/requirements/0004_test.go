@@ -143,7 +143,7 @@ func Test0004_4(t *testing.T) {
 
 func Test0004_5(t *testing.T) {
 	t.Parallel()
-	t.Run("0004.5.1 a deleted ID brought back fails", func(t *testing.T) {
+	t.Run("0004.5.1 a removed ID returning in a commit fails naming the ID", func(t *testing.T) {
 		t.Parallel()
 		two := acceptance.With(acceptance.GoRepo(), map[string]string{
 			"adder_test.go":                          acceptance.TestFile("adder", "Test0001_1", "Test0001_2"),
@@ -155,7 +155,7 @@ func Test0004_5(t *testing.T) {
 		out, code := acceptance.Fitness(t, repo, nil)
 		acceptance.Sees(t, out, code, 1, "0001.2 was deleted before")
 	})
-	t.Run("0004.5.2 a deleted step brought back fails", func(t *testing.T) {
+	t.Run("0004.5.2 a removed step returning in a commit fails naming the step", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", acceptance.GoRepo())
 		cased := func(steps int) map[string]string {

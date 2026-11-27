@@ -34,28 +34,19 @@ func Test0001_1(t *testing.T) {
 			"to fix: split sentences over ~25 words",
 			"methodology: go/cmd/fitness-check-text-readability/README.md")
 	})
-	t.Run("0001.1.2 plain short sentences pass", func(t *testing.T) {
+	t.Run("0001.1.2 a plain or short file or one formula in alarm or dense text only in fenced code passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := textReadability(t, map[string]string{"plain.md": plain})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.1.3 a dense doc under a hundred prose words passes", func(t *testing.T) {
-		t.Parallel()
 		short := strings.Repeat("extraordinary bureaucratic infrastructure considerations ", 20) + "conclude.\n"
-		out, code := textReadability(t, map[string]string{"short.md": short})
+		out, code = textReadability(t, map[string]string{"short.md": short})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0001.1.4 one score in alarm passes", func(t *testing.T) {
-		t.Parallel()
 		// Half seven-letter words in 21-word sentences: only the long-word score is high.
 		lix := strings.Repeat(strings.Repeat("journey to ", 10)+"end. ", 6)
-		out, code := textReadability(t, map[string]string{"lix.md": lix}, "--report")
+		out, code = textReadability(t, map[string]string{"lix.md": lix}, "--report")
 		acceptance.Sees(t, out, code, 0, "LIX 68.6", "All 1 checks passed")
-	})
-	t.Run("0001.1.5 dense notation inside fenced code passes", func(t *testing.T) {
-		t.Parallel()
 		doc := plain + "\n\n```text\n" + dense + "```\n"
-		out, code := textReadability(t, map[string]string{"notation.md": doc})
+		out, code = textReadability(t, map[string]string{"notation.md": doc})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }

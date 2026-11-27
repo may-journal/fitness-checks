@@ -28,8 +28,8 @@ acceptances in Storybook apps
          2. THEN it fails naming the line
          3. THEN it says how to name the page
       5. WHEN a page name does not start with a defined acceptance ID or starts with a chained step
-         1. THEN it fails naming the file
-         2. THEN it fails naming the line
+         1. THEN it fails naming the file that holds the page
+         2. THEN it fails naming the line that holds the name
          3. THEN it names the page name to use
       6. WHEN two pages repeat a name or an acceptance ID
          1. THEN it fails naming both places

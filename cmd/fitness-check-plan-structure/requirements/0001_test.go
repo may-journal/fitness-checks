@@ -5,6 +5,7 @@ package requirements
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
@@ -33,6 +34,9 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		out, code := planStructure(t, planStructureOf("> REPLACE-ME", "- [ ] Keep queued edits."))
 		acceptance.Sees(t, out, code, 1, "Pitch is still the template placeholder; write the real one-line value")
+		if strings.Contains(out, "Missing pitch") {
+			t.Errorf("a placeholder pitch was reported as missing, want it named as the placeholder:\n%s", out)
+		}
 	})
 	t.Run("0001.1.4 no Background section fails", func(t *testing.T) {
 		t.Parallel()
@@ -54,6 +58,9 @@ func Test0001_1(t *testing.T) {
 		for _, heading := range []string{"Open questions", "Unresolved questions", "Questions for the owner"} {
 			out, code := planStructure(t, planStructureOf(planStructurePitch, "- [ ] Keep queued edits.\n\n## "+heading+"\n\n- Which sync wins?"))
 			acceptance.Sees(t, out, code, 1, "Remove the `## "+heading+"` section — turn unknowns into checklist steps")
+			if strings.Contains(out, "Unexpected `## "+heading+"`") {
+				t.Errorf("the open questions section was named as an extra section:\n%s", out)
+			}
 		}
 	})
 }

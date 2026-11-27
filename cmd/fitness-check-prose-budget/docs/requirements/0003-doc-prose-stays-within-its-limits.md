@@ -26,9 +26,7 @@ docs and bodies the check judges
          1. THEN it fails naming the level
       5. WHEN a sentence runs long or a paragraph holds too many sentences
          1. THEN it fails naming the count with the limit
-      6. WHEN fenced code or a Measurement dash holds long text
-         1. THEN it passes
-      7. WHEN a ticked Plan task holds exactly the word limit
+      6. WHEN fenced code or a Measurement dash or a ticked Plan task stays within the limit
          1. THEN it passes
 2. A repo sets its own limits
    1. GIVEN Developer sets prose keys in `.fitnessrc.json`
