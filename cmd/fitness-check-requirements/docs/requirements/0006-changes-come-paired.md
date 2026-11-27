@@ -31,4 +31,3 @@ changed requirement tests and docs
       7. WHEN only comments or formatting change
          1. THEN the comment or format change needs no partner
          2. THEN a reformat or rename of numbered acceptances needs no partner
-         3. THEN a rename of test cases or an edit of their req tags needs no partner
