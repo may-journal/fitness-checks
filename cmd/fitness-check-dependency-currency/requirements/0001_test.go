@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -31,19 +32,25 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 passes dependencies at the latest version with or without workspaces", func(t *testing.T) {
 		t.Parallel()
-		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`, "", dcLeftPad, "1.3.0"))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.2.1.1", "07b8e753", func(_ req.A) {
+			out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`, "", dcLeftPad, "1.3.0"))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.2 skips internal packages", func(t *testing.T) {
 		t.Parallel()
-		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"`+dcInternal+`": "*"}}`))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.2.2.1", "cee2af4c", func(_ req.A) {
+			out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"`+dcInternal+`": "*"}}`))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.3 passes a repo without package.json", func(t *testing.T) {
 		t.Parallel()
-		out, code := dependencyCurrency(t, nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "dependency-currency")
+		req.Then(t, "0001.1.2.3.1", "857dd667", func(_ req.A) {
+			out, code := dependencyCurrency(t, nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "dependency-currency")
+		})
 	})
 }
 
@@ -51,24 +58,30 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 rejects each kind behind latest in an installed repo", func(t *testing.T) {
 		t.Parallel()
-		files := dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.0.0"}, "devDependencies": {"is-number": "^6.0.0"}, "peerDependencies": {"@types/left-pad": "^1.0.0"}}`,
-			"", dcLeftPad, "1.0.0", "", dcIsNumber, "6.0.0", "", dcTypes, "1.0.0")
-		out, code := dependencyCurrency(t, files)
-		acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0", "is-number: 6.0.0 → 7.0.0", "@types/left-pad: 1.0.0 → 1.2.0")
+		req.Then(t, "0001.2.2.1.1", "1230e6ba", func(_ req.A) {
+			files := dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.0.0"}, "devDependencies": {"is-number": "^6.0.0"}, "peerDependencies": {"@types/left-pad": "^1.0.0"}}`,
+				"", dcLeftPad, "1.0.0", "", dcIsNumber, "6.0.0", "", dcTypes, "1.0.0")
+			out, code := dependencyCurrency(t, files)
+			acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0", "is-number: 6.0.0 → 7.0.0", "@types/left-pad: 1.0.0 → 1.2.0")
+		})
 	})
 	t.Run("0001.2.2 rejects a dependency that is missing", func(t *testing.T) {
 		t.Parallel()
-		out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`))
-		acceptance.Sees(t, out, code, 1, dcLead, "left-pad: missing → 1.3.0")
+		req.Then(t, "0001.2.2.2.1", "3c4ef3ba", func(_ req.A) {
+			out, code := dependencyCurrency(t, dcRepo(dcRegistry(t), `{"dependencies": {"left-pad": "^1.3.0"}}`))
+			acceptance.Sees(t, out, code, 1, dcLead, "left-pad: missing → 1.3.0")
+		})
 	})
 	t.Run("0001.2.3 rejects stale workspace dependencies", func(t *testing.T) {
 		t.Parallel()
-		for _, workspaces := range []string{`["packages/*"]`, `{"packages": ["packages/a"]}`} {
-			files := dcRepo(dcRegistry(t), `{"workspaces": `+workspaces+`}`, "", dcLeftPad, "1.0.0")
-			files["packages/a/package.json"] = `{"dependencies": {"left-pad": "^1.0.0"}}` + "\n"
-			out, code := dependencyCurrency(t, files)
-			acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0")
-		}
+		req.Then(t, "0001.2.2.3.1", "c3eee7fd", func(_ req.A) {
+			for _, workspaces := range []string{`["packages/*"]`, `{"packages": ["packages/a"]}`} {
+				files := dcRepo(dcRegistry(t), `{"workspaces": `+workspaces+`}`, "", dcLeftPad, "1.0.0")
+				files["packages/a/package.json"] = `{"dependencies": {"left-pad": "^1.0.0"}}` + "\n"
+				out, code := dependencyCurrency(t, files)
+				acceptance.Sees(t, out, code, 1, dcLead, "left-pad: 1.0.0 → 1.3.0")
+			}
+		})
 	})
 	t.Run("0001.2.4 lists shared installs once", func(t *testing.T) {
 		t.Parallel()
@@ -77,10 +90,10 @@ func Test0001_2(t *testing.T) {
 			files["packages/"+ws+"/package.json"] = `{"devDependencies": {"left-pad": "^1.0.0"}}` + "\n"
 		}
 		out, code := dependencyCurrency(t, files)
-		acceptance.Sees(t, out, code, 1, "left-pad: 1.1.0 → 1.3.0", "left-pad: 1.0.0 → 1.3.0")
-		if n := strings.Count(acceptance.Read(out), "left-pad: 1.0.0 → 1.3.0"); n != 1 {
-			t.Errorf("the shared install is listed %d times, want once:\n%s", n, out)
-		}
+		req.Then(t, "0001.2.2.4.1", "4e7d9e82", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "left-pad: 1.1.0 → 1.3.0", "left-pad: 1.0.0 → 1.3.0")
+			a.Equal(1, strings.Count(acceptance.Read(out), "left-pad: 1.0.0 → 1.3.0"))
+		})
 	})
 }
 func Test0001_3(t *testing.T) {
@@ -89,7 +102,11 @@ func Test0001_3(t *testing.T) {
 		t.Parallel()
 		for _, broken := range dcBrokenRegistries(t) {
 			if broken.waits == nil {
-				dcInforms(t, broken)
+				req.Then(t, "0001.3.1.1.1", "a03c07ee", func(_ req.A) { dcInforms(t, broken) })
+				req.Then(t, "0001.3.1.1.2", "9208f976", func(a req.A) {
+					_, code := dcAgainst(t, broken)
+					a.Equal(0, code)
+				})
 			}
 		}
 	})
@@ -97,8 +114,10 @@ func Test0001_3(t *testing.T) {
 		t.Parallel()
 		for _, broken := range dcBrokenRegistries(t) {
 			if broken.waits != nil {
-				dcInforms(t, broken)
-				dcGaveUp(t, broken)
+				req.Then(t, "0001.3.1.2.1", "1ec7eb20", func(_ req.A) {
+					dcInforms(t, broken)
+					dcGaveUp(t, broken)
+				})
 			}
 		}
 	})
@@ -333,8 +352,13 @@ func Test0001_4(t *testing.T) {
 	proxy := silentListener(t)
 	files := dcRepo(url, `{"dependencies": {"left-pad": "^1.0.0"}}`, "", dcLeftPad, "1.0.0")
 	out, code := dependencyCurrency(t, files, "HTTPS_PROXY="+proxy, "NO_PROXY=", "GITHUB_API_URL=https://api.github.com")
-	acceptance.ShowsInfo(t, out, code, "dependency-currency", "api.github.com did not answer within 2s through proxy "+proxy)
-	if n := hits.Load(); n != 0 {
-		t.Errorf("the registry was asked %d times, want none", n)
-	}
+	req.Then(t, "0001.4.1.1.1", "2454cb8a", func(a req.A) {
+		a.True(hits.Load() == 0, "the registry was asked %d times, want none", hits.Load())
+	})
+	req.Then(t, "0001.4.1.1.2", "a555d755", func(_ req.A) {
+		acceptance.ShowsInfo(t, out, code, "dependency-currency", "api.github.com did not answer within 2s")
+	})
+	req.Then(t, "0001.4.1.1.3", "5b700d20", func(_ req.A) {
+		acceptance.ShowsInfo(t, out, code, "dependency-currency", "through proxy "+proxy)
+	})
 }

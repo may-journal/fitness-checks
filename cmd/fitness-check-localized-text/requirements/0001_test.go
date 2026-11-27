@@ -4,9 +4,11 @@
 package requirements
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -25,33 +27,51 @@ func Test0001_1(t *testing.T) {
 			"App/ShareView.swift": localizedView,
 			"App/StateView.swift": localizedStateView,
 		})
-		acceptance.Sees(t, out, code, 1,
-			`App/ShareView.swift:7 - "Share" passed to Button skips the String Catalog; use a Words reference for catalog entry "verb.share"`,
-			`App/ShareView.swift:9 - "\(count) shared" passed to Text`+catalogFix,
-			`App/StateView.swift:11 - "Photos" passed to Label skips the String Catalog; use a Words reference for catalog entry "noun.photo"`)
+		req.Then(t, "0001.1.2.1.1", "f10ceae9", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`App/ShareView.swift:7 - "Share"`, `App/ShareView.swift:9 - "\(count) shared"`, `App/StateView.swift:11 - "Photos"`)
+		})
+		req.Then(t, "0001.1.2.1.2", "92813b3e", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`"Share" passed to Button`, `"\(count) shared" passed to Text`, `"Photos" passed to Label`)
+		})
+		req.Then(t, "0001.1.2.1.3", "a0e5011a", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`use a Words reference for catalog entry "verb.share"`, `add it to the String Catalog and use a Words reference`,
+				`use a Words reference for catalog entry "noun.photo"`)
+		})
 	})
 	t.Run("0001.1.2 a literal in a modifier fails naming it", func(t *testing.T) {
 		t.Parallel()
-		out, code := localizedText(t, map[string]string{"App/ShareView.swift": localizedView})
-		acceptance.Sees(t, out, code, 1, `App/ShareView.swift:8 - "Library" passed to navigationTitle`+catalogFix)
+		req.Then(t, "0001.1.2.2.1", "d5750304", func(_ req.A) {
+			out, code := localizedText(t, map[string]string{"App/ShareView.swift": localizedView})
+			acceptance.Sees(t, out, code, 1, `App/ShareView.swift:8 - "Library" passed to navigationTitle`+catalogFix)
+		})
 	})
 	t.Run("0001.1.3 a literal in a ternary or ?? branch or an interpolated ternary fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{"App/StateView.swift": localizedStateView})
-		acceptance.Sees(t, out, code, 1,
-			`App/StateView.swift:8 - "Shared" passed to Text`+catalogFix,
-			`App/StateView.swift:8 - "Private" passed to Text`+catalogFix,
-			`App/StateView.swift:9 - "Nobody" passed to Text`+catalogFix)
-		out, code = localizedText(t, map[string]string{"App/CountView.swift": localizedCountView})
-		acceptance.Sees(t, out, code, 1,
-			`App/CountView.swift:7 - "photo" passed to Text`+catalogFix,
-			`App/CountView.swift:7 - "photos" passed to Text`+catalogFix)
+		countOut, countCode := localizedText(t, map[string]string{"App/CountView.swift": localizedCountView})
+		req.Then(t, "0001.1.2.3.1", "07f1343a", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`App/StateView.swift:8 - "Shared" passed to Text`+catalogFix,
+				`App/StateView.swift:8 - "Private" passed to Text`+catalogFix,
+				`App/StateView.swift:9 - "Nobody" passed to Text`+catalogFix)
+			acceptance.Sees(t, countOut, countCode, 1,
+				`App/CountView.swift:7 - "photo" passed to Text`+catalogFix,
+				`App/CountView.swift:7 - "photos" passed to Text`+catalogFix)
+		})
+		req.Then(t, "0001.1.2.3.2", "fd68fd26", func(a req.A) {
+			a.True(!strings.Contains(countOut, "CountView.swift:8"), "a reference in the interpolation was named:\n%s", countOut)
+		})
 	})
 	t.Run("0001.1.4 a multi-line literal is named whole", func(t *testing.T) {
 		t.Parallel()
-		out, code := localizedText(t, map[string]string{"App/HelpView.swift": "import SwiftUI\n\nstruct HelpView: View {\n    var body: some View {\n        Text(\"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\")\n    }\n}\n"})
-		acceptance.Sees(t, out, code, 1,
-			"App/HelpView.swift:5 - \"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\" passed to Text"+catalogFix)
+		req.Then(t, "0001.1.2.4.1", "b007da43", func(_ req.A) {
+			out, code := localizedText(t, map[string]string{"App/HelpView.swift": "import SwiftUI\n\nstruct HelpView: View {\n    var body: some View {\n        Text(\"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\")\n    }\n}\n"})
+			acceptance.Sees(t, out, code, 1,
+				"App/HelpView.swift:5 - \"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\" passed to Text"+catalogFix)
+		})
 	})
 	t.Run("0001.1.5 references and values pass", func(t *testing.T) {
 		t.Parallel()
@@ -75,7 +95,12 @@ struct PhotoView: View {
     }
 }
 `})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.2.5.1", "07b8e753", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.5.2", "d2e7bff5", func(a req.A) {
+			a.True(!strings.Contains(out, `"·"`), "a literal without letters was named:\n%s", out)
+		})
 	})
 }
 
@@ -91,8 +116,15 @@ struct ShareTests {
     }
 }
 `})
-		acceptance.Sees(t, out, code, 1,
-			`Tests/Requirements/ShareTests.swift:5 - "Share" types catalog entry "verb.share"; read it through a Words reference`)
+		req.Then(t, "0001.2.2.1.1", "f10ceae9", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `Tests/Requirements/ShareTests.swift:5 - "Share"`)
+		})
+		req.Then(t, "0001.2.2.1.2", "14055fdd", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `"Share" types catalog entry "verb.share"`)
+		})
+		req.Then(t, "0001.2.2.1.3", "60bc154c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `read it through a Words reference`)
+		})
 	})
 	t.Run("0001.2.2 captions and prices and plain data pass", func(t *testing.T) {
 		t.Parallel()
@@ -111,7 +143,18 @@ struct ShareTests {
     }
 }
 `})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.2.2.1", "07b8e753", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.2.2.2", "a7e4ab41", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.2.2.3", "34e3039c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.2.2.4", "60940c77", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -119,13 +162,15 @@ func Test0001_3(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.3.1 a literal an allow pattern matches passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := localizedText(t, map[string]string{
-			".fitnessrc.json": `{"localizedText": {"reference": "Words", "allow": [
+		req.Then(t, "0001.3.2.1.1", "f4b6ac0e", func(_ req.A) {
+			out, code := localizedText(t, map[string]string{
+				".fitnessrc.json": `{"localizedText": {"reference": "Words", "allow": [
   {"pattern": "Beta [0-9]+", "reason": "build tags stay in English for testers"}
 ]}}` + "\n",
-			"App/BuildTag.swift": "import SwiftUI\n\nstruct BuildTag: View {\n    var body: some View { Text(\"Beta 3\") }\n}\n",
+				"App/BuildTag.swift": "import SwiftUI\n\nstruct BuildTag: View {\n    var body: some View { Text(\"Beta 3\") }\n}\n",
+			})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 	t.Run("0001.3.2 an allow pattern without a reason fails", func(t *testing.T) {
 		t.Parallel()
@@ -135,17 +180,22 @@ func Test0001_3(t *testing.T) {
   {"pattern": "(Beta", "reason": "build tags stay in English for testers"}
 ]}}` + "\n",
 		})
-		acceptance.Sees(t, out, code, 1,
-			`localizedText.allow pattern "Beta [0-9]+" needs a reason`,
-			`localizedText.allow pattern "(Beta" is not a regular expression`)
+		req.Then(t, "0001.3.2.2.1", "5f4c9e10", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `localizedText.allow pattern "Beta [0-9]+" needs a reason`)
+		})
+		req.Then(t, "0001.3.2.2.2", "8f65b5be", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `localizedText.allow pattern "(Beta" is not a regular expression`)
+		})
 	})
 	t.Run("0001.3.3 an app without a String Catalog passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := localizedText(t, map[string]string{
-			"App/Localizable.xcstrings": "",
-			"App/ShareView.swift":       localizedView,
+		req.Then(t, "0001.3.2.3.1", "77e2d2c3", func(_ req.A) {
+			out, code := localizedText(t, map[string]string{
+				"App/Localizable.xcstrings": "",
+				"App/ShareView.swift":       localizedView,
+			})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "localized-text")
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "localized-text")
 	})
 }

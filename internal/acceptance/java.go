@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // JavaJDK is what `java -version` prints, on stderr, for a running JDK 21.
@@ -58,6 +60,7 @@ func JavaWrapper(t *testing.T, repo, name string) {
 // results table may break inside a long word, by comparing without spaces.
 func JavaSeesSnippet(t *testing.T, out, snippet string) {
 	t.Helper()
+	req.Asserted(t)
 	squeeze := func(s string) string { return strings.Join(strings.Fields(Read(s)), "") }
 	if !strings.Contains(squeeze(out), squeeze(snippet)) {
 		t.Errorf("output is missing the snippet %q:\n%s", snippet, out)
@@ -67,6 +70,7 @@ func JavaSeesSnippet(t *testing.T, out, snippet string) {
 // JavaCalledOnce asserts the named build tool ran exactly once.
 func JavaCalledOnce(t *testing.T, rp Replays, name string) {
 	t.Helper()
+	req.Asserted(t)
 	if calls := rp.Calls(name); len(calls) != 1 {
 		t.Errorf("%s calls = %q, want one", name, calls)
 	}

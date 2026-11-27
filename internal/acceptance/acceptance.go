@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // ANSI matches terminal color codes, which a reader does not see as text.
@@ -177,6 +179,7 @@ func Read(text string) string {
 // Sees asserts the user saw every want and got exit code code.
 func Sees(t *testing.T, out string, gotCode, code int, want ...string) {
 	t.Helper()
+	req.Asserted(t)
 	for _, w := range want {
 		if !strings.Contains(Read(out), Read(w)) {
 			t.Errorf("output is missing %q:\n%s", w, out)
@@ -211,6 +214,7 @@ func Names(cell, check string) bool {
 // a skip. The engine skips a check that declares it applies to nothing here.
 func PassedWithNoFiles(t *testing.T, out, check string) {
 	t.Helper()
+	req.Asserted(t)
 	if !regexp.MustCompile(`│ (passed\s+│ 0|skipped\s+│ -)\s+│`).MatchString(Row(out, check)) {
 		t.Errorf("%s must pass with 0 files, got row %q", check, Row(out, check))
 	}
@@ -229,6 +233,7 @@ func ShowsInfo(t *testing.T, out string, code int, check string, want ...string)
 // PassedWith asserts check's row shows a pass that judged files.
 func PassedWith(t *testing.T, out, check, files string) {
 	t.Helper()
+	req.Asserted(t)
 	if !regexp.MustCompile(`│ passed\s+│ ` + files + `\s+│`).MatchString(Row(out, check)) {
 		t.Errorf("%s must pass with %s files, got row %q", check, files, Row(out, check))
 	}

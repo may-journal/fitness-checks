@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of every repo the tests make.
@@ -37,81 +38,62 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		t.Run("a merge, cherry-pick or revert in progress skips", func(t *testing.T) {
 			t.Parallel()
-			repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
-			git(t, repo, "checkout", "-q", "-b", "side")
-			commit(t, repo, map[string]string{
-				"src.txt":      changelogFeature,
-				"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
-			}, "feat: add runner")
-			git(t, repo, "checkout", "-q", "-")
-			commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
-			git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
-			out, code := fitness(t, repo, nil, "changelog-updated")
-			sees(t, out, code, 0, "All 1 checks passed")
-			// A conflicting cherry-pick stops with nothing about its change staged.
-			git(t, repo, "merge", "--abort")
-			commit(t, repo, map[string]string{"src.txt": "other\n"}, "fix: other")
-			if err := exec.Command("git", "-C", repo, "cherry-pick", "side").Run(); err == nil {
-				t.Fatal("cherry-pick must stop on its conflict")
-			}
-			out, code = fitness(t, repo, nil, "changelog-updated")
-			sees(t, out, code, 0, "All 1 checks passed")
-			// Reverting a commit that added an entry stages its deletion.
-			git(t, repo, "cherry-pick", "--abort")
-			commit(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."), "feat: add runner")
-			git(t, repo, "revert", "--no-commit", "HEAD")
-			out, code = fitness(t, repo, nil, "changelog-updated")
-			sees(t, out, code, 0, "All 1 checks passed")
+			merge, mergeCode := changelogMidMerge(t)
+			pick, pickCode := changelogMidCherryPick(t)
+			revert, revertCode := changelogMidRevert(t)
+			req.Then(t, "0001.1.1.1.1", "82ac032a", func(_ req.A) {
+				sees(t, merge, mergeCode, 0, "All 1 checks passed")
+			})
+			req.Then(t, "0001.1.1.1.2", "779b77c5", func(_ req.A) {
+				sees(t, pick, pickCode, 0, "All 1 checks passed")
+			})
+			req.Then(t, "0001.1.1.1.3", "e1ea8292", func(_ req.A) {
+				sees(t, revert, revertCode, 0, "All 1 checks passed")
+			})
 		})
 		t.Run("nothing staged skips", func(t *testing.T) {
 			t.Parallel()
 			repo := example(t, "happyRepo", nil)
 			write(t, repo, map[string]string{"src.txt": changelogFeature})
 			out, code := fitness(t, repo, nil, "changelog-updated")
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "changelog-updated")
+			req.Then(t, "0001.1.1.1.4", "734a26b0", func(_ req.A) {
+				sees(t, out, code, 0, "All 1 checks passed")
+				passedWithNoFiles(t, out, "changelog-updated")
+			})
 		})
 	})
 	t.Run("0001.1.2 changes with no entry file fail", func(t *testing.T) {
 		t.Parallel()
-		out, code := changelogStaged(t, map[string]string{"src.txt": changelogFeature})
-		sees(t, out, code, 1, "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes")
+		req.Then(t, "0001.1.1.2.1", "e8274da6", func(_ req.A) {
+			out, code := changelogStaged(t, map[string]string{"src.txt": changelogFeature})
+			sees(t, out, code, 1, "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes")
+		})
 	})
 	t.Run("0001.1.3 a new entry passes whatever the changelog", func(t *testing.T) {
 		t.Parallel()
-		for _, changelog := range []string{
-			changelogEntry(changelogStamp, "Feat: added runner feature for validation."),
-			strings.Replace(changelogBase, "- Docs: add the readme.", "- Docs: add the readme file.", 1),
-			"",
-		} {
-			files := changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation.")
-			files["CHANGELOG.md"] = changelog
-			out, code := changelogStaged(t, files)
-			sees(t, out, code, 0, "All 1 checks passed")
-		}
-		repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": ""})
-		write(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."))
-		git(t, repo, "add", "-A")
-		out, code := fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.3.1", "fd83bbff", func(_ req.A) {
+			changelogPassesWhateverItHolds(t)
+		})
 	})
 	t.Run("0001.1.4 an entry sharing few words fails with the count", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogStaged(t, changelogStagedEntry(changelogStamp, "Fix: minor tweak."))
-		sees(t, out, code, 1,
-			"Changelog entry file additions should mention at least 3 words from your staged changes (found 0: )",
-			"e.g. use words like: added, runner, feature, for, validation")
 		// The suggestion stops at ten words, and CHANGELOG.md counts as the diff.
 		repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": "# Changelog\n"})
 		files := withEntries(map[string]string{"2026-10-12-0900-runner-feature": bareEntryText(changelogStamp, "Fix: minor tweak.")})
 		files["CHANGELOG.md"] = "# Changelog\n\nalpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima\n"
 		write(t, repo, files)
 		git(t, repo, "add", "-A")
-		out, code = fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 1, "(found 0: )", "e.g. use words like: alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel, india, juliet")
-		if strings.Contains(read(out), "kilo") {
-			t.Errorf("the suggestion must stop at ten words:\n%s", out)
-		}
+		inChangelog, inChangelogCode := fitness(t, repo, nil, "changelog-updated")
+		req.Then(t, "0001.1.1.4.1", "bc1c20cd", func(a req.A) {
+			sees(t, inChangelog, inChangelogCode, 1, "(found 0: )", "e.g. use words like: alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel, india, juliet")
+			a.True(!strings.Contains(read(inChangelog), "kilo"), "the suggestion must stop at ten words:\n%s", inChangelog)
+		})
+		req.Then(t, "0001.1.1.4.2", "75cb25f2", func(_ req.A) {
+			sees(t, out, code, 1,
+				"Changelog entry file additions should mention at least 3 words from your staged changes (found 0: )",
+				"e.g. use words like: added, runner, feature, for, validation")
+		})
 	})
 	t.Run("0001.1.5 only added words of three or more letters count", func(t *testing.T) {
 		t.Parallel()
@@ -123,7 +105,9 @@ func Test0001_1(t *testing.T) {
 		write(t, repo, files)
 		git(t, repo, "add", "-A")
 		out, code := fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 1, "(found 1: added)", "e.g. use words like: added")
+		req.Then(t, "0001.1.1.5.1", "98c6c2fe", func(_ req.A) {
+			sees(t, out, code, 1, "(found 1: added)", "e.g. use words like: added")
+		})
 	})
 }
 
@@ -134,14 +118,20 @@ func Test0001_2(t *testing.T) {
 		files := withEntries(map[string]string{"runner-feature": entryFileText(changelogStamp, "Feat: added runner feature for validation.")})
 		files["src.txt"] = changelogFeature
 		out, code := changelogStaged(t, files)
-		sees(t, out, code, 1, "changelog/runner-feature.md must be named changelog/2026-10-12-0900-runner-feature.md: its heading's date, then the change")
+		req.Then(t, "0001.2.2.1.1", "4a5ef2af", func(_ req.A) {
+			sees(t, out, code, 1, "changelog/runner-feature.md must be named changelog/2026-10-12-0900-runner-feature.md: its heading's date, then the change")
+		})
 	})
 	t.Run("0001.2.2 a commit adding another entry after an earlier one on the branch fails", func(t *testing.T) {
 		t.Parallel()
 		repo := changelogBranch(t, map[string]string{"changelog/2026-01-02-0900-runner-feature.md": changelogFirstEntry})
 		out, code := changelogSecond(t, repo, changelogOption())
-		sees(t, out, code, 1, "this branch already has its entry changelog/2026-01-02-0900-runner-feature.md",
-			"instead of a new entry: changelog/2026-10-12-0900-runner-option.md")
+		req.Then(t, "0001.2.2.2.1", "6e9a279a", func(_ req.A) {
+			sees(t, out, code, 1, "this branch already has its entry changelog/2026-01-02-0900-runner-feature.md")
+		})
+		req.Then(t, "0001.2.2.2.2", "3031609e", func(_ req.A) {
+			sees(t, out, code, 1, "instead of a new entry: changelog/2026-10-12-0900-runner-option.md")
+		})
 	})
 	t.Run("0001.2.3 a stacked branch counts only its own commits", func(t *testing.T) {
 		t.Parallel()
@@ -149,7 +139,12 @@ func Test0001_2(t *testing.T) {
 		git(t, repo, "update-ref", "refs/remotes/origin/work", "HEAD")
 		git(t, repo, "checkout", "-q", "-b", "stacked")
 		out, code := changelogSecond(t, repo, changelogOption())
-		sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.2.3.1", "b14d995b", func(_ req.A) {
+			sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.2.3.2", "92413cb0", func(_ req.A) {
+			sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.2.4 the default branch or a repo without origin judges each commit alone", func(t *testing.T) {
 		t.Parallel()
@@ -158,30 +153,23 @@ func Test0001_2(t *testing.T) {
 		git(t, repo, "checkout", "-q", "-B", "main")
 		git(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
 		commit(t, repo, first, "feat: add runner")
-		out, code := changelogSecond(t, repo, changelogOption())
-		sees(t, out, code, 0, "All 1 checks passed")
+		onMain, mainCode := changelogSecond(t, repo, changelogOption())
 		repo = example(t, "happyRepo", nil)
 		git(t, repo, "checkout", "-q", "-b", "work")
 		commit(t, repo, first, "feat: add runner")
-		out, code = changelogSecond(t, repo, changelogOption())
-		sees(t, out, code, 0, "All 1 checks passed")
+		noOrigin, noOriginCode := changelogSecond(t, repo, changelogOption())
+		req.Then(t, "0001.2.2.4.1", "43880f33", func(_ req.A) {
+			sees(t, onMain, mainCode, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.2.4.2", "0578f2ab", func(_ req.A) {
+			sees(t, noOrigin, noOriginCode, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.2.5 editing or deleting a released entry fails", func(t *testing.T) {
 		t.Parallel()
-		const released = "changelog/2026-10-01-0900-runner-feature.md"
-		const want = released + " shipped in v1.0.0, so its notes are published; leave it as it is and add a new changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file instead"
-		old := entryFileText("2026.10.01.0900", "Feat: added runner feature for validation.")
-		for _, edit := range []string{old + "- Feat: added runner option for validation.\n", ""} {
-			repo := example(t, "happyRepo", map[string]string{released: old})
-			git(t, repo, "tag", "v1.0.0")
-			write(t, repo, map[string]string{
-				released:  edit,
-				"src.txt": changelogFeature + "Added runner option for validation.\n",
-			})
-			git(t, repo, "add", "-A")
-			out, code := fitness(t, repo, nil, "changelog-updated")
-			sees(t, out, code, 1, want)
-		}
+		req.Then(t, "0001.2.2.5.1", "1ca4f141", func(_ req.A) {
+			changelogReleasedEditFails(t)
+		})
 	})
 	t.Run("0001.2.6 dropping front matter from a released entry passes", func(t *testing.T) {
 		t.Parallel()
@@ -194,8 +182,97 @@ func Test0001_2(t *testing.T) {
 		write(t, repo, files)
 		git(t, repo, "add", "-A")
 		out, code := fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.2.6.1", "07b8e753", func(_ req.A) {
+			sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
+}
+
+// changelogMidMerge runs changelog-updated in a repo stopped mid-merge.
+func changelogMidMerge(t *testing.T) (string, int) {
+	t.Helper()
+	repo := changelogSideRepo(t)
+	commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
+	git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
+	return fitness(t, repo, nil, "changelog-updated")
+}
+
+// changelogMidCherryPick runs changelog-updated in a repo whose cherry-pick
+// stopped on a conflict, with nothing about its change staged.
+func changelogMidCherryPick(t *testing.T) (string, int) {
+	t.Helper()
+	repo := changelogSideRepo(t)
+	commit(t, repo, map[string]string{"src.txt": "other\n"}, "fix: other")
+	if err := exec.Command("git", "-C", repo, "cherry-pick", "side").Run(); err == nil {
+		t.Fatal("cherry-pick must stop on its conflict")
+	}
+	return fitness(t, repo, nil, "changelog-updated")
+}
+
+// changelogMidRevert runs changelog-updated after reverting a commit that
+// added an entry, which stages the entry's deletion.
+func changelogMidRevert(t *testing.T) (string, int) {
+	t.Helper()
+	repo := example(t, "happyRepo", nil)
+	commit(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."), "feat: add runner")
+	git(t, repo, "revert", "--no-commit", "HEAD")
+	return fitness(t, repo, nil, "changelog-updated")
+}
+
+// changelogSideRepo is happyRepo with a side branch holding a feature commit,
+// back on its first branch.
+func changelogSideRepo(t *testing.T) string {
+	t.Helper()
+	repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
+	git(t, repo, "checkout", "-q", "-b", "side")
+	commit(t, repo, map[string]string{
+		"src.txt":      changelogFeature,
+		"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
+	}, "feat: add runner")
+	git(t, repo, "checkout", "-q", "-")
+	return repo
+}
+
+// changelogPassesWhateverItHolds asserts a new entry passes whether
+// CHANGELOG.md lists it, changes elsewhere, or is empty.
+func changelogPassesWhateverItHolds(t *testing.T) {
+	t.Helper()
+	entry := "Feat: added runner feature for validation."
+	for _, changelog := range []string{
+		changelogEntry(changelogStamp, entry),
+		strings.Replace(changelogBase, "- Docs: add the readme.", "- Docs: add the readme file.", 1),
+		"",
+	} {
+		files := changelogStagedEntry(changelogStamp, entry)
+		files["CHANGELOG.md"] = changelog
+		out, code := changelogStaged(t, files)
+		sees(t, out, code, 0, "All 1 checks passed")
+	}
+	repo := example(t, "happyRepo", map[string]string{"CHANGELOG.md": ""})
+	write(t, repo, changelogStagedEntry(changelogStamp, entry))
+	git(t, repo, "add", "-A")
+	out, code := fitness(t, repo, nil, "changelog-updated")
+	sees(t, out, code, 0, "All 1 checks passed")
+}
+
+// changelogReleasedEditFails asserts editing or deleting an entry the newest
+// release tag holds fails asking for a new entry file.
+func changelogReleasedEditFails(t *testing.T) {
+	t.Helper()
+	const released = "changelog/2026-10-01-0900-runner-feature.md"
+	const want = released + " shipped in v1.0.0, so its notes are published; leave it as it is and add a new changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file instead"
+	old := entryFileText("2026.10.01.0900", "Feat: added runner feature for validation.")
+	for _, edit := range []string{old + "- Feat: added runner option for validation.\n", ""} {
+		repo := example(t, "happyRepo", map[string]string{released: old})
+		git(t, repo, "tag", "v1.0.0")
+		write(t, repo, map[string]string{
+			released:  edit,
+			"src.txt": changelogFeature + "Added runner option for validation.\n",
+		})
+		git(t, repo, "add", "-A")
+		out, code := fitness(t, repo, nil, "changelog-updated")
+		sees(t, out, code, 1, want)
+	}
 }
 
 // changelogStaged commits happyRepo, stages staged over it, and runs

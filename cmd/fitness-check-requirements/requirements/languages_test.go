@@ -131,9 +131,9 @@ var notTests = []string{
 	`interface Check { test(value: string): boolean; }`,
 }
 
-// junitOwnership checks a JUnit test owns 0001.1 by its name and test
-// annotation, and a comment, string or helper method does not.
-func junitOwnership(t *testing.T) {
+// junitOwners checks a JUnit test owns 0001.1 by its name and test
+// annotation.
+func junitOwners(t *testing.T) {
 	t.Helper()
 	for _, owner := range []string{
 		"class AdderTest {\n  @ParameterizedTest\n  @ValueSource(ints = {1, 2})\n  void test0001_1(int n) {}\n}\n",
@@ -145,6 +145,12 @@ func junitOwnership(t *testing.T) {
 		acceptance.Sees(t, out, code, 0)
 		acceptance.PassedWith(t, out, "requirements", "2")
 	}
+}
+
+// junitOwnsNothing checks a comment, string or helper method owns no
+// acceptance.
+func junitOwnsNothing(t *testing.T) {
+	t.Helper()
 	notJUnit := "class AdderTest {\n  // @Test void test0001_1() {}\n  String note = \"@Test void test0001_1() {}\";\n\n  void test0001_1() {}\n\n  @BeforeTest\n  void test0001_1() {}\n}\n"
 	out, code := checked(t, acceptance.With(junitRepo(), map[string]string{"src/test/java/AdderTest.java": notJUnit}))
 	acceptance.Sees(t, out, code, 1, "0001.1 has no test; name exactly one test test0001_1")

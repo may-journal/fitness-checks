@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -36,38 +37,54 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a table without a Why column fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := why(t, map[string]string{"docs/design.md": doc(noWhy)})
-		acceptance.Sees(t, out, code, 1, `docs/design.md: callout table at line 10 is missing a "Why" column`)
-		out, code = why(t, map[string]string{"docs/design.md": "# Design\n\n" + noWhy + "\n"})
-		acceptance.Sees(t, out, code, 1, `docs/design.md: callout table at line 3 is missing a "Why" column`)
+		req.Then(t, "0001.1.1.1.1", "a7a1a6ed", func(_ req.A) {
+			out, code := why(t, map[string]string{"docs/design.md": doc(noWhy)})
+			acceptance.Sees(t, out, code, 1, `docs/design.md: callout table at line 10 is missing a "Why" column`)
+			out, code = why(t, map[string]string{"docs/design.md": "# Design\n\n" + noWhy + "\n"})
+			acceptance.Sees(t, out, code, 1, `docs/design.md: callout table at line 3 is missing a "Why" column`)
+		})
 	})
 	t.Run("0001.1.2 a numbered row with an empty or missing Why fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := why(t, map[string]string{"docs/design.md": doc(head, "| [2] | an edge |  |")})
-		acceptance.Sees(t, out, code, 1, `docs/design.md: callout table row [2] has an empty "Why" cell (line 10)`)
-		out, code = why(t, map[string]string{"docs/design.md": doc(head, "| 3 | an edge |")})
-		acceptance.Sees(t, out, code, 1, `docs/design.md: callout table row 3 has an empty "Why" cell (line 10)`)
+		empty, emptyCode := why(t, map[string]string{"docs/design.md": doc(head, "| [2] | an edge |  |")})
+		missing, missingCode := why(t, map[string]string{"docs/design.md": doc(head, "| 3 | an edge |")})
+		req.Then(t, "0001.1.1.2.1", "08b89e81", func(a req.A) {
+			acceptance.Sees(t, empty, emptyCode, 1, `docs/design.md: callout table row [2] has an empty "Why" cell (line 10)`)
+		})
+		req.Then(t, "0001.1.1.2.2", "8ada88b3", func(a req.A) {
+			acceptance.Sees(t, missing, missingCode, 1, `docs/design.md: callout table row 3 has an empty "Why" cell (line 10)`)
+		})
 	})
 	t.Run("0001.1.3 a filled Why in any header case passes", func(t *testing.T) {
 		t.Parallel()
-		d := doc("| # | Description | WHY |\n| --- | --- | --- |", "| 1 | an edge | it carries the request |")
-		out, code := why(t, map[string]string{"docs/design.md": d})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		req.Then(t, "0001.1.1.3.1", "f7a7f10b", func(_ req.A) {
+			d := doc("| # | Description | WHY |\n| --- | --- | --- |", "| 1 | an edge | it carries the request |")
+			out, code := why(t, map[string]string{"docs/design.md": d})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		})
 	})
 	t.Run("0001.1.4 an unnumbered row with an empty Why passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := why(t, map[string]string{"docs/design.md": doc(head, "| n/a | an edge |  |")})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		req.Then(t, "0001.1.1.4.1", "0fbd8bf0", func(_ req.A) {
+			out, code := why(t, map[string]string{"docs/design.md": doc(head, "| n/a | an edge |  |")})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		})
 	})
 	t.Run("0001.1.5 a PR body table without Why fails naming the description", func(t *testing.T) {
 		t.Parallel()
-		out, code := why(t, map[string]string{"body.md": "## Design\n\n" + noWhy + "\n"}, "--body-file", "body.md")
-		acceptance.Sees(t, out, code, 1, `(description): callout table at line 3 is missing a "Why" column`)
+		req.Then(t, "0001.1.1.5.1", "41f704b4", func(_ req.A) {
+			out, code := why(t, map[string]string{"body.md": "## Design\n\n" + noWhy + "\n"}, "--body-file", "body.md")
+			acceptance.Sees(t, out, code, 1, `(description): callout table at line 3 is missing a "Why" column`)
+		})
 	})
 	t.Run("0001.1.6 a file with neither a diagram nor a callout table is skipped", func(t *testing.T) {
 		t.Parallel()
 		out, code := why(t, map[string]string{"docs/plain.md": "# Plain\n\n| Name | Value |\n| --- | --- |\n| a | b |\n"})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "mermaid-callout-why")
+		req.Then(t, "0001.1.1.6.1", "cee2af4c", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.1.6.2", "218895d7", func(a req.A) {
+			acceptance.PassedWithNoFiles(t, out, "mermaid-callout-why")
+		})
 	})
 }

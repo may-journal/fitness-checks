@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -37,6 +38,7 @@ func chainRun(t *testing.T, requirements string, steps int) string {
 // step fails naming both.
 func chainsWithin(t *testing.T, requirements string, limit int) {
 	t.Helper()
+	req.Asserted(t)
 	if out := chainRun(t, requirements, limit); strings.Contains(out, "0001.1 chains") {
 		t.Errorf("a chain of %d steps must pass a limit of %d:\n%s", limit, limit, out)
 	}
@@ -52,12 +54,22 @@ func chainsWithin(t *testing.T, requirements string, limit int) {
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, `, "requirements": {"maxSteps": 3}`, 3)
+	const set = `, "requirements": {"maxSteps": 3}`
+	out := chainRun(t, set, 4)
+	req.Then(t, "0001.1.2.1.1", "8d2e31fa", func(a req.A) {
+		a.True(!strings.Contains(chainRun(t, set, 3), "0001.1 chains"), "a chain of 3 steps must pass a limit of 3")
+		a.Contains(out, "0001.1 chains 4 steps")
+	})
+	req.Then(t, "0001.1.2.1.2", "4a2d2f21", func(a req.A) {
+		a.Contains(out, "0001.1 chains 4 steps, at most 3")
+	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, "", 7)
-	// A chain holds two steps at least, so a smaller limit keeps the default.
-	chainsWithin(t, `, "requirements": {"maxSteps": 1}`, 7)
+	req.Then(t, "0001.2.2.1.1", "589b6740", func(_ req.A) {
+		chainsWithin(t, "", 7)
+		// A chain holds two steps at least, so a smaller limit keeps the default.
+		chainsWithin(t, `, "requirements": {"maxSteps": 1}`, 7)
+	})
 }

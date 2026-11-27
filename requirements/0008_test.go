@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/program"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // demoDoc is a doc.go that holds every kind of block the script converts.
@@ -32,53 +33,44 @@ const demoReadme = "# demo\n\n" +
 
 func Test0008_1(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"the comment becomes a README then doc.go names it then embeds it", func(t *testing.T) {
-			t.Parallel()
-			folder := demoFolder(t, demoDoc)
-			if out, err := moveDocs(t, folder); err != nil {
-				t.Fatalf("doc-to-readme failed: %v\n%s", err, out)
-			}
-			if got := readText(t, folder, "README.md"); got != demoReadme {
-				t.Errorf("README.md is\n%s\nwant\n%s", got, demoReadme)
-			}
-			doc := readText(t, folder, "doc.go")
-			if !isPointer(doc, "demo") || strings.Contains(doc, "Behavior") {
-				t.Errorf("doc.go does not just embed the README:\n%s", doc)
-			}
-		}},
-		{"the described summary stays as it was", func(t *testing.T) {
-			t.Parallel()
-			folder := demoFolder(t, demoDoc)
-			const want = "Fails a Zork file."
-			if _, err := moveDocs(t, folder); err != nil {
-				t.Fatal(err)
-			}
-			if got := program.Summary(readText(t, folder, "README.md")); got != want {
-				t.Errorf("README.md summary is %q, want %q", got, want)
-			}
-		}},
+	moved := func(t *testing.T) string {
+		t.Helper()
+		folder := demoFolder(t, demoDoc)
+		if out, err := moveDocs(t, folder); err != nil {
+			t.Fatalf("doc-to-readme failed: %v\n%s", err, out)
+		}
+		return folder
+	}
+	req.Then(t, "0008.1.2.1.1", "153ce4c9", func(a req.A) {
+		a.Equal(demoReadme, readText(t, moved(t), "README.md"))
+	})
+	req.Then(t, "0008.1.2.1.2", "1cbff8fe", func(a req.A) {
+		doc := readText(t, moved(t), "doc.go")
+		a.True(isPointer(doc, "demo") && !strings.Contains(doc, "Behavior"), "doc.go does not just embed the README:\n%s", doc)
+	})
+	req.Then(t, "0008.1.2.1.3", "627c99a3", func(a req.A) {
+		a.Equal("Fails a Zork file.", program.Summary(readText(t, moved(t), "README.md")))
+	})
+	req.Then(t, "0008.1.2.1.4", "03c8200f", func(a req.A) {
+		readme := readText(t, moved(t), "README.md")
+		a.Equal(1, strings.Count(readme, "](docs/requirements/0001-zork-files-fail.md)"))
+		a.Contains(readme, "## Behavior\n\n[Requirement 0001](docs/requirements/0001-zork-files-fail.md)\n")
 	})
 }
 
 func Test0008_2(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"a doc.go with more than its comment fails and stays", func(t *testing.T) {
-			t.Parallel()
-			extra := demoDoc + "\nvar leftover = 1\n"
-			folder := demoFolder(t, extra)
-			out, err := moveDocs(t, folder)
-			if err == nil || !strings.Contains(string(out), "fitness-check-demo") {
-				t.Errorf("doc-to-readme gave %v and %q, want a failure naming the folder", err, out)
-			}
-			if readText(t, folder, "doc.go") != extra {
-				t.Error("a refused doc.go was rewritten")
-			}
-			if _, statErr := os.Stat(filepath.Join(folder, "README.md")); statErr == nil {
-				t.Error("a refused move wrote a README.md")
-			}
-		}},
+	extra := demoDoc + "\nvar leftover = 1\n"
+	folder := demoFolder(t, extra)
+	out, err := moveDocs(t, folder)
+	req.Then(t, "0008.2.1.1.1", "9076e521", func(a req.A) {
+		a.True(err != nil, "doc-to-readme succeeded on a doc.go with extras")
+		a.Contains(string(out), "fitness-check-demo")
+	})
+	req.Then(t, "0008.2.1.1.2", "e9df3b58", func(a req.A) {
+		a.True(readText(t, folder, "doc.go") == extra, "a refused doc.go was rewritten")
+		_, statErr := os.Stat(filepath.Join(folder, "README.md"))
+		a.True(statErr != nil, "a refused move wrote a README.md")
 	})
 }
 
@@ -145,54 +137,66 @@ var movedChecks = []string{
 
 func Test0008_3(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"a moved check's doc.go is one line naming its README then one line embedding it", func(t *testing.T) {
-			t.Parallel()
-			for _, name := range movedChecks {
-				docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")
-				if !isPointer(docGo, name) {
-					t.Errorf("%s doc.go is not the one-line pointer and the README embed:\n%s", name, docGo)
+	req.Then(t, "0008.3.1.1.1", "cacd8bd6", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a moved check's doc.go is one line naming its README then one line embedding it", func(t *testing.T) {
+				t.Parallel()
+				for _, name := range movedChecks {
+					docGo := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "doc.go")
+					if !isPointer(docGo, name) {
+						t.Errorf("%s doc.go is not the one-line pointer and the README embed:\n%s", name, docGo)
+					}
 				}
-			}
-		}},
-		{"no check README repeats the architecture sentence and the repo README links the page once", func(t *testing.T) {
-			t.Parallel()
-			const page = "docs/architecture/03-components.md"
-			for _, name := range movedChecks {
-				if strings.Contains(readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md"), "03-components.md") {
-					t.Errorf("%s README links the architecture page", name)
+			}},
+		})
+	})
+	req.Then(t, "0008.3.1.1.2", "659ca509", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"no check README repeats the architecture sentence and the repo README links the page once", func(t *testing.T) {
+				t.Parallel()
+				const page = "docs/architecture/03-components.md"
+				for _, name := range movedChecks {
+					if strings.Contains(readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md"), "03-components.md") {
+						t.Errorf("%s README links the architecture page", name)
+					}
 				}
-			}
-			if got := strings.Count(readText(t, "..", "README.md"), "]("+page+")"); got != 1 {
-				t.Errorf("the repo README links %s %d times, want once", page, got)
-			}
-		}},
+				if got := strings.Count(readText(t, "..", "README.md"), "]("+page+")"); got != 1 {
+					t.Errorf("the repo README links %s %d times, want once", page, got)
+				}
+			}},
+		})
 	})
 }
 
 func Test0008_6(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"a README names no config key its check does not declare", func(t *testing.T) {
-			t.Parallel()
-			declared := declaredKeys(t)
-			tops := topKeys(declared)
-			for name, keys := range declared {
-				readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
-				for _, key := range undeclaredKeys(readme, keys, tops, declared) {
-					t.Errorf("%s README names the key %s, which its --describe does not declare", name, key)
+	req.Then(t, "0008.6.1.1.1", "5dc60756", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a README names no config key its check does not declare", func(t *testing.T) {
+				t.Parallel()
+				declared := declaredKeys(t)
+				tops := topKeys(declared)
+				for name, keys := range declared {
+					readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
+					for _, key := range undeclaredKeys(readme, keys, tops, declared) {
+						t.Errorf("%s README names the key %s, which its --describe does not declare", name, key)
+					}
 				}
-			}
-		}},
-		{"a README whose check declares keys points to fitness explain", func(t *testing.T) {
-			t.Parallel()
-			for name, keys := range declaredKeys(t) {
-				readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
-				if len(keys) > 0 && !strings.Contains(readme, "`fitness explain "+name+"`") {
-					t.Errorf("%s README does not say to run `fitness explain %s`", name, name)
+			}},
+		})
+	})
+	req.Then(t, "0008.6.1.1.2", "d2f06a0d", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a README whose check declares keys points to fitness explain", func(t *testing.T) {
+				t.Parallel()
+				for name, keys := range declaredKeys(t) {
+					readme := readText(t, filepath.Join("..", "cmd", "fitness-check-"+name), "README.md")
+					if len(keys) > 0 && !strings.Contains(readme, "`fitness explain "+name+"`") {
+						t.Errorf("%s README does not say to run `fitness explain %s`", name, name)
+					}
 				}
-			}
-		}},
+			}},
+		})
 	})
 }
 
@@ -256,40 +260,48 @@ func undeclaredKeys(readme string, own, tops map[string]bool, declared map[strin
 }
 func Test0008_4(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"a link whose URL holds parentheses leaves no stray parenthesis", func(t *testing.T) {
-			t.Parallel()
-			got := program.Summary("# demo\n\nFails a [Zork](https://example.com/Zork_(game)) file. It runs on every repo.\n")
-			if want := "Fails a Zork file."; got != want {
-				t.Errorf("summary is %q, want %q", got, want)
-			}
-		}},
-		{"a first block that is not prose gives no summary", func(t *testing.T) {
-			t.Parallel()
-			for name, block := range map[string]string{
-				"list": "- Fails a file.", "numbered list": "1. Fails a file.", "fence": "```\nfitness demo\n```",
-				"quote": "> Fails a file.", "table": "| a | b |", "comment": "<!-- Fails a file. -->",
-			} {
-				if got := program.Summary("# demo\n\n" + block + "\n\nFails a file.\n"); got != "" {
-					t.Errorf("a README opening with a %s has summary %q, want none", name, got)
+	req.Then(t, "0008.4.2.1.1", "1e1ee685", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a link whose URL holds parentheses leaves no stray parenthesis", func(t *testing.T) {
+				t.Parallel()
+				got := program.Summary("# demo\n\nFails a [Zork](https://example.com/Zork_(game)) file. It runs on every repo.\n")
+				if want := "Fails a Zork file."; got != want {
+					t.Errorf("summary is %q, want %q", got, want)
 				}
-			}
-		}},
+			}},
+		})
+	})
+	req.Then(t, "0008.4.2.1.2", "6fc12e45", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a first block that is not prose gives no summary", func(t *testing.T) {
+				t.Parallel()
+				for name, block := range map[string]string{
+					"list": "- Fails a file.", "numbered list": "1. Fails a file.", "fence": "```\nfitness demo\n```",
+					"quote": "> Fails a file.", "table": "| a | b |", "comment": "<!-- Fails a file. -->",
+				} {
+					if got := program.Summary("# demo\n\n" + block + "\n\nFails a file.\n"); got != "" {
+						t.Errorf("a README opening with a %s has summary %q, want none", name, got)
+					}
+				}
+			}},
+		})
 	})
 }
 
 func Test0008_5(t *testing.T) {
 	t.Parallel()
-	runCases(t, []edgeCase{
-		{"a comment opening with a multi-byte letter keeps it whole", func(t *testing.T) {
-			t.Parallel()
-			folder := demoFolder(t, strings.Replace(demoDoc, "fails a [Zork] file", "élan a [Zork] file", 1))
-			if out, err := moveDocs(t, folder); err != nil {
-				t.Fatalf("doc-to-readme failed: %v\n%s", err, out)
-			}
-			if got := readText(t, folder, "README.md"); !strings.Contains(got, "\n\nÉlan a [Zork]") {
-				t.Errorf("README.md does not open with a capital É:\n%s", got)
-			}
-		}},
+	req.Then(t, "0008.5.1.1.1", "ce992b0e", func(_ req.A) {
+		runCases(t, []edgeCase{
+			{"a comment opening with a multi-byte letter keeps it whole", func(t *testing.T) {
+				t.Parallel()
+				folder := demoFolder(t, strings.Replace(demoDoc, "fails a [Zork] file", "élan a [Zork] file", 1))
+				if out, err := moveDocs(t, folder); err != nil {
+					t.Fatalf("doc-to-readme failed: %v\n%s", err, out)
+				}
+				if got := readText(t, folder, "README.md"); !strings.Contains(got, "\n\nÉlan a [Zork]") {
+					t.Errorf("README.md does not open with a capital É:\n%s", got)
+				}
+			}},
+		})
 	})
 }

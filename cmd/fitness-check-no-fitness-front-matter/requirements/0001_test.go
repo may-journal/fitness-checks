@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -31,6 +32,7 @@ func front(t *testing.T, files map[string]string) (string, int) {
 // flagged asserts out names each file once with the fix.
 func flagged(t *testing.T, out string, files ...string) {
 	t.Helper()
+	req.Asserted(t)
 	for _, f := range files {
 		if n := strings.Count(acceptance.Read(out), acceptance.Read(f+fix)); n != 1 {
 			t.Errorf("%s is named %d times, want once:\n%s", f, n, out)
@@ -47,8 +49,13 @@ func Test0001_1(t *testing.T) {
 			"changelog/2026-10-11-0900-one.md": "---\nrelatedConfigurations: ['../.fitnessrc.json']\n---\n\n### 2026.10.11.0900\n\n- Feat: one change.\n",
 			".github/PULL_REQUEST_TEMPLATE.md": "<!--\n---\nfitnessFunctions: ['pr-structure']\n---\n-->\n<!-- One sentence. -->\n> REPLACE-ME\n",
 		})
-		acceptance.Sees(t, out, code, 1)
-		flagged(t, out, "docs/guide.md", "changelog/2026-10-11-0900-one.md", ".github/PULL_REQUEST_TEMPLATE.md")
+		req.Then(t, "0001.1.2.1.1", "c9a7e89f", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1)
+			flagged(t, out, "docs/guide.md", "changelog/2026-10-11-0900-one.md", ".github/PULL_REQUEST_TEMPLATE.md")
+		})
+		req.Then(t, "0001.1.2.1.2", "f204815e", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "run `fitness strip-front-matter`")
+		})
 	})
 	t.Run("0001.1.2 CRLF and a byte order mark and other keys still fail", func(t *testing.T) {
 		t.Parallel()
@@ -57,8 +64,14 @@ func Test0001_1(t *testing.T) {
 			"docs/bom.md":                   byteOrderMark + "---\nfitnessFunctions: ['prose-budget']\n---\n\n# Bom\n",
 			".github/ISSUE_TEMPLATE/bug.md": "---\nname: Bug\nrelatedConfigurations: ['../../.fitnessrc.json']\nlabels: Bug\n---\n\n## Steps\n",
 		})
-		acceptance.Sees(t, out, code, 1)
-		flagged(t, out, "docs/crlf.md", "docs/bom.md", ".github/ISSUE_TEMPLATE/bug.md")
+		req.Then(t, "0001.1.2.2.1", "fb54b835", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1)
+			flagged(t, out, "docs/crlf.md", "docs/bom.md")
+		})
+		req.Then(t, "0001.1.2.2.2", "4d3ba123", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1)
+			flagged(t, out, ".github/ISSUE_TEMPLATE/bug.md")
+		})
 	})
 	t.Run("0001.1.3 other front matter passes", func(t *testing.T) {
 		t.Parallel()
@@ -66,20 +79,20 @@ func Test0001_1(t *testing.T) {
 			"docs/notes.md":                 "---\ntitle: Notes\n---\n\n# Notes\n",
 			".github/ISSUE_TEMPLATE/bug.md": "---\nname: Bug\nlabels: Bug\n---\n\n## Steps\n",
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "strip-front-matter") {
-			t.Errorf("a file without fitness front matter was flagged:\n%s", out)
-		}
+		req.Then(t, "0001.1.2.3.1", "dbfdaa5e", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "strip-front-matter"), "a file without fitness front matter was flagged:\n%s", out)
+		})
 	})
 	t.Run("0001.1.4 a rule before prose is not front matter", func(t *testing.T) {
 		t.Parallel()
 		out, code := front(t, map[string]string{
 			"docs/ruled.md": "---\n\nrelatedConfigurations: a note set between two rules.\n\n---\n\n# Ruled\n",
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "strip-front-matter") || strings.Contains(out, "docs/ruled.md") {
-			t.Errorf("a leading rule was flagged:\n%s", out)
-		}
+		req.Then(t, "0001.1.2.4.1", "8faadad2", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "strip-front-matter") && !strings.Contains(out, "docs/ruled.md"), "a leading rule was flagged:\n%s", out)
+		})
 	})
 	t.Run("0001.1.5 test fixtures are never judged", func(t *testing.T) {
 		t.Parallel()
@@ -87,9 +100,9 @@ func Test0001_1(t *testing.T) {
 			"tests/examples/demoRepo/README.md": block + "# Demo\n",
 			"go/tool/testdata/guide.md":         block + "# Guide\n",
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "strip-front-matter") {
-			t.Errorf("a fixture was flagged:\n%s", out)
-		}
+		req.Then(t, "0001.1.2.5.1", "a2b182e8", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "strip-front-matter"), "a fixture was flagged:\n%s", out)
+		})
 	})
 }

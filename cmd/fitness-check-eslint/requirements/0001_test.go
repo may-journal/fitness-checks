@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain lets this test binary stand in for ESLint and Biome. Run as either,
@@ -30,41 +31,51 @@ func Test0001_1(t *testing.T) {
 		out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs src/b.ts", 0,
 			[2]string{eslintClean, "app.js"}, [2]string{eslintClean, "eslint.base.mjs"},
 			[2]string{eslintClean, "eslint.config.mjs"}, [2]string{eslintClean, "src/b.ts"})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		eslintPassedWith(t, out, "4")
+		req.Then(t, "0001.1.1.1.1", "07b8e753", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.1.1.2", "f114bfdb", func(a req.A) {
+			eslintPassedWith(t, out, "4")
+		})
 	})
 	t.Run("0001.1.2 unsorted keys fail eslint", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
-		out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs", 1,
-			[2]string{eslintSortKeys, "app.js"}, [2]string{eslintClean, "eslint.base.mjs"},
-			[2]string{eslintClean, "eslint.config.mjs"})
-		eslintFinds(t, out, code, "/app.js:1:26 - Expected object keys to be in natural ascending order. 'a' should be before 'z'. (sort-keys)")
+		req.Then(t, "0001.1.1.2.1", "b0192dfb", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
+			out, code, _ := eslintRun(t, repo, "app.js eslint.base.mjs eslint.config.mjs", 1,
+				[2]string{eslintSortKeys, "app.js"}, [2]string{eslintClean, "eslint.base.mjs"},
+				[2]string{eslintClean, "eslint.config.mjs"})
+			eslintFinds(t, out, code, "/app.js:1:26 - Expected object keys to be in natural ascending order. 'a' should be before 'z'. (sort-keys)")
+		})
 	})
 	t.Run("0001.1.3 repo config replaces shared rules", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
-			"package.json":      eslintPackage,
-			"eslint.config.mjs": "export default [{ rules: { 'no-console': 'warn' } }];\n",
-			"app.js":            eslintUnsorted + "console.log(o);\n",
+		req.Then(t, "0001.1.1.3.1", "44108ff1", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", map[string]string{
+				"package.json":      eslintPackage,
+				"eslint.config.mjs": "export default [{ rules: { 'no-console': 'warn' } }];\n",
+				"app.js":            eslintUnsorted + "console.log(o);\n",
+			})
+			out, code, _ := eslintRun(t, repo, "app.js eslint.config.mjs", 0,
+				[2]string{eslintConsole, "app.js"}, [2]string{eslintClean, "eslint.config.mjs"})
+			eslintFinds(t, out, code, "/app.js:2:1 - Unexpected console statement. (no-console)")
+			if strings.Contains(out, "sort-keys") {
+				t.Errorf("the repo's own config must replace the shared one:\n%s", out)
+			}
 		})
-		out, code, _ := eslintRun(t, repo, "app.js eslint.config.mjs", 0,
-			[2]string{eslintConsole, "app.js"}, [2]string{eslintClean, "eslint.config.mjs"})
-		eslintFinds(t, out, code, "/app.js:2:1 - Unexpected console statement. (no-console)")
-		if strings.Contains(out, "sort-keys") {
-			t.Errorf("the repo's own config must replace the shared one:\n%s", out)
-		}
 	})
 	t.Run("0001.1.4 repo config ignoring tracked file fails", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
-			"package.json":      eslintPackage,
-			"eslint.config.mjs": "export default [{ ignores: ['skip.js'] }];\n",
-			"skip.js":           eslintSorted,
+		req.Then(t, "0001.1.1.4.1", "7d7ec63b", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", map[string]string{
+				"package.json":      eslintPackage,
+				"eslint.config.mjs": "export default [{ ignores: ['skip.js'] }];\n",
+				"skip.js":           eslintSorted,
+			})
+			out, code, _ := eslintRun(t, repo, "eslint.config.mjs skip.js", 0,
+				[2]string{eslintClean, "eslint.config.mjs"}, [2]string{eslintIgnored, "skip.js"})
+			eslintFinds(t, out, code, "/skip.js - ESLint ignores this tracked file; remove the ignore pattern so it is linted")
 		})
-		out, code, _ := eslintRun(t, repo, "eslint.config.mjs skip.js", 0,
-			[2]string{eslintClean, "eslint.config.mjs"}, [2]string{eslintIgnored, "skip.js"})
-		eslintFinds(t, out, code, "/skip.js - ESLint ignores this tracked file; remove the ignore pattern so it is linted")
 	})
 }
 
@@ -79,20 +90,26 @@ func Test0001_2(t *testing.T) {
 		} {
 			rp := acceptance.StandIn(t, map[string][]acceptance.Response{"eslint": {{Stdout: "[]\n"}}})
 			out, code := acceptance.Fitness(t, repo, rp.Env, "eslint")
-			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-			acceptance.PassedWithNoFiles(t, out, "eslint")
-			eslintUncalled(t, rp)
+			req.Then(t, "0001.2.1.1.1", "857dd667", func(a req.A) {
+				acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+				acceptance.PassedWithNoFiles(t, out, "eslint")
+			})
+			req.Then(t, "0001.2.1.1.2", "cb8c893b", func(a req.A) {
+				eslintUncalled(t, rp)
+			})
 		}
 	})
 	t.Run("0001.2.2 on staged files only", func(t *testing.T) {
 		t.Parallel()
-		repo := eslintStaged(t, map[string]string{"src/b.ts": eslintTyped, "README.md": readme + "\nOne more short line.\n"})
-		out, code, rp := eslintRun(t, repo, "src/b.ts", 0, [2]string{eslintClean, "src/b.ts"})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		eslintPassedWith(t, out, "1")
-		if rp.Called("eslint", "app.js") {
-			t.Errorf("eslint must lint only the staged file, got calls %q", rp.Calls("eslint"))
-		}
+		req.Then(t, "0001.2.1.2.1", "e0f25940", func(_ req.A) {
+			repo := eslintStaged(t, map[string]string{"src/b.ts": eslintTyped, "README.md": readme + "\nOne more short line.\n"})
+			out, code, rp := eslintRun(t, repo, "src/b.ts", 0, [2]string{eslintClean, "src/b.ts"})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			eslintPassedWith(t, out, "1")
+			if rp.Called("eslint", "app.js") {
+				t.Errorf("eslint must lint only the staged file, got calls %q", rp.Calls("eslint"))
+			}
+		})
 	})
 }
 
@@ -100,15 +117,17 @@ func Test0001_3(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.3.1 missing or crashing eslint shows info", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted})), nil, "eslint")
-		acceptance.ShowsInfo(t, out, code, "eslint", eslintMissing)
-		crashed := acceptance.StandIn(t, map[string][]acceptance.Response{"eslint": {{
-			Stderr: "Oops! Something went wrong! :(\n\nTypeError: Cannot read properties of undefined (reading 'rules')\n",
-			Exit:   2,
-		}}})
-		repo := acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
-		out, code = acceptance.Fitness(t, repo, crashed.Env, "eslint")
-		acceptance.ShowsInfo(t, out, code, "eslint", "TypeError: Cannot read properties of undefined (reading 'rules')")
+		req.Then(t, "0001.3.1.1.1", "454a478c", func(_ req.A) {
+			out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted})), nil, "eslint")
+			acceptance.ShowsInfo(t, out, code, "eslint", eslintMissing)
+			crashed := acceptance.StandIn(t, map[string][]acceptance.Response{"eslint": {{
+				Stderr: "Oops! Something went wrong! :(\n\nTypeError: Cannot read properties of undefined (reading 'rules')\n",
+				Exit:   2,
+			}}})
+			repo := acceptance.Example(t, "happyRepo", eslintShared(t, map[string]string{"app.js": eslintUnsorted}))
+			out, code = acceptance.Fitness(t, repo, crashed.Env, "eslint")
+			acceptance.ShowsInfo(t, out, code, "eslint", "TypeError: Cannot read properties of undefined (reading 'rules')")
+		})
 	})
 	t.Run("0001.3.2 a biome.json plus the biome dependency lints when eslint is absent", func(t *testing.T) {
 		t.Parallel()
@@ -126,13 +145,18 @@ func Test0001_3(t *testing.T) {
 			match := "lint " + fmt.Sprintf(biomeFlags, major[2]) + " app.js"
 			rp := acceptance.StandIn(t, map[string][]acceptance.Response{"biome": {biomeVersion(major[1]), {Match: []string{match}, Stdout: report.String()}}})
 			out, code := acceptance.Fitness(t, repo, rp.Env, "eslint")
-			eslintFinds(t, out, code, "app.js:1:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
-			eslintFinds(t, out, code, "app.js:49:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
-			if strings.Contains(out, eslintMissing) {
-				t.Errorf("a repo that chose Biome needs no eslint:\n%s", out)
-			}
+			req.Then(t, "0001.3.1.2.1", "e56eef6a", func(a req.A) {
+				a.True(!strings.Contains(out, eslintMissing), "a repo that chose Biome needs no eslint:\n%s", out)
+				eslintFinds(t, out, code, "app.js:1:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
+			})
+			req.Then(t, "0001.3.1.2.2", "9cfc115c", func(a req.A) {
+				eslintFinds(t, out, code, "app.js:1:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
+				eslintFinds(t, out, code, "app.js:49:1 - This let declares a variable that is only assigned once. (lint/style/useConst)")
+			})
 		}
-		biomeRejects(t, map[string]string{"biome.json": "{ \"linter\": { \"enabled\": true } }\n", "app.js": source.String()}, "eslint")
+		req.Then(t, "0001.3.1.2.3", "36e305aa", func(a req.A) {
+			biomeRejects(t, map[string]string{"biome.json": "{ \"linter\": { \"enabled\": true } }\n", "app.js": source.String()}, "eslint")
+		})
 	})
 }
 
@@ -242,6 +266,7 @@ func eslintFinds(t *testing.T, out string, code int, want string) {
 // eslintUncalled asserts fitness never ran eslint.
 func eslintUncalled(t *testing.T, rp acceptance.Replays) {
 	t.Helper()
+	req.Asserted(t)
 	if calls := rp.Calls("eslint"); len(calls) > 0 {
 		t.Errorf("eslint must not run, got calls %q", calls)
 	}

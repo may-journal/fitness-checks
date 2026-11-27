@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -20,53 +21,66 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a message with no plan reference passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.1.1", "f1158d1f", func(_ req.A) {
+			out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.2 a correct trailer passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n\nPlan #63\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.2.1", "07b8e753", func(_ req.A) {
+			out, code := planTrailer(t, "feat(app): add a feature\n\nSome body.\n\nPlan #63\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.3 each misspelled plan line fails with the fix", func(t *testing.T) {
 		t.Parallel()
 		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan 63\nplan #63\nPlan: 63\n")
-		acceptance.Sees(t, out, code, 1,
-			`plan trailer "Plan 63" `+planTrailerFix,
-			`plan trailer "plan #63" `+planTrailerFix,
-			`plan trailer "Plan: 63" `+planTrailerFix)
+		req.Then(t, "0001.1.1.3.1", "bb890d58", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`plan trailer "Plan 63" `+planTrailerFix,
+				`plan trailer "plan #63" `+planTrailerFix,
+				`plan trailer "Plan: 63" `+planTrailerFix)
+		})
+		req.Then(t, "0001.1.1.3.2", "bdff50bd", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `"Plan #<number>", "Plan <owner>/<repo>#<number>" or "Plan https://github.com/<owner>/<repo>/issues/<number>"`)
+		})
 	})
 	t.Run("0001.1.4 body prose starting with Plan passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan the rollout in 3 steps.\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.4.1", "e55b6556", func(_ req.A) {
+			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan the rollout in 3 steps.\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.5 no message supplied reads HEAD", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", nil)
-		acceptance.Commit(t, repo, nil, "feat(app): add a feature\n\nPlan: 63")
-		out, code := acceptance.Fitness(t, repo, nil, "plan-trailer")
-		acceptance.Sees(t, out, code, 1, `plan trailer "Plan: 63" `+planTrailerFix)
+		req.Then(t, "0001.1.1.5.1", "0ccc7231", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", nil)
+			acceptance.Commit(t, repo, nil, "feat(app): add a feature\n\nPlan: 63")
+			out, code := acceptance.Fitness(t, repo, nil, "plan-trailer")
+			acceptance.Sees(t, out, code, 1, `plan trailer "Plan: 63" `+planTrailerFix)
+		})
 	})
 	t.Run("0001.1.6 a plan of another repo passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github#144\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "plan trailer") {
-			t.Errorf("a Plan of another repo was flagged:\n%s", out)
-		}
-		out, code = planTrailer(t, "feat(app): add a feature\n\nPlan https://github.com/may-journal/.github/issues/144\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if strings.Contains(out, "plan trailer") {
-			t.Errorf("a Plan issue URL of another repo was flagged:\n%s", out)
-		}
+		req.Then(t, "0001.1.1.6.1", "2c8b0b43", func(a req.A) {
+			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github#144\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "plan trailer"), "a Plan of another repo was flagged:\n%s", out)
+			out, code = planTrailer(t, "feat(app): add a feature\n\nPlan https://github.com/may-journal/.github/issues/144\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "plan trailer"), "a Plan issue URL of another repo was flagged:\n%s", out)
+		})
 	})
 	t.Run("0001.1.7 a misspelled plan line of another repo fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github 144\nPlan: may-journal/.github#144\n")
-		acceptance.Sees(t, out, code, 1,
-			`plan trailer "Plan may-journal/.github 144" `+planTrailerFix,
-			`plan trailer "Plan: may-journal/.github#144" `+planTrailerFix)
+		req.Then(t, "0001.1.1.7.1", "b0cd9f9d", func(_ req.A) {
+			out, code := planTrailer(t, "feat(app): add a feature\n\nPlan may-journal/.github 144\nPlan: may-journal/.github#144\n")
+			acceptance.Sees(t, out, code, 1,
+				`plan trailer "Plan may-journal/.github 144" `+planTrailerFix,
+				`plan trailer "Plan: may-journal/.github#144" `+planTrailerFix)
+		})
 	})
 }
 

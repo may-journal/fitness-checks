@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/may-journal/fitness-checks/internal/marks"
 	"github.com/may-journal/fitness-checks/internal/requirement"
 )
 
@@ -20,10 +21,11 @@ type owned struct {
 
 // stepCaseErrors requires a case named for each chained step, and fails a
 // case naming a step its acceptance lacks.
-func stepCaseErrors(docs []requirement.Document, tests []reqTest) []string {
+func stepCaseErrors(docs []requirement.Document, tests []reqTest, tags []marks.Tag) []string {
 	var errs []string
+	tagged := taggedThens(tags)
 	for _, a := range ownedAcceptances(docs, tests) {
-		errs = append(errs, missingCases(a)...)
+		errs = append(errs, missingCases(a, tagged)...)
 		for _, t := range a.tests {
 			errs = append(errs, strayCases(a, t)...)
 		}
@@ -87,7 +89,7 @@ func caseSteps(t reqTest) map[string]bool {
 
 // missingCases fails each numbered step of a that no case of its one test
 // names. Two owners already fail, so they are not judged here.
-func missingCases(a *owned) []string {
+func missingCases(a *owned, tagged map[string]bool) []string {
 	t, ok := soleReporter(a)
 	if !ok {
 		return nil
@@ -95,11 +97,16 @@ func missingCases(a *owned) []string {
 	named := caseSteps(t)
 	var errs []string
 	for _, s := range a.Steps {
-		if s.ID != "" && !named[s.ID] {
+		if uncovered(s, named, tagged) {
 			errs = append(errs, requirement.At(a.path, s.Line, fmt.Sprintf("step %s has no test case; add a case to %s whose name opens with %s", s.ID, t.Name, s.ID)))
 		}
 	}
 	return errs
+}
+
+// uncovered reports whether step s has no case named for it and no tag on each THEN.
+func uncovered(s requirement.Step, named, tagged map[string]bool) bool {
+	return s.ID != "" && !named[s.ID] && !stepTagged(s, tagged)
 }
 
 // strayCases fails each case of t whose name opens with a step ID that a

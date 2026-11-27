@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // dispatchStep is the Release workflow's step that announces a release.
@@ -36,22 +38,20 @@ func Test0009_1(t *testing.T) {
 	}
 	calls, err := os.ReadFile(log)
 	mustDo(t, err)
-	for _, want := range []string{"api -X POST repos/acme/.github/dispatches", "event_type=fitness-check-released", "client_payload[released_at]="} {
-		if !strings.Contains(string(calls), want) {
-			t.Errorf("gh was called with %q, want %q", calls, want)
+	req.Then(t, "0009.1.1.1.1", "363fc11b", func(a req.A) {
+		for _, want := range []string{"api -X POST repos/acme/.github/dispatches", "event_type=fitness-check-released", "client_payload[released_at]="} {
+			a.Contains(string(calls), want)
 		}
-	}
-	if step := dispatchStep(t); !strings.Contains(step, "scripts/release-dispatch.sh") {
-		t.Errorf("the announce step does not run the script:\n%s", step)
-	}
+		a.Contains(dispatchStep(t), "scripts/release-dispatch.sh")
+	})
 }
 
 func Test0009_2(t *testing.T) {
 	t.Parallel()
 	step := dispatchStep(t)
-	for _, want := range []string{"needs.publish.result == 'success'", "needs.plan.outputs.tags != '[]'"} {
-		if !strings.Contains(step, want) {
-			t.Errorf("the announce step does not wait for %q:\n%s", want, step)
+	req.Then(t, "0009.2.1.1.1", "41c89fce", func(a req.A) {
+		for _, want := range []string{"needs.publish.result == 'success'", "needs.plan.outputs.tags != '[]'"} {
+			a.Contains(step, want)
 		}
-	}
+	})
 }

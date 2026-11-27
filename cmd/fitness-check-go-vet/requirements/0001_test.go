@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -17,53 +18,77 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a vet problem at the repo root fails naming the finding", func(t *testing.T) {
 		t.Parallel()
-		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule(".", goVetBad)))
-		acceptance.Sees(t, out, code, 1, "✖ "+goVetFinding)
+		req.Then(t, "0001.1.2.1.1", "8e2b347d", func(_ req.A) {
+			out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule(".", goVetBad)))
+			acceptance.Sees(t, out, code, 1, "✖ "+goVetFinding)
+		})
 	})
 	t.Run("0001.1.2 a vet problem in a subfolder module shows its folder", func(t *testing.T) {
 		t.Parallel()
-		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)))
-		acceptance.Sees(t, out, code, 1, "✖ api: "+goVetFinding)
+		req.Then(t, "0001.1.2.2.1", "ccf53445", func(_ req.A) {
+			out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)))
+			acceptance.Sees(t, out, code, 1, "✖ api: "+goVetFinding)
+		})
 	})
 	t.Run("0001.1.3 clean modules pass then count the modules vetted", func(t *testing.T) {
 		t.Parallel()
 		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", "package m\n\nfunc F() int { return 1 }\n")))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "go-vet", "1")
+		req.Then(t, "0001.1.2.3.1", "07b8e753", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.3.2", "883b681e", func(_ req.A) {
+			acceptance.PassedWith(t, out, "go-vet", "1")
+		})
 	})
 	t.Run("0001.1.4 a repo with no module to vet or a run scoped to changed files with none of them Go passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := goVet(t, acceptance.Example(t, "happyRepo", map[string]string{"main.go": goVetBad}))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "go-vet")
-		// Fixtures under testdata and vendor are not modules to vet.
-		files := goVetModule("testdata/fixture", goVetBad)
-		for name, body := range goVetModule("vendor/dep", goVetBad) {
-			files[name] = body
-		}
-		out, code = goVet(t, acceptance.Example(t, "happyRepo", files))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "go-vet")
-		repo := acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad))
-		acceptance.Write(t, repo, map[string]string{"README.md": "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n\nMore text.\n"})
-		acceptance.Git(t, repo, "add", "README.md")
-		out, code = goVet(t, repo)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "go-vet")
+		req.Then(t, "0001.1.2.4.1", "857dd667", func(_ req.A) {
+			goVetNoFiles(t, acceptance.Example(t, "happyRepo", map[string]string{"main.go": goVetBad}))
+		})
+		req.Then(t, "0001.1.2.4.2", "e06538f8", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad))
+			acceptance.Write(t, repo, map[string]string{"README.md": "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n\nMore text.\n"})
+			acceptance.Git(t, repo, "add", "README.md")
+			goVetNoFiles(t, repo)
+		})
+		req.Then(t, "0001.1.2.4.3", "95c3c37b", func(_ req.A) {
+			goVetNoFiles(t, acceptance.Example(t, "happyRepo", goVetModule("testdata/fixture", goVetBad)))
+		})
+		req.Then(t, "0001.1.2.4.4", "d8c6f6e3", func(_ req.A) {
+			goVetNoFiles(t, acceptance.Example(t, "happyRepo", goVetModule("vendor/dep", goVetBad)))
+		})
 	})
 	t.Run("0001.1.5 a missing Go shows the install hint", func(t *testing.T) {
 		t.Parallel()
-		out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)), acceptance.PathWithout(t, "go"))
-		acceptance.ShowsInfo(t, out, code, "go-vet", "Go not installed: see https://go.dev/dl")
+		req.Then(t, "0001.1.2.5.1", "188437da", func(_ req.A) {
+			out, code := goVet(t, acceptance.Example(t, "happyRepo", goVetModule("api", goVetBad)), acceptance.PathWithout(t, "go"))
+			acceptance.ShowsInfo(t, out, code, "go-vet", "Go not installed: see https://go.dev/dl")
+		})
 	})
 	t.Run("0001.1.6 a run that fails without a finding shows why", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", goVetModule(".", goVetBad))
-		out, code := goVet(t, repo, acceptance.CrashingGo(t, "vet", "go: unexpected internal error"))
-		acceptance.ShowsInfo(t, out, code, "go-vet", "go vet ./... exited 2 without a finding: go: unexpected internal error")
-		out, code = goVet(t, repo, acceptance.KilledGo(t, "vet"))
-		acceptance.ShowsInfo(t, out, code, "go-vet", "go vet")
+		req.Then(t, "0001.1.2.6.1", "4ca0535d", func(_ req.A) {
+			out, code := goVet(t, repo, acceptance.CrashingGo(t, "vet", "go: unexpected internal error"))
+			acceptance.ShowsInfo(t, out, code, "go-vet", "go vet ./... exited 2 without a finding: go: unexpected internal error")
+		})
+		req.Then(t, "0001.1.2.6.2", "0b9ea8db", func(_ req.A) {
+			out, code := goVet(t, repo, acceptance.BrokenTool(t, "go", "exec /nonexistent/go \"$@\"\n"))
+			acceptance.ShowsInfo(t, out, code, "go-vet", "go vet")
+		})
+		req.Then(t, "0001.1.2.6.3", "68ea2962", func(_ req.A) {
+			out, code := goVet(t, repo, acceptance.KilledGo(t, "vet"))
+			acceptance.ShowsInfo(t, out, code, "go-vet", "go vet")
+		})
 	})
+}
+
+// goVetNoFiles asserts go-vet passes in repo having judged no files.
+func goVetNoFiles(t *testing.T, repo string) {
+	t.Helper()
+	out, code := goVet(t, repo)
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	acceptance.PassedWithNoFiles(t, out, "go-vet")
 }
 
 // goVetMod is a minimal go.mod for a Given's module.

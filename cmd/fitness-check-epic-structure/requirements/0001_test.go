@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -19,41 +20,51 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a pitch plus Background plus a list of references pass", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+list("1. #22\n2. #23, after #22\n3. org/repo#24"))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
-		repo := acceptance.Example(t, "happyRepo", nil)
-		out, code = acceptance.Fitness(t, repo, nil, "epic-structure", "--body", pitch+background+list("- #22"))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		req.Then(t, "0001.1.1.1.1", "07b8e753", func(_ req.A) {
+			out, code := epicStructure(t, nil, pitch+background+list("1. #22\n2. #23, after #22\n3. org/repo#24"))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+			repo := acceptance.Example(t, "happyRepo", nil)
+			out, code = acceptance.Fitness(t, repo, nil, "epic-structure", "--body", pitch+background+list("- #22"))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 1 files scanned")
+		})
 	})
 	t.Run("0001.1.2 a missing pitch or section fails naming it", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, background+list("- #1"))
-		acceptance.Sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
-		out, code = epicStructure(t, nil, pitch+list("- #1"))
-		acceptance.Sees(t, out, code, 1, "Missing `## Background` section")
-		out, code = epicStructure(t, nil, pitch+background)
-		acceptance.Sees(t, out, code, 1, "Missing `## What needs to happen` section")
+		req.Then(t, "0001.1.1.2.1", "5ecc4876", func(_ req.A) {
+			out, code := epicStructure(t, nil, background+list("- #1"))
+			acceptance.Sees(t, out, code, 1, "Missing pitch: add a one-line blockquote (> …) before the first ## section")
+			out, code = epicStructure(t, nil, pitch+list("- #1"))
+			acceptance.Sees(t, out, code, 1, "Missing `## Background` section")
+			out, code = epicStructure(t, nil, pitch+background)
+			acceptance.Sees(t, out, code, 1, "Missing `## What needs to happen` section")
+		})
 	})
 	t.Run("0001.1.3 another section fails naming it", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+"## Notes\n\nExtra.\n\n"+list("- #1"))
-		acceptance.Sees(t, out, code, 1, "Unexpected `## Notes` section — a epic has only Background and What needs to happen")
+		req.Then(t, "0001.1.1.3.1", "a722a8e7", func(_ req.A) {
+			out, code := epicStructure(t, nil, pitch+background+"## Notes\n\nExtra.\n\n"+list("- #1"))
+			acceptance.Sees(t, out, code, 1, "Unexpected `## Notes` section — a epic has only Background and What needs to happen")
+		})
 	})
 	t.Run("0001.1.4 the repo's own Epic template judges the sections", func(t *testing.T) {
 		t.Parallel()
-		body := pitch + background + "## Rollout\n\nIn steps.\n\n" + list("- #1")
-		out, code := epicStructure(t, nil, body)
-		acceptance.Sees(t, out, code, 1, "Unexpected `## Rollout` section")
-		own := "---\nname: Epic\nabout: An epic\nlabels: Epic\n---\n\n> One line pitch.\n\n## Background\n\n<!-- why -->\n\nText\n\n" +
-			"## Rollout\n\n<!-- how -->\n\nText\n\n## What needs to happen\n\n<!-- list -->\n\n- #1\n"
-		out, code = epicStructure(t, map[string]string{".github/ISSUE_TEMPLATE/epic.md": own}, body)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.4.1", "2b9a785b", func(_ req.A) {
+			body := pitch + background + "## Rollout\n\nIn steps.\n\n" + list("- #1")
+			out, code := epicStructure(t, nil, body)
+			acceptance.Sees(t, out, code, 1, "Unexpected `## Rollout` section")
+			own := "---\nname: Epic\nabout: An epic\nlabels: Epic\n---\n\n> One line pitch.\n\n## Background\n\n<!-- why -->\n\nText\n\n" +
+				"## Rollout\n\n<!-- how -->\n\nText\n\n## What needs to happen\n\n<!-- list -->\n\n- #1\n"
+			out, code = epicStructure(t, map[string]string{".github/ISSUE_TEMPLATE/epic.md": own}, body)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.5 headings and items in fenced code never count", func(t *testing.T) {
 		t.Parallel()
-		sample := "```markdown\n## Extra\n- [ ] no\n```\n\n"
-		out, code := epicStructure(t, nil, pitch+"## Background\n\nWhy.\n\n"+sample+list("- #1"))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.5.1", "e52cf8ea", func(_ req.A) {
+			sample := "```markdown\n## Extra\n- [ ] no\n```\n\n"
+			out, code := epicStructure(t, nil, pitch+"## Background\n\nWhy.\n\n"+sample+list("- #1"))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -61,33 +72,41 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 a checkbox or emoji or status word or other text or an item before the item its note names fails naming the item", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+list("- org/repo#3\n- #1, after #2\n- #2"))
-		acceptance.Sees(t, out, code, 1, "item 2 (#1) is listed before #2, which it runs after; list them in run order")
-		out, code = epicStructure(t, nil, pitch+background+list("- [ ] #1"))
-		acceptance.Sees(t, out, code, 1, "item 1 uses a checkbox; list the issue as a plain reference, and GitHub shows whether it is done")
-		out, code = epicStructure(t, nil, pitch+background+list("- #1 ✅\n- #2, blocked\n- #5 after #6"))
-		acceptance.Sees(t, out, code, 1,
-			"item 1 has an emoji; GitHub shows each issue's state, so drop it",
-			"item 2 (#2) notes a status; GitHub shows each issue's state, so drop it",
-			"item 3 (#5 after #6) is not a plain #N or org/repo#N reference; put any short note after a comma")
+		req.Then(t, "0001.2.1.1.1", "2707c349", func(_ req.A) {
+			out, code := epicStructure(t, nil, pitch+background+list("- org/repo#3\n- #1, after #2\n- #2"))
+			acceptance.Sees(t, out, code, 1, "item 2 (#1) is listed before #2, which it runs after; list them in run order")
+			out, code = epicStructure(t, nil, pitch+background+list("- [ ] #1"))
+			acceptance.Sees(t, out, code, 1, "item 1 uses a checkbox; list the issue as a plain reference, and GitHub shows whether it is done")
+			out, code = epicStructure(t, nil, pitch+background+list("- #1 ✅\n- #2, blocked\n- #5 after #6"))
+			acceptance.Sees(t, out, code, 1,
+				"item 1 has an emoji; GitHub shows each issue's state, so drop it",
+				"item 2 (#2) notes a status; GitHub shows each issue's state, so drop it",
+				"item 3 (#5 after #6) is not a plain #N or org/repo#N reference; put any short note after a comma")
+		})
 	})
 	t.Run("0001.2.2 a reference listed twice fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+list("- #3\n- #3"))
-		acceptance.Sees(t, out, code, 1, "#3 is listed more than once; list each issue once")
+		req.Then(t, "0001.2.1.2.1", "87d1c9a3", func(_ req.A) {
+			out, code := epicStructure(t, nil, pitch+background+list("- #3\n- #3"))
+			acceptance.Sees(t, out, code, 1, "#3 is listed more than once; list each issue once")
+		})
 	})
 	t.Run("0001.2.3 a table fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+"| a | b |\n| - | - |\n| 1 | 2 |\n\n"+list("- #1"))
-		acceptance.Sees(t, out, code, 1, "tables are not allowed; list each issue as a plain reference")
+		req.Then(t, "0001.2.1.3.1", "07f1343a", func(_ req.A) {
+			out, code := epicStructure(t, nil, pitch+background+"| a | b |\n| - | - |\n| 1 | 2 |\n\n"+list("- #1"))
+			acceptance.Sees(t, out, code, 1, "tables are not allowed; list each issue as a plain reference")
+		})
 	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "epic-structure")
-	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	acceptance.PassedWithNoFiles(t, out, "epic-structure")
+	req.Then(t, "0001.3.1.1.1", "0a671ccb", func(_ req.A) {
+		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "epic-structure")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		acceptance.PassedWithNoFiles(t, out, "epic-structure")
+	})
 }
 
 // pitch and background open every epic body these tests judge.

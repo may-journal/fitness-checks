@@ -3,10 +3,12 @@ package requirements
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/requirement"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // requirementDocs are the repo's requirement docs, the root's and each
@@ -27,29 +29,33 @@ func requirementDocs(t *testing.T) []string {
 	return paths
 }
 
-// repeats are the errors that name an alike WHEN or a repeated THEN in the
-// doc at path.
-func repeats(t *testing.T, path string) []string {
+// repeats are the errors of the doc at path that hold phrase.
+func repeats(t *testing.T, path, phrase string) []string {
 	t.Helper()
 	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, errs := requirement.Parse(path, string(body))
+	return slices.DeleteFunc(errs, func(e string) bool { return !strings.Contains(e, phrase) })
+}
+
+// allRepeats are the errors with phrase of every requirement doc.
+func allRepeats(t *testing.T, phrase string) []string {
+	t.Helper()
 	var out []string
-	for _, e := range errs {
-		if strings.Contains(e, "open with the same words") || strings.Contains(e, "repeats the THEN") {
-			out = append(out, e)
-		}
+	for _, path := range requirementDocs(t) {
+		out = append(out, repeats(t, path, phrase)...)
 	}
 	return out
 }
 
 func Test0010_1(t *testing.T) {
 	t.Parallel()
-	for _, path := range requirementDocs(t) {
-		for _, e := range repeats(t, path) {
-			t.Error(e)
-		}
-	}
+	req.Then(t, "0010.1.1.1.1", "b26e7f0f", func(a req.A) {
+		a.Equal([]string(nil), allRepeats(t, "open with the same words"))
+	})
+	req.Then(t, "0010.1.1.1.2", "1e7141f9", func(a req.A) {
+		a.Equal([]string(nil), allRepeats(t, "repeats the THEN"))
+	})
 }

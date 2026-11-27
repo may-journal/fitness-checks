@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain lets this test binary stand in for the JDK and the build tools.
@@ -24,43 +25,36 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a repo with no Maven or Gradle build passes with no files", func(t *testing.T) {
 		t.Parallel()
-		_, out, code := acceptance.JavaRun(t, acceptance.Example(t, "happyRepo", nil), "java-test", nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "java-test")
+		req.Then(t, "0001.1.2.1.1", "0a671ccb", func(_ req.A) {
+			_, out, code := acceptance.JavaRun(t, acceptance.Example(t, "happyRepo", nil), "java-test", nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "java-test")
+		})
 	})
 	t.Run("0001.1.2 a failing test is named from its JUnit report", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)})
-		run := javaTestMavenRun(map[string]string{
-			"target/surefire-reports/TEST-example.AppTest.xml": javaTestFailed,
-			"target/site/jacoco/jacoco.xml":                    javaTestFull,
-		})
-		_, out, code := acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {run}})
-		acceptance.Sees(t, out, code, 1, "example.AppTest.subtracts failed: expected: <1> but was: <2>")
-		if strings.Contains(acceptance.Read(out), "example.AppTest.adds") {
-			t.Errorf("only the failing test may be named:\n%s", out)
-		}
+		out, code := javaTestMavenOutcome(t, javaTestFailed, javaTestFull)
 		// A report cut short names itself, never a missing test run.
-		broken := javaTestMavenRun(map[string]string{"target/surefire-reports/TEST-example.AppTest.xml": "<testsuite><testcase"})
-		_, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)}), "java-test", map[string][]acceptance.Response{"mvn": {broken}})
-		acceptance.Sees(t, out, code, 1, "target/surefire-reports/TEST-example.AppTest.xml is not a JUnit XML report; rerun the build")
+		cutOut, cutCode := javaTestMavenOutcome(t, "<testsuite><testcase", "")
+		req.Then(t, "0001.1.2.2.1", "9254cd81", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "example.AppTest.subtracts failed: expected: <1> but was: <2>")
+			a.True(!strings.Contains(acceptance.Read(out), "example.AppTest.adds"), "only the failing test may be named:\n%s", out)
+		})
+		req.Then(t, "0001.1.2.2.2", "f82ec8a2", func(a req.A) {
+			acceptance.Sees(t, cutOut, cutCode, 1, "target/surefire-reports/TEST-example.AppTest.xml is not a JUnit XML report; rerun the build")
+		})
 	})
 	t.Run("0001.1.3 coverage below the goal fails naming the report", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)})
-		run := javaTestMavenRun(map[string]string{
-			"target/surefire-reports/TEST-example.AppTest.xml": javaTestPassed,
-			"target/site/jacoco/jacoco.xml":                    javaTestCoverage("4", "1"),
-		})
-		_, out, code := acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {run}})
-		acceptance.Sees(t, out, code, 1, "target/site/jacoco/jacoco.xml: lines 4/5 covered; the goal is 100%")
+		out, code := javaTestMavenOutcome(t, javaTestPassed, javaTestCoverage("4", "1"))
 		// A report without line counts can't show the goal is met.
-		noLines := javaTestMavenRun(map[string]string{
-			"target/surefire-reports/TEST-example.AppTest.xml": javaTestPassed,
-			"target/site/jacoco/jacoco.xml":                    `<report name="app"><counter type="INSTRUCTION" missed="0" covered="9"/></report>`,
+		bareOut, bareCode := javaTestMavenOutcome(t, javaTestPassed, `<report name="app"><counter type="INSTRUCTION" missed="0" covered="9"/></report>`)
+		req.Then(t, "0001.1.2.3.1", "8746ab20", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "target/site/jacoco/jacoco.xml: lines 4/5 covered; the goal is 100%")
 		})
-		_, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)}), "java-test", map[string][]acceptance.Response{"mvn": {noLines}})
-		acceptance.Sees(t, out, code, 1, "target/site/jacoco/jacoco.xml counts no lines; compile with debug information")
+		req.Then(t, "0001.1.2.3.2", "ee5fea70", func(a req.A) {
+			acceptance.Sees(t, bareOut, bareCode, 1, "target/site/jacoco/jacoco.xml counts no lines; compile with debug information")
+		})
 	})
 	t.Run("0001.1.4 an aggregate report replaces the module reports", func(t *testing.T) {
 		t.Parallel()
@@ -89,26 +83,38 @@ func Test0001_1(t *testing.T) {
 			"coverage/target/site/jacoco-aggregate/jacoco.xml":       javaTestAggregate("4", "1", `<group name="core">`+javaTestListed("", "Core.java")+`</group>`),
 		}
 		_, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, files), "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(reports)}})
-		acceptance.Sees(t, out, code, 1, "coverage/target/site/jacoco-aggregate/jacoco.xml: lines 4/5 covered", "extra/target/site/jacoco/jacoco.xml: lines 3/5 covered", "kt/target/site/jacoco/jacoco.xml: lines 1/5 covered")
-		javaTestNotJudged(t, out, "core/target/site/jacoco/jacoco.xml", "it/target/site/jacoco/jacoco.xml")
 		// An aggregate that does not parse covers what is unknown, so it is
 		// named alone.
 		reports["coverage/target/site/jacoco-aggregate/jacoco.xml"] = "<report"
-		_, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, files), "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(reports)}})
-		acceptance.Sees(t, out, code, 1, "coverage/target/site/jacoco-aggregate/jacoco.xml is not a JaCoCo XML report; rerun the build")
-		javaTestNotJudged(t, out, "extra/target/site/jacoco/jacoco.xml")
-		javaTestGradleAggregate(t)
+		_, badOut, badCode := acceptance.JavaRun(t, acceptance.JavaRepo(t, files), "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(reports)}})
+		req.Then(t, "0001.1.2.4.1", "62f31101", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "coverage/target/site/jacoco-aggregate/jacoco.xml: lines 4/5 covered")
+			javaTestNotJudged(t, out, "core/target/site/jacoco/jacoco.xml")
+			acceptance.Sees(t, badOut, badCode, 1, "coverage/target/site/jacoco-aggregate/jacoco.xml is not a JaCoCo XML report; rerun the build")
+			javaTestNotJudged(t, badOut, "extra/target/site/jacoco/jacoco.xml")
+		})
+		req.Then(t, "0001.1.2.4.2", "b32905dc", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "extra/target/site/jacoco/jacoco.xml: lines 3/5 covered", "kt/target/site/jacoco/jacoco.xml: lines 1/5 covered")
+			javaTestGradleAggregate(t)
+		})
+		req.Then(t, "0001.1.2.4.3", "f0e54417", func(a req.A) {
+			javaTestNotJudged(t, out, "it/target/site/jacoco/jacoco.xml")
+		})
 	})
 	t.Run("0001.1.5 a build root with product code and no test fails", func(t *testing.T) {
 		t.Parallel()
 		_, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)}), "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}})
-		acceptance.Sees(t, out, code, 1, "the Maven build at . has product code such as "+acceptance.JavaSource+" and no tests; add tests under src/test/java")
 		karate := acceptance.JavaRepo(t, map[string]string{
 			"pom.xml":                        acceptance.JavaPom(javaTestMaven + "<dependency><groupId>io.karatelabs</groupId><artifactId>karate-junit6</artifactId></dependency>"),
 			"src/test/resources/app.feature": "Feature: app\n",
 		})
-		_, out, code = acceptance.JavaRun(t, karate, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}})
-		acceptance.Sees(t, out, code, 1, "the Maven build at . has test files but ran no test", "Karate: Karate runs feature files only from a test class with a @Karate.Test method")
+		_, hintOut, hintCode := acceptance.JavaRun(t, karate, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}})
+		req.Then(t, "0001.1.2.5.1", "8cd0b757", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "the Maven build at . has product code such as "+acceptance.JavaSource+" and no tests; add tests under src/test/java")
+		})
+		req.Then(t, "0001.1.2.5.2", "c4212b08", func(a req.A) {
+			acceptance.Sees(t, hintOut, hintCode, 1, "the Maven build at . has test files but ran no test", "Karate: Karate runs feature files only from a test class with a @Karate.Test method")
+		})
 	})
 	t.Run("0001.1.6 a framework needing Docker that is down fails fast", func(t *testing.T) {
 		t.Parallel()
@@ -118,32 +124,38 @@ func Test0001_1(t *testing.T) {
 		})
 		down := acceptance.Response{Match: []string{"info"}, Stderr: "Cannot connect to the Docker daemon. Is the docker daemon running?\n", Exit: 1}
 		rp, out, code := acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}, "docker": {down}})
-		acceptance.Sees(t, out, code, 1, "Testcontainers needs a running Docker; start Docker or set DOCKER_HOST, then rerun")
-		if calls := rp.Calls("mvn"); len(calls) != 0 {
-			t.Errorf("the build ran %q, want no run without Docker", calls)
-		}
 		// A hung Docker fails fast rather than holding the check to its limit.
 		hung := acceptance.Response{Match: []string{"info"}, Wait: 60}
 		start := time.Now()
-		_, out, code = acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}, "docker": {hung}})
-		acceptance.Sees(t, out, code, 1, "Testcontainers needs a running Docker")
-		if took := time.Since(start); took > 30*time.Second {
-			t.Errorf("a hung Docker held the check for %s, want under 30s", took)
-		}
+		_, hungOut, hungCode := acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}, "docker": {hung}})
+		took := time.Since(start)
+		req.Then(t, "0001.1.2.6.1", "5ff9679a", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "Testcontainers needs a running Docker; start Docker or set DOCKER_HOST, then rerun")
+			calls := rp.Calls("mvn")
+			a.True(len(calls) == 0, "the build ran %q, want no run without Docker", calls)
+		})
+		req.Then(t, "0001.1.2.6.2", "363de3c1", func(a req.A) {
+			acceptance.Sees(t, hungOut, hungCode, 1, "Testcontainers needs a running Docker")
+			a.True(took <= 30*time.Second, "a hung Docker held the check for %s, want under 30s", took)
+		})
 	})
 	t.Run("0001.1.7 a build without JaCoCo reports gets the snippet to add", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom("")})
 		_, out, code := acceptance.JavaRun(t, repo, "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(nil)}})
-		acceptance.Sees(t, out, code, 1, "JaCoCo is not in the Maven build at .; add it:")
-		acceptance.JavaSeesSnippet(t, out, "<artifactId>jacoco-maven-plugin</artifactId>")
 		noXML := acceptance.Response{Match: []string{"jacocoTestReport"}, Stdout: "BUILD SUCCESSFUL in 3s\n", Files: map[string]string{
 			"build/test-results/test/TEST-example.AppTest.xml": javaTestPassed,
 			"build/reports/jacoco/test/html/index.html":        "<html></html>\n",
 		}}
-		_, out, code = acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"build.gradle": javaTestGradle}), "java-test", map[string][]acceptance.Response{"gradle": {noXML}})
-		acceptance.Sees(t, out, code, 1, "no JaCoCo XML report after the Gradle build at . ran its tests; add:")
-		acceptance.JavaSeesSnippet(t, out, "xml.required = true")
+		_, xmlOut, xmlCode := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"build.gradle": javaTestGradle}), "java-test", map[string][]acceptance.Response{"gradle": {noXML}})
+		req.Then(t, "0001.1.2.7.1", "10cdf9c6", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "JaCoCo is not in the Maven build at .; add it:")
+			acceptance.JavaSeesSnippet(t, out, "<artifactId>jacoco-maven-plugin</artifactId>")
+		})
+		req.Then(t, "0001.1.2.7.2", "e9b05980", func(a req.A) {
+			acceptance.Sees(t, xmlOut, xmlCode, 1, "no JaCoCo XML report after the Gradle build at . ran its tests; add:")
+			acceptance.JavaSeesSnippet(t, xmlOut, "xml.required = true")
+		})
 	})
 }
 
@@ -157,36 +169,56 @@ func Test0001_2(t *testing.T) {
 			"target/site/jacoco/jacoco.xml":                    javaTestFull,
 		})
 		rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)}), "java-test", map[string][]acceptance.Response{"mvn": {maven}})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.JavaCalledOnce(t, rp, "mvn")
+		req.Then(t, "0001.2.1.1.1", "74d5578b", func(a req.A) {
+			acceptance.JavaCalledOnce(t, rp, "mvn")
+			a.True(rp.Called("mvn", "verify"), "mvn calls = %q, want verify", rp.Calls("mvn"))
+		})
+		req.Then(t, "0001.2.1.1.2", "e035cbb4", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.2.2 a Gradle build reruns its tests with the build cache", func(t *testing.T) {
 		t.Parallel()
 		rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"build.gradle": javaTestGradle}), "java-test", map[string][]acceptance.Response{"gradle": {javaTestGradleRun}}, "GRADLE_USER_HOME="+t.TempDir())
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.JavaCalledOnce(t, rp, "gradle")
 		// Clean rules rerun the tasks on every Gradle version; --rerun needs 7.6.
 		// The build cache then restores the reports of unchanged tests.
-		if !rp.Called("gradle", "cleanTest test cleanJacocoTestReport jacocoTestReport", "--build-cache") || rp.Called("gradle", "--rerun") {
-			t.Errorf("gradle calls = %q, want clean rules before each task, --build-cache and no --rerun", rp.Calls("gradle"))
-		}
+		req.Then(t, "0001.2.1.2.1", "0cd576a9", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.JavaCalledOnce(t, rp, "gradle")
+			a.True(rp.Called("gradle", "cleanTest") && rp.Called("gradle", "cleanJacocoTestReport"), "gradle calls = %q, want clean rules before each task", rp.Calls("gradle"))
+		})
+		req.Then(t, "0001.2.1.2.2", "a109aca9", func(a req.A) {
+			a.True(rp.Called("gradle", "cleanTest test") && !rp.Called("gradle", "--rerun"), "gradle calls = %q, want the tests rerun by clean rules and no --rerun", rp.Calls("gradle"))
+		})
+		req.Then(t, "0001.2.1.2.3", "2fb1c8f3", func(a req.A) {
+			a.True(rp.Called("gradle", "cleanJacocoTestReport jacocoTestReport") && !rp.Called("gradle", "--rerun"), "gradle calls = %q, want JaCoCo rerun by clean rules and no --rerun", rp.Calls("gradle"))
+		})
+		req.Then(t, "0001.2.1.2.4", "bd5dda75", func(a req.A) {
+			a.True(rp.Called("gradle", "--build-cache"), "gradle calls = %q, want --build-cache", rp.Calls("gradle"))
+		})
 	})
 	t.Run("0001.2.3 reports the build cache restores count", func(t *testing.T) {
 		t.Parallel()
 		// Reports the cache restores are written during the run, so they count.
-		rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"build.gradle": javaTestGradle}), "java-test", map[string][]acceptance.Response{"gradle": {javaTestCached}}, "GRADLE_USER_HOME="+t.TempDir())
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if !rp.Called("gradle", "--build-cache") {
-			t.Errorf("gradle calls = %q, want --build-cache", rp.Calls("gradle"))
-		}
+		req.Then(t, "0001.2.1.3.1", "d48501e5", func(_ req.A) {
+			rp, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"build.gradle": javaTestGradle}), "java-test", map[string][]acceptance.Response{"gradle": {javaTestCached}}, "GRADLE_USER_HOME="+t.TempDir())
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			if !rp.Called("gradle", "--build-cache") {
+				t.Errorf("gradle calls = %q, want --build-cache", rp.Calls("gradle"))
+			}
+		})
 	})
 	t.Run("0001.2.4 a build that does not enable the cache runs without it", func(t *testing.T) {
 		t.Parallel()
 		// Gradle reads any value but true as off, from the build or the user home.
 		user := t.TempDir()
 		acceptance.MustDo(t, os.WriteFile(filepath.Join(user, "gradle.properties"), []byte("org.gradle.caching=False\n"), 0o644))
-		javaTestUncached(t, "org.gradle.caching = no\n", javaTestGradleRun, "GRADLE_USER_HOME="+t.TempDir())
-		javaTestUncached(t, "org.gradle.caching=true\n", javaTestGradleRun, "GRADLE_USER_HOME="+user)
+		req.Then(t, "0001.2.1.4.1", "a397e6a4", func(a req.A) {
+			javaTestUncached(t, "org.gradle.caching = no\n", javaTestGradleRun, "GRADLE_USER_HOME="+t.TempDir())
+		})
+		req.Then(t, "0001.2.1.4.2", "b8cbe131", func(a req.A) {
+			javaTestUncached(t, "org.gradle.caching=true\n", javaTestGradleRun, "GRADLE_USER_HOME="+user)
+		})
 	})
 }
 
@@ -235,6 +267,17 @@ var javaTestFull = javaTestCoverage("5", "0")
 // as it does past failing tests.
 func javaTestMavenRun(files map[string]string) acceptance.Response {
 	return acceptance.Response{Match: []string{"verify"}, Files: files, Stdout: "[INFO] BUILD SUCCESS\n"}
+}
+
+// javaTestMavenOutcome runs a Maven build that writes one JUnit report and one JaCoCo report.
+func javaTestMavenOutcome(t *testing.T, unit, jacoco string) (string, int) {
+	t.Helper()
+	files := map[string]string{"target/surefire-reports/TEST-example.AppTest.xml": unit}
+	if jacoco != "" {
+		files["target/site/jacoco/jacoco.xml"] = jacoco
+	}
+	_, out, code := acceptance.JavaRun(t, acceptance.JavaRepo(t, map[string]string{"pom.xml": acceptance.JavaPom(javaTestMaven)}), "java-test", map[string][]acceptance.Response{"mvn": {javaTestMavenRun(files)}})
+	return out, code
 }
 
 // javaTestGradleAggregate proves Gradle's aggregate, which lists packages
@@ -291,6 +334,7 @@ func javaTestListed(pkg, source string) string {
 // javaTestNotJudged fails when the output names any of the reports.
 func javaTestNotJudged(t *testing.T, out string, reports ...string) {
 	t.Helper()
+	req.Asserted(t)
 	for _, r := range reports {
 		if strings.Contains(acceptance.Read(out), r) {
 			t.Errorf("%s may not be judged:\n%s", r, out)

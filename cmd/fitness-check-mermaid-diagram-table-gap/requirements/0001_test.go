@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -44,43 +45,55 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a paragraph in the gap from a diagram or a legend to its table fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := gap(t, map[string]string{"doc.md": doc(diagram, prose, table)})
-		acceptance.Sees(t, out, code, 1, finding("doc.md", "8"))
-		out, code = gap(t, map[string]string{"doc.md": doc(diagram, legend, prose, table)})
-		acceptance.Sees(t, out, code, 1, finding("doc.md", "13"))
+		req.Then(t, "0001.1.2.1.1", "aabd0f94", func(_ req.A) {
+			out, code := gap(t, map[string]string{"doc.md": doc(diagram, prose, table)})
+			acceptance.Sees(t, out, code, 1, finding("doc.md", "8"))
+			out, code = gap(t, map[string]string{"doc.md": doc(diagram, legend, prose, table)})
+			acceptance.Sees(t, out, code, 1, finding("doc.md", "13"))
+		})
 	})
 	t.Run("0001.1.2 a caption starting with Numbers then matching the table or prose outside the gap passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := gap(t, map[string]string{
-			"a.md": doc(diagram, legend, caption, table),
-			"b.md": doc(diagram, "Numbers on classes and relationships match the callout table.", table),
-			"c.md": doc(diagram, `Numbers match the callout table. "Screen" is a terminal state.`, table),
+		req.Then(t, "0001.1.2.2.1", "ebffcd6f", func(_ req.A) {
+			out, code := gap(t, map[string]string{
+				"a.md": doc(diagram, legend, caption, table),
+				"b.md": doc(diagram, "Numbers on classes and relationships match the callout table.", table),
+				"c.md": doc(diagram, `Numbers match the callout table. "Screen" is a terminal state.`, table),
+			})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			out, code = gap(t, map[string]string{
+				"a.md": doc("Intro prose before the diagram.", diagram, caption, table, "Trailing prose after the table."),
+				"b.md": doc("Prose above.", "```mermaid\nContainer(app, \"UI\")\n```", "Prose below."),
+			})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = gap(t, map[string]string{
-			"a.md": doc("Intro prose before the diagram.", diagram, caption, table, "Trailing prose after the table."),
-			"b.md": doc("Prose above.", "```mermaid\nContainer(app, \"UI\")\n```", "Prose below."),
-		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 	t.Run("0001.1.3 a paragraph after the caption fails but not the caption", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc(diagram, legend, caption, prose, table)})
-		acceptance.Sees(t, out, code, 1, finding("doc.md", "15"))
-		if strings.Contains(acceptance.Read(out), acceptance.Read(finding("doc.md", "13"))) {
-			t.Errorf("the caption at line 13 must not be flagged:\n%s", out)
-		}
+		req.Then(t, "0001.1.2.3.1", "d52ad9fc", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, finding("doc.md", "15"))
+		})
+		req.Then(t, "0001.1.2.3.2", "b086757a", func(a req.A) {
+			a.True(!strings.Contains(acceptance.Read(out), acceptance.Read(finding("doc.md", "13"))), "the caption at line 13 must not be flagged:\n%s", out)
+		})
 	})
 	t.Run("0001.1.4 a file with no diagram is skipped", func(t *testing.T) {
 		t.Parallel()
 		out, code := gap(t, map[string]string{"doc.md": doc("Just prose, nothing to see here.")})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "mermaid-diagram-table-gap")
+		req.Then(t, "0001.1.2.4.1", "cee2af4c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.4.2", "218895d7", func(_ req.A) {
+			acceptance.PassedWithNoFiles(t, out, "mermaid-diagram-table-gap")
+		})
 	})
 	t.Run("0001.1.5 a PR body paragraph in the gap fails naming the description", func(t *testing.T) {
 		t.Parallel()
-		body := strings.Join([]string{diagram, prose, table}, "\n\n") + "\n"
-		out, code := gap(t, map[string]string{"body.md": body}, "--body-file", "body.md")
-		acceptance.Sees(t, out, code, 1, finding("(description)", "6"))
+		req.Then(t, "0001.1.2.5.1", "41f704b4", func(_ req.A) {
+			body := strings.Join([]string{diagram, prose, table}, "\n\n") + "\n"
+			out, code := gap(t, map[string]string{"body.md": body}, "--body-file", "body.md")
+			acceptance.Sees(t, out, code, 1, finding("(description)", "6"))
+		})
 	})
 }

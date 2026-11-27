@@ -13,7 +13,7 @@ import (
 // for `--fix`, before the check judges.
 func fix(root string, paths, args []string) error {
 	if flag := unknownFlag(args); flag != "" {
-		return flagError{"unknown flag " + flag + "; the only flag is " + fixFlag + ", which deletes Source lines"}
+		return flagError{"unknown flag " + flag + "; the flags are " + fixFlag + ", which deletes Source lines, " + tagFlag + ", which writes tags, and " + dryFlag + ", which counts them"}
 	}
 	if !slices.Contains(args, fixFlag) {
 		return nil
@@ -48,11 +48,14 @@ func dropSource(root, path string) error {
 	return requirement.DropSource(root, docs[0])
 }
 
+// knownFlags are the flags the check takes.
+var knownFlags = []string{fixFlag, tagFlag, dryFlag}
+
 // unknownFlag is the first dash argument other than the fix flag, such as the
 // removed --up and --down, or "" when there is none.
 func unknownFlag(args []string) string {
 	for _, a := range args {
-		if strings.HasPrefix(a, "-") && a != fixFlag {
+		if strings.HasPrefix(a, "-") && !slices.Contains(knownFlags, a) {
 			return a
 		}
 	}

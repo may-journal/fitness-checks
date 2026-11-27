@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // twoAcceptances is a Requirements section holding 0001.1, with two GIVENs,
@@ -67,48 +68,60 @@ func Test0003_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0003.1.1 every keyword in caps pairs like bullets", func(t *testing.T) {
 		t.Parallel()
-		out, code := judged(t, gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double")))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		// A step without its test case fails as it would for bullets.
-		out, code = judged(t, gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add")))
-		acceptance.Sees(t, out, code, 1, "0001.2.2")
+		req.Then(t, "0003.1.1.1.1", "4b68619e", func(_ req.A) {
+			out, code := judged(t, gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double")))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			// A step without its test case fails as it would for bullets.
+			out, code = judged(t, gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add")))
+			acceptance.Sees(t, out, code, 1, "0001.2.2")
+		})
 	})
 	t.Run("0003.1.2 a keyword not in caps fails", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, oneAcceptance("Given two numbers", "WHEN I add them", "THEN I get their sum"), "18: write the keyword GIVEN in caps")
-		gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "then I get their sum"), "20: write the keyword THEN in caps")
+		req.Then(t, "0003.1.1.2.1", "ab249ff1", func(_ req.A) {
+			gherkinFails(t, oneAcceptance("Given two numbers", "WHEN I add them", "THEN I get their sum"), "18: write the keyword GIVEN in caps")
+			gherkinFails(t, oneAcceptance("GIVEN two numbers", "WHEN I add them", "then I get their sum"), "20: write the keyword THEN in caps")
+		})
 	})
 	t.Run("0003.1.3 an AND or BUT asks for the next GIVEN or THEN", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. AND a calculator\n      1. WHEN", 1), "19: write no AND or BUT; an extra condition is the next GIVEN and an extra result the next THEN")
-		gherkinFails(t, sum+"         2. BUT not their product\n", "21: write no AND or BUT")
+		req.Then(t, "0003.1.1.3.1", "3b48d689", func(_ req.A) {
+			gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. AND a calculator\n      1. WHEN", 1), "19: write no AND or BUT; an extra condition is the next GIVEN and an extra result the next THEN")
+			gherkinFails(t, sum+"         2. BUT not their product\n", "21: write no AND or BUT")
+		})
 	})
 	t.Run("0003.1.4 a comma outside code asks to split the item", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, oneAcceptance("GIVEN two numbers, a calculator", "WHEN I add them", "THEN I get their sum"), "18: split this item at its comma")
-		// A comma inside code belongs to the code.
-		out, code := judged(t, gherkinRepo(t, oneAcceptance("GIVEN two numbers such as `1, 2`", "WHEN I add them", "THEN I get their sum"), acceptance.TestFile("adder", "Test0001_1")))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.1.1.4.1", "11e5c9f3", func(_ req.A) {
+			gherkinFails(t, oneAcceptance("GIVEN two numbers, a calculator", "WHEN I add them", "THEN I get their sum"), "18: split this item at its comma")
+			// A comma inside code belongs to the code.
+			out, code := judged(t, gherkinRepo(t, oneAcceptance("GIVEN two numbers such as `1, 2`", "WHEN I add them", "THEN I get their sum"), acceptance.TestFile("adder", "Test0001_1")))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0003.1.5 a dash or misnumbered or misplaced or misnamed item names what it needs", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, strings.Replace(sum, "1. Adds", "- Adds", 1), "17: number each acceptance and name it, `1. Name`; the numbered form holds no dashes")
-		gherkinFails(t, strings.Replace(sum, "1. Adds", "2. Adds", 1), "17: number this acceptance `1.`; acceptances number from 1 in order and 0001.1 takes its ID from it")
-		gherkinFails(t, strings.Replace(sum, "Adds", "0001.1", 1), "17: name acceptance 0001.1 in words; its ID comes from its number")
-		gherkinFails(t, strings.Replace(sum, "Adds", "GIVEN it adds", 1), "17: name acceptance 0001.1 in words; its GIVEN, WHEN and THEN items nest under the name")
-		gherkinFails(t, strings.Replace(sum, "Adds", "Adds, sums", 1), "17: name acceptance 0001.1 without a comma")
-		gherkinFails(t, sum+strings.Replace(sum, "1. Adds", "2. Adds", 1), "21: 0001.2 has the name of 0001.1; give each acceptance its own name")
-		gherkinFails(t, strings.Replace(sum, "1. WHEN", "- WHEN", 1), "19: number each GIVEN, WHEN and THEN item; the numbered form holds no dashes")
-		gherkinFails(t, strings.Replace(sum, "1. THEN", "2. THEN", 1), "20: number this THEN `1.`; each level numbers from 1 in order")
-		gherkinFails(t, sum+"   2. GIVEN a calculator\n", "21: nest each GIVEN under the acceptance name, before its first WHEN")
-		gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. WHEN", 1), "19: nest each WHEN under the last GIVEN")
-		gherkinFails(t, sum+"      1. THEN it is a number\n", "21: nest each THEN under its WHEN")
-		gherkinFails(t, "1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n", "19: this WHEN needs a THEN nested under it")
-		gherkinFails(t, "1. Adds\n   1. GIVEN two numbers\n", "17: 0001.1 needs a WHEN nested under its last GIVEN")
+		req.Then(t, "0003.1.1.5.1", "4ee1b200", func(_ req.A) {
+			gherkinFails(t, strings.Replace(sum, "1. Adds", "- Adds", 1), "17: number each acceptance and name it, `1. Name`; the numbered form holds no dashes")
+			gherkinFails(t, strings.Replace(sum, "1. Adds", "2. Adds", 1), "17: number this acceptance `1.`; acceptances number from 1 in order and 0001.1 takes its ID from it")
+			gherkinFails(t, strings.Replace(sum, "Adds", "0001.1", 1), "17: name acceptance 0001.1 in words; its ID comes from its number")
+			gherkinFails(t, strings.Replace(sum, "Adds", "GIVEN it adds", 1), "17: name acceptance 0001.1 in words; its GIVEN, WHEN and THEN items nest under the name")
+			gherkinFails(t, strings.Replace(sum, "Adds", "Adds, sums", 1), "17: name acceptance 0001.1 without a comma")
+			gherkinFails(t, sum+strings.Replace(sum, "1. Adds", "2. Adds", 1), "21: 0001.2 has the name of 0001.1; give each acceptance its own name")
+			gherkinFails(t, strings.Replace(sum, "1. WHEN", "- WHEN", 1), "19: number each GIVEN, WHEN and THEN item; the numbered form holds no dashes")
+			gherkinFails(t, strings.Replace(sum, "1. THEN", "2. THEN", 1), "20: number this THEN `1.`; each level numbers from 1 in order")
+			gherkinFails(t, sum+"   2. GIVEN a calculator\n", "21: nest each GIVEN under the acceptance name, before its first WHEN")
+			gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. WHEN", 1), "19: nest each WHEN under the last GIVEN")
+			gherkinFails(t, sum+"      1. THEN it is a number\n", "21: nest each THEN under its WHEN")
+			gherkinFails(t, "1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n", "19: this WHEN needs a THEN nested under it")
+			gherkinFails(t, "1. Adds\n   1. GIVEN two numbers\n", "17: 0001.1 needs a WHEN nested under its last GIVEN")
+		})
 	})
 	t.Run("0003.1.6 an item the parser rejects fails at its line", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. a calculator\n      1. WHEN", 1), "19: Gherkin: expected:")
+		req.Then(t, "0003.1.1.6.1", "514551cf", func(_ req.A) {
+			gherkinFails(t, strings.Replace(sum, "      1. WHEN", "   2. a calculator\n      1. WHEN", 1), "19: Gherkin: expected:")
+		})
 	})
 }
 
@@ -137,12 +150,14 @@ func movedRun(t *testing.T, reqs string) (string, int) {
 
 func Test0003_3(t *testing.T) {
 	t.Parallel()
-	moved := "1. Adds on a calculator\n   1. GIVEN two numbers\n   2. GIVEN a calculator\n      1. WHEN I add them\n         1. THEN I get their sum\n"
-	out, code := movedRun(t, moved)
-	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	// A move that also changes what a step says still needs its test changed.
-	out, code = movedRun(t, strings.Replace(moved, "their sum", "their product", 1))
-	acceptance.Sees(t, out, code, 1, rootDoc)
+	req.Then(t, "0003.3.1.1.1", "e4105c3d", func(_ req.A) {
+		moved := "1. Adds on a calculator\n   1. GIVEN two numbers\n   2. GIVEN a calculator\n      1. WHEN I add them\n         1. THEN I get their sum\n"
+		out, code := movedRun(t, moved)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		// A move that also changes what a step says still needs its test changed.
+		out, code = movedRun(t, strings.Replace(moved, "their sum", "their product", 1))
+		acceptance.Sees(t, out, code, 1, rootDoc)
+	})
 }
 
 // committed commits twoAcceptances with their tests, then commits the doc
@@ -166,20 +181,26 @@ func Test0003_4(t *testing.T) {
 	t.Parallel()
 	t.Run("0003.4.1 a rename in place passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := committed(t, strings.Replace(twoAcceptances, "Adds on a calculator", "Adds with a calculator", 1))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.4.1.1.1", "07b8e753", func(_ req.A) {
+			out, code := committed(t, strings.Replace(twoAcceptances, "Adds on a calculator", "Adds with a calculator", 1))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0003.4.2 a move to another number fails naming both IDs", func(t *testing.T) {
 		t.Parallel()
-		out, code := committed(t, swapped())
-		acceptance.Sees(t, out, code, 1,
-			rootDoc+":17: 0001.1 holds the acceptance 0001.2 held before; a numbered acceptance keeps its place, so number a new one after the last",
-			"0001.2 holds the acceptance 0001.1 held before")
+		req.Then(t, "0003.4.1.2.1", "4a45c2bd", func(_ req.A) {
+			out, code := committed(t, swapped())
+			acceptance.Sees(t, out, code, 1,
+				rootDoc+":17: 0001.1 holds the acceptance 0001.2 held before; a numbered acceptance keeps its place, so number a new one after the last",
+				"0001.2 holds the acceptance 0001.1 held before")
+		})
 	})
 	t.Run("0003.4.3 a move back passes again", func(t *testing.T) {
 		t.Parallel()
-		out, code := committed(t, swapped(), twoAcceptances)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.4.1.3.1", "eca5e44b", func(_ req.A) {
+			out, code := committed(t, swapped(), twoAcceptances)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -206,38 +227,48 @@ func Test0003_5(t *testing.T) {
 	t.Parallel()
 	t.Run("0003.5.1 a Removed line keeps later numbers", func(t *testing.T) {
 		t.Parallel()
-		out, code := removedRun(t, onlySecond, firstRemoved)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.5.1.1.1", "07b8e753", func(_ req.A) {
+			out, code := removedRun(t, onlySecond, firstRemoved)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0003.5.2 a Removed line holding items or no version and reason fails", func(t *testing.T) {
 		t.Parallel()
-		gherkinFails(t, "1. Removed in 2026.11.25.1230: folded\n   1. GIVEN two numbers\n", "18: 0001.1 is Removed, so it holds no GIVEN, WHEN or THEN")
-		// A Removed line needs a version that reads as a date and a reason.
-		for _, bad := range []string{"Removed", "Removed: folded", "Removed in 2026.13.40.9999: folded", "Removed in 2026.11.25.1230:", "Removed in 2026.11.25: folded"} {
-			gherkinFails(t, "1. "+bad+"\n", "17: write 0001.1 as `1. Removed in YYYY.MM.DD.HHMM: <reason>`, with the changelog version that removes it")
-		}
-		gherkinFails(t, "1. Removed in 2026.11.25.1230: folded, merged\n", "17: name acceptance 0001.1 without a comma")
-		// A name that only opens with the word stays an acceptance.
-		out, code := judged(t, gherkinRepo(t, strings.Replace(sum, "Adds", "Removed in bulk", 1), acceptance.TestFile("adder", "Test0001_1")))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.5.1.2.1", "07f1343a", func(_ req.A) {
+			gherkinFails(t, "1. Removed in 2026.11.25.1230: folded\n   1. GIVEN two numbers\n", "18: 0001.1 is Removed, so it holds no GIVEN, WHEN or THEN")
+			// A Removed line needs a version that reads as a date and a reason.
+			for _, bad := range []string{"Removed", "Removed: folded", "Removed in 2026.13.40.9999: folded", "Removed in 2026.11.25.1230:", "Removed in 2026.11.25: folded"} {
+				gherkinFails(t, "1. "+bad+"\n", "17: write 0001.1 as `1. Removed in YYYY.MM.DD.HHMM: <reason>`, with the changelog version that removes it")
+			}
+			gherkinFails(t, "1. Removed in 2026.11.25.1230: folded, merged\n", "17: name acceptance 0001.1 without a comma")
+			// A name that only opens with the word stays an acceptance.
+			out, code := judged(t, gherkinRepo(t, strings.Replace(sum, "Adds", "Removed in bulk", 1), acceptance.TestFile("adder", "Test0001_1")))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0003.5.3 a test naming a Removed acceptance fails naming the test", func(t *testing.T) {
 		t.Parallel()
-		out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved)
-		acceptance.Sees(t, out, code, 1, "Test0001_1")
+		req.Then(t, "0003.5.1.3.1", "cadf814f", func(_ req.A) {
+			out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved)
+			acceptance.Sees(t, out, code, 1, "Test0001_1")
+		})
 	})
 	t.Run("0003.5.4 a Removed line turned back fails as reuse", func(t *testing.T) {
 		t.Parallel()
-		back := strings.Replace(twoAcceptances, "Adds on a calculator", "Adds again", 1)
-		out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved, back)
-		acceptance.Sees(t, out, code, 1, rootDoc+":17: 0001.1 was deleted before; IDs are never reused")
+		req.Then(t, "0003.5.1.4.1", "84e60142", func(_ req.A) {
+			back := strings.Replace(twoAcceptances, "Adds on a calculator", "Adds again", 1)
+			out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved, back)
+			acceptance.Sees(t, out, code, 1, rootDoc+":17: 0001.1 was deleted before; IDs are never reused")
+		})
 	})
 	t.Run("0003.5.5 a Removed acceptance removed then appended in one commit passes as no move", func(t *testing.T) {
 		t.Parallel()
-		appended := firstRemoved + "3. Adds on a calculator\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
-		tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {}\n\nfunc Test0001_2", 1)
-		out, code := removedRun(t, tests, appended)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.5.1.5.1", "c56fde0d", func(_ req.A) {
+			appended := firstRemoved + "3. Adds on a calculator\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
+			tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {}\n\nfunc Test0001_2", 1)
+			out, code := removedRun(t, tests, appended)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -258,23 +289,27 @@ func atCap() (string, string) {
 
 func Test0003_6(t *testing.T) {
 	t.Parallel()
-	reqs, tests := atCap()
-	repo := acceptance.Example(t, "happyRepo", acceptance.With(acceptance.GoRepo(), map[string]string{
-		".fitnessrc.json": `{"policy": "external", "checks": ["requirements", "prose-budget"]}` + "\n",
-		rootDoc:           acceptance.DocWith(reqs),
-		"adder_test.go":   tests,
-	}))
-	for _, check := range []string{"requirements", "prose-budget"} {
-		out, code := acceptance.Fitness(t, repo, nil, check)
-		acceptance.Sees(t, acceptance.Read(out), code, 0, check+" passed")
-	}
+	req.Then(t, "0003.6.1.1.1", "07b8e753", func(_ req.A) {
+		reqs, tests := atCap()
+		repo := acceptance.Example(t, "happyRepo", acceptance.With(acceptance.GoRepo(), map[string]string{
+			".fitnessrc.json": `{"policy": "external", "checks": ["requirements", "prose-budget"]}` + "\n",
+			rootDoc:           acceptance.DocWith(reqs),
+			"adder_test.go":   tests,
+		}))
+		for _, check := range []string{"requirements", "prose-budget"} {
+			out, code := acceptance.Fitness(t, repo, nil, check)
+			acceptance.Sees(t, acceptance.Read(out), code, 0, check+" passed")
+		}
+	})
 }
 
 func Test0003_7(t *testing.T) {
 	t.Parallel()
-	repo := gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double"))
-	out, code := judged(t, repo, "--up", "0003.2-gherkin")
-	acceptance.Sees(t, out, code, 1, "unknown flag --up; the only flag is --fix")
+	req.Then(t, "0003.7.1.1.1", "b633cdce", func(_ req.A) {
+		repo := gherkinRepo(t, twoAcceptances, provingTests("0001.2.1 add", "0001.2.2 double"))
+		out, code := judged(t, repo, "--up", "0003.2-gherkin")
+		acceptance.Sees(t, out, code, 1, "unknown flag --up; the flags are --fix")
+	})
 }
 
 // onlyFirst is twoAcceptances without 0001.2, the last.
@@ -284,12 +319,16 @@ func Test0003_8(t *testing.T) {
 	t.Parallel()
 	t.Run("0003.8.1 the last acceptance as a Removed line passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst+"2. Removed in 2026.11.25.1230: folded into 0001.1\n")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0003.8.1.1.1", "07b8e753", func(_ req.A) {
+			out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst+"2. Removed in 2026.11.25.1230: folded into 0001.1\n")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0003.8.2 the last acceptance deleted outright fails naming the Removed line to add", func(t *testing.T) {
 		t.Parallel()
-		out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst)
-		acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was an acceptance and this doc no longer holds it; a removed acceptance keeps its number, so add `2. Removed in YYYY.MM.DD.HHMM: <reason>` to Requirements")
+		req.Then(t, "0003.8.1.2.1", "9bf20366", func(_ req.A) {
+			out, code := removedRun(t, acceptance.TestFile("adder", "Test0001_1"), onlyFirst)
+			acceptance.Sees(t, out, code, 1, rootDoc+":1: 0001.2 was an acceptance and this doc no longer holds it; a removed acceptance keeps its number, so add `2. Removed in YYYY.MM.DD.HHMM: <reason>` to Requirements")
+		})
 	})
 }

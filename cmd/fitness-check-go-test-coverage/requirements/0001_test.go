@@ -11,35 +11,40 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
-func TestMain(m *testing.M) {
-	acceptance.KeepHostGitOut()
-	os.Exit(m.Run())
-}
+// TestMain keeps the host's git config out of the example repos.
+func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a repo with no Go modules passes without files", func(t *testing.T) {
 		t.Parallel()
-		out, _ := goTestCoverage(t, nil)
-		acceptance.PassedWithNoFiles(t, out, "go-test-coverage")
+		req.Then(t, "0001.1.1.1.1", "857dd667", func(_ req.A) {
+			out, _ := goTestCoverage(t, nil)
+			acceptance.PassedWithNoFiles(t, out, "go-test-coverage")
+		})
 	})
 	t.Run("0001.1.2 a missing Go shows the download hint", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", command(entryTest))
-		out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "go")}, "go-test-coverage")
-		acceptance.ShowsInfo(t, out, code, "go-test-coverage", "Go not installed: see https://go.dev/dl")
+		req.Then(t, "0001.1.1.2.1", "188437da", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", command(entryTest))
+			out, code := acceptance.Fitness(t, repo, []string{acceptance.PathWithout(t, "go")}, "go-test-coverage")
+			acceptance.ShowsInfo(t, out, code, "go-test-coverage", "Go not installed: see https://go.dev/dl")
+		})
 	})
 	t.Run("0001.1.3 a library with no declared entry fails asking to declare entries", func(t *testing.T) {
 		t.Parallel()
-		out, code := goTestCoverage(t, library("{}\n"))
-		acceptance.Sees(t, out, code, 1, "no entry packages; declare library entries with --entry=import/path")
+		req.Then(t, "0001.1.1.3.1", "c47c911d", func(_ req.A) {
+			coverageSees(t, 1, "no entry packages; declare library entries with --entry=import/path", library("{}\n"))
+		})
 	})
 	t.Run("0001.1.4 an unknown entry fails naming it", func(t *testing.T) {
 		t.Parallel()
-		out, code := goTestCoverage(t, command(entryTest), "--entry=example.test/nope")
-		acceptance.Sees(t, out, code, 1, `unknown entry package "example.test/nope"`)
+		req.Then(t, "0001.1.1.4.1", "e721e89c", func(_ req.A) {
+			coverageSees(t, 1, `unknown entry package "example.test/nope"`, command(entryTest), "--entry=example.test/nope")
+		})
 	})
 }
 
@@ -54,13 +59,26 @@ func Test0001_2(t *testing.T) {
 			files["lib/"+name] = lib[name]
 		}
 		out, code := goTestCoverage(t, files)
-		acceptance.Sees(t, out, code, 1, "entry example.test/cli: 0/1 statements; required 100%", "entry example.test/cli/lib: 1/2 statements; required 100%")
+		req.Then(t, "0001.2.1.1.1", "4c82cec8", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "entry example.test/cli:", "entry example.test/cli/lib:")
+		})
+		req.Then(t, "0001.2.1.1.2", "275cd92d", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "entry example.test/cli: 0/", "entry example.test/cli/lib: 1/")
+		})
+		req.Then(t, "0001.2.1.1.3", "5fd395cb", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "0/1 statements; required 100%", "1/2 statements; required 100%")
+		})
 	})
 	t.Run("0001.2.2 a named helper passed to t.Run fails", func(t *testing.T) {
 		t.Parallel()
 		wrapped := "package main\n\nimport \"testing\"\n\nfunc TestAll(t *testing.T) { t.Run(\"entry\", runsMain) }\n\nfunc runsMain(t *testing.T) { main() }\n"
 		out, code := goTestCoverage(t, command(wrapped))
-		acceptance.Sees(t, out, code, 1, "main_test.go:5: TestAll passes named helper runsMain to t.Run")
+		req.Then(t, "0001.2.1.2.1", "963cecf1", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "main_test.go:5:")
+		})
+		req.Then(t, "0001.2.1.2.2", "988d6b01", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "main_test.go:5: TestAll passes named helper runsMain to t.Run")
+		})
 	})
 }
 
@@ -70,37 +88,45 @@ func Test0001_3(t *testing.T) {
 		t.Parallel()
 		claims := filepath.Join(t.TempDir(), "claims.json")
 		out, code := goTestCoverage(t, command(entryTest), "--audit-map="+claims)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if _, err := os.Stat(claims); err != nil {
-			t.Errorf("source map was not written: %v", err)
-		}
+		req.Then(t, "0001.3.1.1.1", "07b8e753", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.3.1.1.2", "c4a15532", func(a req.A) {
+			_, err := os.Stat(claims)
+			a.True(err == nil, "source map was not written: %v", err)
+		})
 	})
 	t.Run("0001.3.2 unstable test coverage is reported", func(t *testing.T) {
 		t.Parallel()
 		files := command(flipTest)
 		files["flip.go"] = flip
 		out, code := goTestCoverage(t, files)
-		acceptance.Sees(t, out, code, 0, "example.test/cli/TestFlip (", "unstable coverage; excluded from overlap advice")
+		req.Then(t, "0001.3.1.2.1", "1b963b89", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "example.test/cli/TestFlip (", "unstable coverage")
+		})
+		req.Then(t, "0001.3.1.2.2", "034c6558", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "excluded from overlap advice")
+		})
 	})
 	t.Run("0001.3.3 parallel plus serial tests overlap correctly", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", slowTests())
 		out, code := acceptance.Fitness(t, repo, nil, "go-test-coverage")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		runs := auditRuns(t, repo)
 		if len(runs) != 32 {
 			t.Fatalf("audit ran the sixteen tests %d times, want 32", len(runs))
 		}
 		counts := overlaps(runs)
-		if counts["parallel-parallel"] == 0 {
-			t.Errorf("no two runs of the parallel tests overlapped; go test runs them side by side")
-		}
-		if counts["serial-serial"] == 0 {
-			t.Errorf("no two serial packages' runs overlapped; go test runs packages side by side")
-		}
-		if counts["forbidden"] > 0 {
-			t.Errorf("%d pairs of runs overlapped within a serial package or one test; go test runs them in turn", counts["forbidden"])
-		}
+		req.Then(t, "0001.3.1.3.1", "81beebb7", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(counts["parallel-parallel"] != 0, "no two runs of the parallel tests overlapped; go test runs them side by side")
+		})
+		req.Then(t, "0001.3.1.3.2", "74c079d8", func(a req.A) {
+			a.True(counts["serial-serial"] != 0, "no two serial packages' runs overlapped; go test runs packages side by side")
+		})
+		req.Then(t, "0001.3.1.3.3", "a722ea83", func(a req.A) {
+			a.True(counts["forbidden"] == 0, "%d pairs of runs overlapped within a serial package or one test; go test runs them in turn", counts["forbidden"])
+		})
 	})
 }
 
@@ -270,4 +296,11 @@ func side(run run) string {
 		return "parallel"
 	}
 	return "serial"
+}
+
+// coverageSees runs go-test-coverage on files and args, asserting the exit code and message.
+func coverageSees(t *testing.T, want int, msg string, files map[string]string, args ...string) {
+	t.Helper()
+	out, code := goTestCoverage(t, files, args...)
+	acceptance.Sees(t, out, code, want, msg)
 }

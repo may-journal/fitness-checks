@@ -4,66 +4,73 @@
 package requirements
 
 import (
-	"os"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
-	acceptance.KeepHostGitOut()
-	os.Exit(m.Run())
+	acceptance.Main(m)
 }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a repo with no manifest passes with zero files whatever version file or changelog it holds", func(t *testing.T) {
 		t.Parallel()
-		out, code := releaseChangelog(t, nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "release-changelog")
+		req.Then(t, "0001.1.3.1.1", "cc0e4bfd", func(_ req.A) {
+			out, code := releaseChangelog(t, nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "release-changelog")
+		})
 	})
 	t.Run("0001.1.2 an empty bootstrap manifest passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": "{}\n"})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.3.2.1", "5858b32f", func(_ req.A) {
+			changelogSees(t, map[string]string{".release-please-manifest.json": "{}\n"}, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.3 a malformed manifest or one without a root version fails", func(t *testing.T) {
 		t.Parallel()
-		for _, c := range []struct {
-			files map[string]string
-			want  string
-		}{
-			{map[string]string{".release-please-manifest.json": "{\n"}, ".release-please-manifest.json is invalid JSON"},
-			{map[string]string{".release-please-manifest.json": "null\n"}, ".release-please-manifest.json must be a JSON object"},
-			{map[string]string{".release-please-manifest.json": `{"go":"1.2.3"}`}, `.release-please-manifest.json must contain a root "." release version`},
-			{map[string]string{".release-please-manifest.json": `{".":"v1.2.3"}`}, `.release-please-manifest.json root version must be numeric major.minor.patch (got "v1.2.3")`},
-		} {
-			out, code := releaseChangelog(t, c.files)
-			acceptance.Sees(t, out, code, 1, c.want)
-		}
+		req.Then(t, "0001.1.3.3.1", "95096028", func(_ req.A) {
+			for _, c := range []struct {
+				files map[string]string
+				want  string
+			}{
+				{map[string]string{".release-please-manifest.json": "{\n"}, ".release-please-manifest.json is invalid JSON"},
+				{map[string]string{".release-please-manifest.json": "null\n"}, ".release-please-manifest.json must be a JSON object"},
+				{map[string]string{".release-please-manifest.json": `{"go":"1.2.3"}`}, `.release-please-manifest.json must contain a root "." release version`},
+				{map[string]string{".release-please-manifest.json": `{".":"v1.2.3"}`}, `.release-please-manifest.json root version must be numeric major.minor.patch (got "v1.2.3")`},
+			} {
+				changelogSees(t, c.files, 1, c.want)
+			}
+		})
 	})
 	t.Run("0001.1.4 a version file that differs fails", func(t *testing.T) {
 		t.Parallel()
-		files := releaseChangelogRelease(upstreamChangelog)
-		files["version.txt"] = "1.2.4\n"
-		out, code := releaseChangelog(t, files)
-		acceptance.Sees(t, out, code, 1, `version.txt version "1.2.4" must match .release-please-manifest.json version "1.2.3"`)
+		req.Then(t, "0001.1.3.4.1", "94b0893c", func(_ req.A) {
+			files := releaseChangelogRelease(upstreamChangelog)
+			files["version.txt"] = "1.2.4\n"
+			changelogSees(t, files, 1, `version.txt version "1.2.4" must match .release-please-manifest.json version "1.2.3"`)
+		})
 	})
 	t.Run("0001.1.5 a release with no version file fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := releaseChangelog(t, map[string]string{".release-please-manifest.json": `{".":"1.2.3"}` + "\n"})
-		acceptance.Sees(t, out, code, 1, "version.txt is missing; it must match release 1.2.3")
+		req.Then(t, "0001.1.3.5.1", "0e11e2d4", func(_ req.A) {
+			changelogSees(t, map[string]string{".release-please-manifest.json": `{".":"1.2.3"}` + "\n"}, 1, "version.txt is missing; it must match release 1.2.3")
+		})
 	})
 	t.Run("0001.1.6 a matching version passes with or without a changelog", func(t *testing.T) {
 		t.Parallel()
-		for _, changelog := range []string{upstreamChangelog, ""} {
-			repo := acceptance.Example(t, "happyRepo", releaseChangelogRelease(changelog))
-			acceptance.Write(t, repo, map[string]string{".release-please-manifest.json": `{".": "1.2.3"}` + "\n"})
-			acceptance.Git(t, repo, "add", ".release-please-manifest.json")
-			out, code := acceptance.Fitness(t, repo, nil, "release-changelog")
-			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		}
+		req.Then(t, "0001.1.3.6.1", "bfa4ddfa", func(_ req.A) {
+			for _, changelog := range []string{upstreamChangelog, ""} {
+				repo := acceptance.Example(t, "happyRepo", releaseChangelogRelease(changelog))
+				acceptance.Write(t, repo, map[string]string{".release-please-manifest.json": `{".": "1.2.3"}` + "\n"})
+				acceptance.Git(t, repo, "add", ".release-please-manifest.json")
+				out, code := acceptance.Fitness(t, repo, nil, "release-changelog")
+				acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			}
+		})
 	})
 }
 
@@ -86,4 +93,11 @@ func releaseChangelogRelease(changelog string) map[string]string {
 		"version.txt":                   "1.2.3\n",
 		"CHANGELOG.md":                  changelog,
 	}
+}
+
+// changelogSees runs release-changelog on happyRepo with files written over it and expects code and want.
+func changelogSees(t *testing.T, files map[string]string, wantCode int, want string) {
+	t.Helper()
+	out, code := releaseChangelog(t, files)
+	acceptance.Sees(t, out, code, wantCode, want)
 }

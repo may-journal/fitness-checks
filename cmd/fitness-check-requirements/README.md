@@ -57,6 +57,19 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
 - Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
 - Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
 
+## Tags
+
+A test case carries a tag of its THEN, the ID plus a hash. The ID is `doc.acceptance.GIVEN.WHEN.THEN`, such as `0002.1.1.1.2`. The hash is the first 8 hex digits of the sha256 of the THEN text after the keyword, with whitespace collapsed. [Requirement 0010](docs/requirements/0010-each-then-has-a-tagged-case.md) states the rules.
+
+- Go: `req.Then(t, "0002.1.1.1.2", "a3f9c1d2", func(a req.A) { a.Equal(0, len(added)) })` from `github.com/may-journal/fitness-checks/req`. The call fails when its body makes no assertion.
+- Java: `@Tag("req:0002.1.1.1.2#a3f9c1d2")` on the test method.
+- Swift: `XCTContext.runActivity(named: "req 0002.1.1.1.2#a3f9c1d2")`.
+- Node: a `then("0002.1.1.1.2", "a3f9c1d2", ...)` wrapper around `it`.
+
+A tag that names no THEN, a stale hash and two tags on one THEN fail. A stale tag prints the new hash. `fitness requirements --tag` writes the tag of each Go case matched to one THEN by step name, and lists the THENs still untagged. `--dry-run` beside it writes nothing.
+
+Case names stay free, so a rename of cases needs no doc change. An assertion helper calls `req.Asserted(t)`, and a case that asserts with `t.Errorf` stays untagged.
+
 ## Gherkin
 
 [Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) has every doc number its acceptances. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects. Shared context sits in the GIVENs once, each WHEN says only what differs and each THEN gives its own result.

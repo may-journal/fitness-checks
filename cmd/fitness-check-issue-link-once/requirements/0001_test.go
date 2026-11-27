@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain lets this test binary stand in for gh, which answers the pull
@@ -26,35 +27,48 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		repo := onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
-		out, code := check(t, repo, "fix(app): more\n\nSee https://github.com/"+ghRepo+"/issues/12")
-		acceptance.Sees(t, out, code, 1, ghRepo+`#12 is already linked by commit`, `("feat(app): start")`)
-		out, code = check(t, repo, "fix(app): more\n\nPlan #12")
-		acceptance.Sees(t, out, code, 1, ghRepo+`#12 is already linked by commit`, `("feat(app): start")`)
+		byURL, byURLCode := check(t, repo, "fix(app): more\n\nSee https://github.com/"+ghRepo+"/issues/12")
+		byNumber, byNumberCode := check(t, repo, "fix(app): more\n\nPlan #12")
 		repo = onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): begin\n\nPlan may-journal/.github#144")
-		out, code = check(t, repo, "fix(app): more\n\nPlan https://github.com/may-journal/.github/issues/144")
-		acceptance.Sees(t, out, code, 1, `may-journal/.github#144 is already linked by commit`, `("feat(app): begin")`)
+		other, otherCode := check(t, repo, "fix(app): more\n\nPlan https://github.com/may-journal/.github/issues/144")
+		req.Then(t, "0001.1.2.1.1", "da458fb8", func(a req.A) {
+			acceptance.Sees(t, byNumber, byNumberCode, 1, ghRepo+`#12 is already linked`)
+		})
+		req.Then(t, "0001.1.2.1.2", "a5d6f366", func(a req.A) {
+			acceptance.Sees(t, byNumber, byNumberCode, 1, `is already linked by commit`, `("feat(app): start")`)
+		})
+		req.Then(t, "0001.1.2.1.3", "0b599f33", func(a req.A) {
+			acceptance.Sees(t, byURL, byURLCode, 1, ghRepo+`#12 is already linked by commit`, `("feat(app): start")`)
+			acceptance.Sees(t, other, otherCode, 1, `may-journal/.github#144 is already linked by commit`, `("feat(app): begin")`)
+		})
 	})
 	t.Run("0001.1.2 an issue of another repo that a new message links passes", func(t *testing.T) {
 		t.Parallel()
-		repo := onGitHub(t, "topic")
-		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
-		out, code := check(t, repo, "fix(app): more\n\nSee may-journal/fitness-runner#12")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.2.2.1", "07b8e753", func(_ req.A) {
+			repo := onGitHub(t, "topic")
+			commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
+			out, code := check(t, repo, "fix(app): more\n\nSee may-journal/fitness-runner#12")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.3 comment and scissors lines are ignored", func(t *testing.T) {
 		t.Parallel()
-		repo := branch(t, "topic")
-		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
-		message := "fix(app): more\n# Plan #12\n# ------------------------ >8 ------------------------\nPlan #12\n"
-		out, code := check(t, repo, message)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.2.3.1", "c00fe20b", func(_ req.A) {
+			repo := branch(t, "topic")
+			commitAs(t, repo, "", "feat(app): start\n\nPlan #12")
+			message := "fix(app): more\n# Plan #12\n# ------------------------ >8 ------------------------\nPlan #12\n"
+			out, code := check(t, repo, message)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.4 neither a message nor a pull request passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "issue-link-once")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "issue-link-once")
+		req.Then(t, "0001.1.2.4.1", "857dd667", func(_ req.A) {
+			out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "issue-link-once")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "issue-link-once")
+		})
 	})
 }
 
@@ -66,7 +80,12 @@ func Test0001_2(t *testing.T) {
 		{Match: []string{"pr view", "--json number,state,body"}, Stdout: `{"body":"Adds the export screen.\n\nCloses #12","number":7,"state":"OPEN"}` + "\n"},
 	}})
 	out, code := acceptance.Fitness(t, repo, rp.Env, "issue-link-once", "--message", "fix(app): more\n\nFixes #12")
-	acceptance.Sees(t, out, code, 1, "acme/app#12 is already linked by open PR #7")
+	req.Then(t, "0001.2.2.1.1", "da458fb8", func(a req.A) {
+		acceptance.Sees(t, out, code, 1, "acme/app#12 is already linked")
+	})
+	req.Then(t, "0001.2.2.1.2", "bee6d714", func(a req.A) {
+		acceptance.Sees(t, out, code, 1, "is already linked by open PR #7")
+	})
 }
 
 func Test0001_3(t *testing.T) {
@@ -77,26 +96,38 @@ func Test0001_3(t *testing.T) {
 		commitAs(t, repo, "2026-09-30T10:00:00Z", "feat(app): start\n\nPlan #12")
 		commitAs(t, repo, "2026-09-30T11:00:00Z", "fix(app): more\n\nPlan #12")
 		out, code := pullRequest(t, repo)
-		acceptance.Sees(t, out, code, 1, "commit "+head(t, repo)[:7]+` ("fix(app): more"): #12 is already linked by commit`, "--force-with-lease")
+		req.Then(t, "0001.3.2.1.1", "bef9b564", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "commit "+head(t, repo)[:7]+` ("fix(app): more"): #12`)
+		})
+		req.Then(t, "0001.3.2.1.2", "cea9dcb8", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "#12 is already linked by commit")
+		})
+		req.Then(t, "0001.3.2.1.3", "5c7c9dcf", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "--force-with-lease")
+		})
 	})
 	t.Run("0001.3.2 a later commit repeating the pull request link fails", func(t *testing.T) {
 		t.Parallel()
-		repo := branch(t, "topic")
-		commitAs(t, repo, "2026-09-30T13:00:00Z", "fix(app): more\n\nFixes #12")
-		out, code := pullRequest(t, repo)
-		acceptance.Sees(t, out, code, 1, "#12 is already linked by open PR #9", "--force-with-lease")
+		req.Then(t, "0001.3.2.2.1", "bee6d714", func(_ req.A) {
+			repo := branch(t, "topic")
+			commitAs(t, repo, "2026-09-30T13:00:00Z", "fix(app): more\n\nFixes #12")
+			out, code := pullRequest(t, repo)
+			acceptance.Sees(t, out, code, 1, "#12 is already linked by open PR #9", "--force-with-lease")
+		})
 	})
 	t.Run("0001.3.3 one early link passes with main merged in", func(t *testing.T) {
 		t.Parallel()
-		repo := branch(t, "topic")
-		commitAs(t, repo, "2026-09-30T10:00:00Z", "feat(app): start\n\nPlan #12")
-		acceptance.Git(t, repo, "switch", "-q", "main")
-		commitAs(t, repo, "2026-09-30T13:00:00Z", "feat(app): more on main\n\nPlan #12")
-		acceptance.Git(t, repo, "push", "-q", "origin", "main")
-		acceptance.Git(t, repo, "switch", "-q", "topic")
-		acceptance.User(t, repo, nil, "merge", "-q", "--no-edit", "main")
-		out, code := pullRequest(t, repo)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
+		req.Then(t, "0001.3.2.3.1", "b98fdd3c", func(_ req.A) {
+			repo := branch(t, "topic")
+			commitAs(t, repo, "2026-09-30T10:00:00Z", "feat(app): start\n\nPlan #12")
+			acceptance.Git(t, repo, "switch", "-q", "main")
+			commitAs(t, repo, "2026-09-30T13:00:00Z", "feat(app): more on main\n\nPlan #12")
+			acceptance.Git(t, repo, "push", "-q", "origin", "main")
+			acceptance.Git(t, repo, "switch", "-q", "topic")
+			acceptance.User(t, repo, nil, "merge", "-q", "--no-edit", "main")
+			out, code := pullRequest(t, repo)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
+		})
 	})
 }
 

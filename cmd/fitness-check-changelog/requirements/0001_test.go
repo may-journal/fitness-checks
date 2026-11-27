@@ -4,9 +4,11 @@
 package requirements
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of every repo the tests make.
@@ -35,8 +37,14 @@ func Test0001_1(t *testing.T) {
 			"2026-10-11-0900-newer-change": bareEntryText("2026.10.11.0900", "Feat: newer change."),
 			"2026-10-12-0900-third-change": bareEntryText("2026.10.12.0900", "Docs: third change."),
 		}))
-		sees(t, out, code, 0, "All 1 checks passed")
-		passedWith(t, out, "changelog", "3")
+		req.Then(t, "0001.1.3.1.1", "17360cd9", func(a req.A) {
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+			passedWith(a.T(), out, "changelog", "3")
+		})
+		req.Then(t, "0001.1.3.1.2", "da6aa874", func(a req.A) {
+			// Two of the three entry files carry no front matter.
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.1.2 two dated or undated headings fail", func(t *testing.T) {
 		t.Parallel()
@@ -45,9 +53,12 @@ func Test0001_1(t *testing.T) {
 			"2026-10-11-1000-two-headings": entryFileText("2026.10.11.1000", "Fix: one.") + "\n" + entryFileText("2026.10.11.1100", "Fix: two."),
 			"2026-10-11-1200-undated":      "### Added\n\n- Feat: one.\n- Fix: two.\n- Docs: three.\n",
 		}))
-		sees(t, out, code, 1,
-			"changelog/2026-10-11-1000-two-headings.md must hold one ### yyyy.mm.dd.HHMM heading and its bullets, nothing else",
-			"changelog/2026-10-11-1200-undated.md must hold one ### yyyy.mm.dd.HHMM heading")
+		req.Then(t, "0001.1.3.2.1", "c191df5f", func(a req.A) {
+			sees(a.T(), out, code, 1, "changelog/2026-10-11-1000-two-headings.md must hold one ### yyyy.mm.dd.HHMM heading and its bullets, nothing else")
+		})
+		req.Then(t, "0001.1.3.2.2", "64c245ff", func(a req.A) {
+			sees(a.T(), out, code, 1, "changelog/2026-10-11-1200-undated.md must hold one ### yyyy.mm.dd.HHMM heading")
+		})
 	})
 	t.Run("0001.1.3 a name that lacks its heading's date fails", func(t *testing.T) {
 		t.Parallel()
@@ -55,17 +66,25 @@ func Test0001_1(t *testing.T) {
 			"undated-change":               entryFileText("2026.10.11.0900", "Feat: undated change."),
 			"2026-10-11-0800-moved-change": entryFileText("2026.10.11.1000", "Fix: moved change."),
 		}))
-		sees(t, out, code, 1,
-			"changelog/undated-change.md must be named changelog/2026-10-11-0900-undated-change.md: its heading's date, then the change",
-			"changelog/2026-10-11-0800-moved-change.md must be named changelog/2026-10-11-1000-moved-change.md")
+		req.Then(t, "0001.1.3.3.1", "b10e3ae0", func(a req.A) {
+			sees(a.T(), out, code, 1, "changelog/undated-change.md must be named changelog/2026-10-11-0900-undated-change.md: its heading's date, then the change")
+		})
+		req.Then(t, "0001.1.3.3.2", "848bcb6d", func(a req.A) {
+			sees(a.T(), out, code, 1, "changelog/2026-10-11-0800-moved-change.md must be named changelog/2026-10-11-1000-moved-change.md")
+		})
 	})
 	t.Run("0001.1.4 a repo with no entry files passes", func(t *testing.T) {
 		t.Parallel()
-		for _, changelog := range []string{upstreamChangelog, ""} {
-			out, code := changelogRun(t, map[string]string{"CHANGELOG.md": changelog})
-			sees(t, out, code, 0, "All 1 checks passed")
-			passedWithNoFiles(t, out, "changelog")
-		}
+		req.Then(t, "0001.1.3.4.1", "857dd667", func(a req.A) {
+			out, code := changelogRun(t, map[string]string{"CHANGELOG.md": ""})
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+			passedWithNoFiles(a.T(), out, "changelog")
+		})
+		req.Then(t, "0001.1.3.4.2", "28de5c62", func(a req.A) {
+			out, code := changelogRun(t, map[string]string{"CHANGELOG.md": upstreamChangelog})
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+			passedWithNoFiles(a.T(), out, "changelog")
+		})
 	})
 	t.Run("0001.1.5 only entry files are judged, so upstream history passes", func(t *testing.T) {
 		t.Parallel()
@@ -77,8 +96,17 @@ func Test0001_1(t *testing.T) {
 		files["package.json"] = `{"name": "app", "private": true, "version": "2.0.1"}` + "\n"
 		files["package-lock.json"] = `{"name": "app", "version": "2.0.0"}` + "\n"
 		out, code := changelogRun(t, files)
-		sees(t, out, code, 0, "All 1 checks passed")
-		passedWith(t, out, "changelog", "2")
+		req.Then(t, "0001.1.3.5.1", "ebb2c064", func(a req.A) {
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "CHANGELOG.md"), "the upstream history was judged:\n%s", out)
+		})
+		req.Then(t, "0001.1.3.5.2", "ba2ffd97", func(a req.A) {
+			sees(a.T(), out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, "package"), "a moved package version was judged:\n%s", out)
+		})
+		req.Then(t, "0001.1.3.5.3", "68390325", func(a req.A) {
+			passedWith(a.T(), out, "changelog", "2")
+		})
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -28,58 +29,88 @@ var (
 	doc     = acceptance.DiagramDoc
 )
 
+// broken runs the check on a README holding one diagram of the given lines.
+func broken(t *testing.T, lines ...string) (string, int) {
+	t.Helper()
+	return syntax(t, doc(diagram(lines...)))
+}
+
 // rejects fails when the README holds one diagram of the given lines.
 func rejects(t *testing.T, lines []string, want ...string) {
 	t.Helper()
-	out, code := syntax(t, doc(diagram(lines...)))
+	out, code := broken(t, lines...)
 	acceptance.Sees(t, out, code, 1, want...)
+}
+
+// accepts passes when a README holding one diagram per line set is judged
+// well formed.
+func accepts(t *testing.T, known ...[]string) {
+	t.Helper()
+	var diagrams []string
+	for _, lines := range known {
+		diagrams = append(diagrams, diagram(lines...))
+	}
+	out, code := syntax(t, doc(diagrams...))
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 well formed diagrams of every type pass", func(t *testing.T) {
 		t.Parallel()
-		known := [][]string{
+		flowcharts := [][]string{
 			{"flowchart LR", `A["Start (now)"]:::s --> B{Ready?} -->|yes| C((Done))`, "B -.-> D & E",
 				"subgraph S [Group]", "direction TB", "F -- note --> G", "end", "classDef s fill:#eef"},
 			{"graph TD;", "A-->B;"},
+			{"flowchart-elk TD", "accDescr {", "free text: here", "}", "A-- yes -->B"},
+		}
+		sequences := [][]string{
 			{"sequenceDiagram", "participant A as Client", "loop every minute", "A->>+B: ping", "alt ok",
 				"B-->>-A: pong", "else down", "Note over A,B: retry", "end", "end"},
-			{"C4Context", `Person(user, "1 User")`, `Rel(user, app, "2")`},
-			{"flowchart-elk TD", "accDescr {", "free text: here", "}", "A-- yes -->B"},
 			{"sequenceDiagram", "par_over A", "A->>B: x", "and B", "B->>A: y", "end"},
-			{"mindmap", "root", "  a)cloud("},
-			{"xychart", "bar [1, 2]"},
 		}
-		var diagrams []string
-		for _, lines := range known {
-			diagrams = append(diagrams, diagram(lines...))
-		}
-		out, code := syntax(t, doc(diagrams...))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		c4 := [][]string{{"C4Context", `Person(user, "1 User")`, `Rel(user, app, "2")`}}
+		req.Then(t, "0001.1.1.1.1", "72c00142", func(_ req.A) { accepts(t, flowcharts...) })
+		req.Then(t, "0001.1.1.1.2", "464bcbe7", func(_ req.A) { accepts(t, sequences...) })
+		req.Then(t, "0001.1.1.1.3", "c34adb7c", func(_ req.A) { accepts(t, c4...) })
+		accepts(t, []string{"mindmap", "root", "  a)cloud("}, []string{"xychart", "bar [1, 2]"})
 	})
 	t.Run("0001.1.2 a flowchart or sequence diagram left open fails", func(t *testing.T) {
 		t.Parallel()
-		rejects(t, []string{"flowchart TD", "A -->", "subgraph S", "B --> C"},
-			"README.md: line 11: an edge has no target node (diagram at line 9)",
-			"README.md: line 12: subgraph is never closed with end (diagram at line 9)")
-		rejects(t, []string{"sequenceDiagram", "A->>B", "loop every minute", "A->>B: hi"},
-			`README.md: line 11: message "A->>B" needs a target and a colon`,
-			"README.md: line 12: loop is never closed with end (diagram at line 9)")
+		flowOut, flowCode := broken(t, "flowchart TD", "A -->", "subgraph S", "B --> C")
+		seqOut, seqCode := broken(t, "sequenceDiagram", "A->>B", "loop every minute", "A->>B: hi")
+		req.Then(t, "0001.1.1.2.1", "ee136214", func(_ req.A) {
+			acceptance.Sees(t, flowOut, flowCode, 1,
+				"README.md: line 11: an edge has no target node",
+				"README.md: line 12: subgraph is never closed with end")
+			acceptance.Sees(t, seqOut, seqCode, 1,
+				`README.md: line 11: message "A->>B" needs a target and a colon`,
+				"README.md: line 12: loop is never closed with end")
+		})
+		req.Then(t, "0001.1.1.2.2", "0c45cb5f", func(_ req.A) {
+			acceptance.Sees(t, flowOut, flowCode, 1, "an edge has no target node (diagram at line 9)")
+			acceptance.Sees(t, seqOut, seqCode, 1, "loop is never closed with end (diagram at line 9)")
+		})
 	})
 	t.Run("0001.1.3 an unknown diagram type fails by name", func(t *testing.T) {
 		t.Parallel()
-		rejects(t, []string{"graf TD", "A --> B"}, `README.md: line 10: unknown diagram type "graf" (diagram at line 9)`)
+		req.Then(t, "0001.1.1.3.1", "f63e52f3", func(_ req.A) {
+			rejects(t, []string{"graf TD", "A --> B"}, `README.md: line 10: unknown diagram type "graf" (diagram at line 9)`)
+		})
 	})
 	t.Run("0001.1.4 a C4 unclosed bracket fails", func(t *testing.T) {
 		t.Parallel()
-		rejects(t, []string{"C4Context", `Person(user, "1 User")`, `Rel(user, app, "2"`},
-			"README.md: line 12: '(' is never closed (diagram at line 9)")
+		req.Then(t, "0001.1.1.4.1", "aabd0f94", func(_ req.A) {
+			rejects(t, []string{"C4Context", `Person(user, "1 User")`, `Rel(user, app, "2"`},
+				"README.md: line 12: '(' is never closed (diagram at line 9)")
+		})
 	})
 	t.Run("0001.1.5 a bare bracket label fails", func(t *testing.T) {
 		t.Parallel()
-		rejects(t, []string{"flowchart TD", "A[Start (x)] --> B"},
-			`README.md: line 11: node A: label "Start (x)" has brackets or quotes; wrap it in double quotes (diagram at line 9)`)
+		req.Then(t, "0001.1.1.5.1", "a9a3fb0e", func(_ req.A) {
+			rejects(t, []string{"flowchart TD", "A[Start (x)] --> B"},
+				`README.md: line 11: node A: label "Start (x)" has brackets or quotes; wrap it in double quotes (diagram at line 9)`)
+		})
 	})
 }
 
@@ -87,15 +118,19 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 a PR body diagram is judged as the description", func(t *testing.T) {
 		t.Parallel()
-		out, code := syntax(t, map[string]string{"body.md": diagram("flowchart TD", "A[Start (x)] --> B")},
-			"--body-file", "body.md")
-		acceptance.Sees(t, out, code, 1, `(description): line 3: node A: label "Start (x)"`)
+		req.Then(t, "0001.2.2.1.1", "41f704b4", func(_ req.A) {
+			out, code := syntax(t, map[string]string{"body.md": diagram("flowchart TD", "A[Start (x)] --> B")},
+				"--body-file", "body.md")
+			acceptance.Sees(t, out, code, 1, `(description): line 3: node A: label "Start (x)"`)
+		})
 	})
 	t.Run("0001.2.2 docs with no diagram pass with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := syntax(t, nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "mermaid-syntax")
+		req.Then(t, "0001.2.2.2.1", "ebe8880b", func(_ req.A) {
+			out, code := syntax(t, nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "mermaid-syntax")
+		})
 	})
 	t.Run("0001.2.3 every real diagram is judged and a code block example is not", func(t *testing.T) {
 		t.Parallel()
@@ -107,15 +142,17 @@ func Test0001_2(t *testing.T) {
 		files["docs/how-to.md"] = "# How\n\nQuote a diagram like this:\n\n````markdown\n> ```mermaid\n> flowchart TD\n> A[Start (x)] --> B\n> ```\n````\n"
 		out, code := syntax(t, files)
 		label := `node A: label "Start (x)" has brackets or quotes; wrap it in double quotes`
-		acceptance.Sees(t, out, code, 1, "README.md: line 11: "+label+" (diagram at line 9)",
-			"README.md: line 16: "+label+" (diagram at line 14)",
-			"docs/guide.markdown: line 5: "+label+" (diagram at line 3)",
-			"docs/flow.mmd: line 2: "+label,
-			"docs/reply.md: line 9: "+label+" (diagram at line 7)")
-		for _, unwanted := range []string{"docs/flow.mmd: line 2: " + label + " (diagram", "docs/how-to.md", "docs/reply.md: line 5"} {
-			if strings.Contains(acceptance.Read(out), unwanted) {
-				t.Errorf("a whole-file diagram names no fence, and a quoted example in a code block is code:\n%s", out)
+		req.Then(t, "0001.2.2.3.1", "09683b82", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "README.md: line 11: "+label+" (diagram at line 9)",
+				"README.md: line 16: "+label+" (diagram at line 14)",
+				"docs/guide.markdown: line 5: "+label+" (diagram at line 3)",
+				"docs/flow.mmd: line 2: "+label,
+				"docs/reply.md: line 9: "+label+" (diagram at line 7)")
+		})
+		req.Then(t, "0001.2.2.3.2", "76aab2b1", func(a req.A) {
+			for _, unwanted := range []string{"docs/flow.mmd: line 2: " + label + " (diagram", "docs/how-to.md", "docs/reply.md: line 5"} {
+				a.True(!strings.Contains(acceptance.Read(out), unwanted), "a whole-file diagram names no fence, and a quoted example in a code block is code:\n%s", out)
 			}
-		}
+		})
 	})
 }

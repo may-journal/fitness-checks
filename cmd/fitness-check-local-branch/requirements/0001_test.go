@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -23,11 +24,21 @@ func Test0001_1(t *testing.T) {
 	t.Run("0001.1.1 it declares the check, its scope and its protocol", func(t *testing.T) {
 		t.Parallel()
 		out, code := acceptance.Execute(t, func() *exec.Cmd { return exec.Command(bin, "--describe") })
-		acceptance.Sees(t, out, code, 0, `"name":"local-branch"`, `"scope":"github"`, `"protocol":1`)
+		req.Then(t, "0001.1.1.1.1", "db35c93d", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, `"name":"local-branch"`)
+		})
+		req.Then(t, "0001.1.1.1.2", "1874452a", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, `"scope":"github"`)
+		})
+		req.Then(t, "0001.1.1.1.3", "ef391279", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, `"protocol":1`)
+		})
 	})
 	t.Run("0001.1.2 run alone it exits saying it runs only inside fitness", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Execute(t, func() *exec.Cmd { return exec.Command(bin, "--root", t.TempDir()) })
-		acceptance.Sees(t, out, code, 3, "runs only inside fitness")
+		req.Then(t, "0001.1.1.2.1", "d4ef3dfd", func(_ req.A) {
+			out, code := acceptance.Execute(t, func() *exec.Cmd { return exec.Command(bin, "--root", t.TempDir()) })
+			acceptance.Sees(t, out, code, 3, "runs only inside fitness")
+		})
 	})
 }

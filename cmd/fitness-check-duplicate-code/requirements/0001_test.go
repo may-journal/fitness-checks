@@ -7,59 +7,64 @@ package requirements
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
-func TestMain(m *testing.M) {
-	acceptance.KeepHostGitOut()
-	os.Exit(m.Run())
-}
+// TestMain keeps the host's git config out of the example repos.
+func TestMain(m *testing.M) { acceptance.Main(m) }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 rejects a share past the limit", func(t *testing.T) {
 		t.Parallel()
 		out, code := dupRun(t, dupPair("src/a.js", "src/b.js", dupClone))
-		acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is 7.4% of scanned lines, over the 1.0% threshold", "src/b.js: 6 duplicated lines")
-		if strings.Contains(acceptance.Read(out), "src/a.js:") {
-			t.Errorf("the first copy holds no duplicated line, so only src/b.js is named:\n%s", out)
-		}
+		req.Then(t, "0001.1.1.1.1", "23ed7374", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is 7.4% of scanned lines, over the 1.0% threshold")
+		})
+		req.Then(t, "0001.1.1.1.2", "5677f953", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "src/b.js: 6 duplicated lines")
+			a.True(!strings.Contains(acceptance.Read(out), "src/a.js:"), "the first copy holds no duplicated line, so only src/b.js is named:\n%s", out)
+		})
 	})
 	// The case commits a copied block in a script, which duplicate-code never
 	// compares with a doc, then in a second doc.
 	t.Run("0001.1.2 judges staged files against tracked files", func(t *testing.T) {
 		t.Parallel()
-		acceptance.PassedWith(t, dupCommit(t, "src/copy.js"), "duplicate-code", "1")
-		out := dupCommit(t, "docs/copy.md")
-		if !regexp.MustCompile(`│ failed\s+│ 4\s+│`).MatchString(acceptance.Row(out, "duplicate-code")) {
-			t.Errorf("a staged doc copying a tracked doc must fail duplicate-code over the 4 docs, got row %q\n%s", acceptance.Row(out, "duplicate-code"), out)
-		}
+		req.Then(t, "0001.1.1.2.1", "8df8a801", func(a req.A) {
+			acceptance.PassedWith(t, dupCommit(t, "src/copy.js"), "duplicate-code", "1")
+		})
+		req.Then(t, "0001.1.1.2.2", "98cee200", func(a req.A) {
+			out := dupCommit(t, "docs/copy.md")
+			a.True(regexp.MustCompile(`│ failed\s+│ 4\s+│`).MatchString(acceptance.Row(out, "duplicate-code")), "a staged doc copying a tracked doc must fail duplicate-code over the 4 docs, got row %q\n%s", acceptance.Row(out, "duplicate-code"), out)
+		})
 	})
 	t.Run("0001.1.3 compares every tracked text file including Markdown or JSON", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{".gitignore": "conf/\n"})
-		acceptance.Write(t, repo, dupPair("docs/a.md", "conf/b.json", dupClone))
-		acceptance.Git(t, repo, "add", "-f", "docs", "conf")
-		out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
-		acceptance.Sees(t, out, code, 1, "ERROR: duplicate code is ")
+		req.Then(t, "0001.1.1.3.1", "042f037c", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", map[string]string{".gitignore": "conf/\n"})
+			acceptance.Write(t, repo, dupPair("docs/a.md", "conf/b.json", dupClone))
+			acceptance.Git(t, repo, "add", "-f", "docs", "conf")
+			dupSees(t, repo, 1, "ERROR: duplicate code is ")
+		})
 	})
 	// The case puts a 3-line block in one pair and an 18-token block in
 	// another, each under one minimum. Two docs share a 5-line run only because
 	// it ends in a 120-dash separator row.
 	t.Run("0001.1.4 passes short shared blocks", func(t *testing.T) {
 		t.Parallel()
-		files := dupPair("src/a.js", "src/b.js", dupBlock("w", 3, 20))
-		files["src/c.js"] = dupBlock("s", 6, 3) + dupBlock("fc", 24, 3)
-		files["src/d.js"] = dupBlock("s", 6, 3) + dupBlock("fd", 24, 3)
-		files["docs/a.md"] = "# A\n\n" + dupSeparatorTable + "a | b\n" + dupBlock("da", 24, 3)
-		files["docs/b.md"] = "# B\n\n" + dupSeparatorTable + "c | d\n" + dupBlock("db", 24, 3)
-		out, code := dupRun(t, files)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.4.1", "07b8e753", func(_ req.A) {
+			files := dupPair("src/a.js", "src/b.js", dupBlock("w", 3, 20))
+			files["src/c.js"] = dupBlock("s", 6, 3) + dupBlock("fc", 24, 3)
+			files["src/d.js"] = dupBlock("s", 6, 3) + dupBlock("fd", 24, 3)
+			files["docs/a.md"] = "# A\n\n" + dupSeparatorTable + "a | b\n" + dupBlock("da", 24, 3)
+			files["docs/b.md"] = "# B\n\n" + dupSeparatorTable + "c | d\n" + dupBlock("db", 24, 3)
+			dupPasses(t, files)
+		})
 	})
 }
 
@@ -67,25 +72,27 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 skips lockfiles and generated files", func(t *testing.T) {
 		t.Parallel()
-		files := dupPair("deps/a.lock", "deps/b.lock", dupClone)
-		files[".gitattributes"] = "*.lock linguist-generated\n"
-		for name, body := range dupPair("app/gradle.lockfile", "lib/gradle.lockfile", dupClone) {
-			files[name] = body
-		}
-		for name, body := range dupPair("mvnw", "app/gradlew.bat", dupClone) {
-			files[name] = body
-		}
-		out, code := dupRun(t, files)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.1.1.1", "815c1493", func(_ req.A) {
+			files := dupPair("deps/a.lock", "deps/b.lock", dupClone)
+			files[".gitattributes"] = "*.lock linguist-generated\n"
+			for name, body := range dupPair("app/gradle.lockfile", "lib/gradle.lockfile", dupClone) {
+				files[name] = body
+			}
+			for name, body := range dupPair("mvnw", "app/gradlew.bat", dupClone) {
+				files[name] = body
+			}
+			dupPasses(t, files)
+		})
 	})
 	// The case tracks a binary pair and leaves a text pair untracked. Both
 	// pairs share the block and their tails, so only skipping both passes.
 	t.Run("0001.2.2 skips binary and untracked files", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", dupPair("blob/a.dat", "blob/b.dat", "\x00\n"+dupClone))
-		acceptance.Write(t, repo, dupPair("src/a.js", "src/b.js", dupClone))
-		out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.1.2.1", "154e8c7a", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", dupPair("blob/a.dat", "blob/b.dat", "\x00\n"+dupClone))
+			acceptance.Write(t, repo, dupPair("src/a.js", "src/b.js", dupClone))
+			dupSees(t, repo, 0, "All 1 checks passed")
+		})
 	})
 	// The case wraps the block in current markers in one pair and deprecated
 	// jscpd ones in the other, so older repos keep passing.
@@ -93,13 +100,17 @@ func Test0001_2(t *testing.T) {
 		t.Parallel()
 		current := "// duplicate-code:ignore-start\n" + dupClone + "// duplicate-code:ignore-end\n"
 		deprecated := "/* jscpd:ignore-start */\n" + dupBlock("j", 6, 10) + "/* jscpd:ignore-end */\n"
-		out, code := dupRun(t, map[string]string{
-			"src/a.js": current + dupBlock("fa", 24, 3),
-			"src/b.js": current + dupBlock("fb", 24, 3),
-			"src/c.js": deprecated + dupBlock("fc", 24, 3),
-			"src/d.js": deprecated + dupBlock("fd", 24, 3),
+		out, code := dupRun(t, dupPair("src/a.js", "src/b.js", current))
+		oldOut, oldCode := dupRun(t, dupPair("src/c.js", "src/d.js", deprecated))
+		req.Then(t, "0001.2.1.3.1", "e52cf8ea", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.1.3.2", "d232d50e", func(a req.A) {
+			acceptance.Sees(t, oldOut, oldCode, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.2.1.3.3", "05351e97", func(a req.A) {
+			acceptance.Sees(t, oldOut, oldCode, 0, "All 1 checks passed")
+		})
 	})
 	// The case adds a template, matching legends and a copied untitled
 	// diagram to the two docs of the share past the limit case. A
@@ -117,11 +128,16 @@ func Test0001_2(t *testing.T) {
 		acceptance.Write(t, repo, map[string]string{"docs/new.md": "# New\n\n" + dupBlock("fn", 24, 3)})
 		acceptance.Git(t, repo, "add", "docs/new.md")
 		out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
-		if code == 0 {
-			t.Errorf("the staged doc must fail:\n%s", out)
-		}
-		dupNames(t, out, []string{"ERROR: duplicate code is 5.6% of scanned lines", "docs/notes.md: 6 duplicated lines", "docs/flow-b.md: 11 duplicated lines"},
-			[]string{"docs/architecture/02-containers.md:", "docs/architecture/03-components.md:", "docs/flow-a.md:", "docs/guide.md:", "docs/templates/guide.md:"})
+		req.Then(t, "0001.2.1.4.1", "eeb9dba8", func(a req.A) {
+			a.True(code != 0, "the staged doc must fail:\n%s", out)
+			dupNames(t, out, nil, []string{"docs/templates/guide.md:", "docs/guide.md:"})
+		})
+		req.Then(t, "0001.2.1.4.2", "1fda9599", func(a req.A) {
+			dupNames(t, out, nil, []string{"docs/architecture/02-containers.md:", "docs/architecture/03-components.md:", "docs/flow-a.md:"})
+		})
+		req.Then(t, "0001.2.1.4.3", "a8fc5c19", func(a req.A) {
+			dupNames(t, out, []string{"ERROR: duplicate code is 5.6% of scanned lines", "docs/notes.md: 6 duplicated lines", "docs/flow-b.md: 11 duplicated lines"}, nil)
+		})
 	})
 }
 
@@ -182,6 +198,7 @@ var dupCopiedDiagram = "```mermaid\nflowchart TB\n" + dupBlock("m", 6, 3) + "```
 // hold only lines a doc must repeat.
 func dupNames(t *testing.T, out string, wants, clean []string) {
 	t.Helper()
+	req.Asserted(t)
 	for _, want := range wants {
 		if !strings.Contains(acceptance.Read(out), want) {
 			t.Errorf("the commit output is missing %q:\n%s", want, out)
@@ -216,3 +233,17 @@ func dupLevelDiagram(prefix string) string {
 
 // dupLegend is the legend diagram every C4 level repeats, with its table.
 const dupLegend = "```mermaid\nC4Container\n    title Legend\n\n    Person(p, \"Person\", \"Human or agent actor\")\n    System_Boundary(b, \"System boundary\") {\n        Container(c, \"Container\", \"Tech\", \"Runnable or deployable unit\")\n    }\n    System_Ext(e, \"External\", \"Outside our boundary\")\n\n    UpdateElementStyle(p, $bgColor=\"#334155\", $borderColor=\"#1e293b\", $fontColor=\"#ffffff\")\n    UpdateElementStyle(c, $bgColor=\"#0f766e\", $borderColor=\"#115e59\", $fontColor=\"#ffffff\")\n    UpdateElementStyle(e, $bgColor=\"#64748b\", $borderColor=\"#475569\", $fontColor=\"#ffffff\")\n```\n\nNumbers on nodes and letters on arrows match the callout table.\n\n| # | Description | Why |\n| --- | --- | --- |\n"
+
+// dupPasses asserts duplicate-code passes on happyRepo with files over it.
+func dupPasses(t *testing.T, files map[string]string) {
+	t.Helper()
+	out, code := dupRun(t, files)
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+}
+
+// dupSees runs duplicate-code in repo and asserts its exit code and message.
+func dupSees(t *testing.T, repo string, want int, msg string) {
+	t.Helper()
+	out, code := acceptance.Fitness(t, repo, nil, "duplicate-code")
+	acceptance.Sees(t, out, code, want, msg)
+}

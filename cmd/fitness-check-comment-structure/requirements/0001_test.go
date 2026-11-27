@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -21,15 +22,23 @@ func Test0001_1(t *testing.T) {
 	t.Run("0001.1.1 a comment over a word or table budget fails naming the count and the budget", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, overBudget, nil)
-		acceptance.Sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams; the budget is 100")
 		table := "| A | B |\n| - | - |\n| 1 | 2 |\n"
-		out, code = commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
-		acceptance.Sees(t, out, code, 1, "(comment): 2 tables besides callout tables; the budget is 1")
+		tables, tablesCode := commentStructure(t, table+"\nAnd more.\n\n"+table+"\n"+numbered, nil)
+		req.Then(t, "0001.1.1.1.1", "a1be1a2a", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "(comment): 120 words outside tables, code, and diagrams")
+			acceptance.Sees(t, tables, tablesCode, 1, "(comment): 2 tables besides callout tables")
+		})
+		req.Then(t, "0001.1.1.1.2", "f4eeb109", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "the budget is 100")
+			acceptance.Sees(t, tables, tablesCode, 1, "the budget is 1")
+		})
 	})
 	t.Run("0001.1.2 a repo can raise the word budget", func(t *testing.T) {
 		t.Parallel()
-		out, code := commentStructure(t, overBudget, map[string]string{".fitnessrc.json": `{"comment": {"maxWords": 150}}`})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.1.1.2.1", "07b8e753", func(_ req.A) {
+			out, code := commentStructure(t, overBudget, map[string]string{".fitnessrc.json": `{"comment": {"maxWords": 150}}`})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -37,14 +46,18 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 a diagram with no numbered callouts fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := commentStructure(t, "Flow.\n\n```mermaid\nflowchart TD\n  A --> B\n```\n", nil)
-		acceptance.Sees(t, out, code, 1, "(comment): line 3: mermaid diagram has no numbered callouts")
+		req.Then(t, "0001.2.1.1.1", "aabd0f94", func(_ req.A) {
+			out, code := commentStructure(t, "Flow.\n\n```mermaid\nflowchart TD\n  A --> B\n```\n", nil)
+			acceptance.Sees(t, out, code, 1, "(comment): line 3: mermaid diagram has no numbered callouts")
+		})
 	})
 	t.Run("0001.2.2 the legend after a numbered diagram passes", func(t *testing.T) {
 		t.Parallel()
-		legend := strings.Replace(numbered, "\n\n|", "\n\n```mermaid\nflowchart LR\n  k[Step]:::s\n  classDef s fill:#eef\n```\n\n|", 1)
-		out, code := commentStructure(t, legend, nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.1.2.1", "07b8e753", func(_ req.A) {
+			legend := strings.Replace(numbered, "\n\n|", "\n\n```mermaid\nflowchart LR\n  k[Step]:::s\n  classDef s fill:#eef\n```\n\n|", 1)
+			out, code := commentStructure(t, legend, nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -53,20 +66,30 @@ func Test0001_3(t *testing.T) {
 	t.Run("0001.3.1 agent noise outside code fails naming the line and the noise", func(t *testing.T) {
 		t.Parallel()
 		out, code := commentStructure(t, "The parser works.\n\nEdit 2: it handles tabs too.\n", nil)
-		acceptance.Sees(t, out, code, 1, `(comment): line 3: "Edit 2:": change-log note; edit the text in place and drop the note`)
-		out, code = commentStructure(t, "The cache is updated after every push.\n", nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		out, code = commentStructure(t, "Done.\n\n<system-reminder>\n", nil)
-		acceptance.Sees(t, out, code, 1, `(comment): line 3: "<system-reminder": agent frame; post only the finished text`)
-		out, code = commentStructure(t, "Done.\n\nRan on claude-opus-4-1 today.\n", nil)
-		acceptance.Sees(t, out, code, 1, `(comment): line 3: "claude-opus-4-1": model identifier; name the agent, not the model`)
-		out, code = commentStructure(t, "Done.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
-		acceptance.Sees(t, out, code, 1, `(comment): line 3: "<!-- fitness:": carries a fitness marker; only fitness writes those, so remove it`)
+		clean, cleanCode := commentStructure(t, "The cache is updated after every push.\n", nil)
+		frame, frameCode := commentStructure(t, "Done.\n\n<system-reminder>\n", nil)
+		model, modelCode := commentStructure(t, "Done.\n\nRan on claude-opus-4-1 today.\n", nil)
+		marker, markerCode := commentStructure(t, "Done.\n\n<!-- fitness:comment-check:31:abc -->\n", nil)
+		req.Then(t, "0001.3.1.1.1", "aabd0f94", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "(comment): line 3:")
+			acceptance.Sees(t, frame, frameCode, 1, "(comment): line 3:")
+			acceptance.Sees(t, model, modelCode, 1, "(comment): line 3:")
+			acceptance.Sees(t, marker, markerCode, 1, "(comment): line 3:")
+			acceptance.Sees(t, clean, cleanCode, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.3.1.1.2", "ac3f5927", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `"Edit 2:": change-log note; edit the text in place and drop the note`)
+			acceptance.Sees(t, frame, frameCode, 1, `"<system-reminder": agent frame; post only the finished text`)
+			acceptance.Sees(t, model, modelCode, 1, `"claude-opus-4-1": model identifier; name the agent, not the model`)
+			acceptance.Sees(t, marker, markerCode, 1, `"<!-- fitness:": carries a fitness marker; only fitness writes those, so remove it`)
+		})
 	})
 	t.Run("0001.3.2 a model named inside a code span passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := commentStructure(t, "Pinned to `claude-opus-4-1` in config.\n", nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.3.1.2.1", "07b8e753", func(_ req.A) {
+			out, code := commentStructure(t, "Pinned to `claude-opus-4-1` in config.\n", nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -74,17 +97,21 @@ func Test0001_4(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.4.1 a Plan or Epic body is skipped", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", nil)
-		for _, body := range []string{planBody("- [ ] Write the tests."), epicBody("1. #22\n2. #23, after #22")} {
-			out, code := acceptance.Piped(t, repo, body, nil, "--blob", "-")
-			acceptance.Sees(t, out, code, 0, "Skipped (does not apply to this text): comment-structure")
-		}
+		req.Then(t, "0001.4.1.1.1", "1aec415e", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", nil)
+			for _, body := range []string{planBody("- [ ] Write the tests."), epicBody("1. #22\n2. #23, after #22")} {
+				out, code := acceptance.Piped(t, repo, body, nil, "--blob", "-")
+				acceptance.Sees(t, out, code, 0, "Skipped (does not apply to this text): comment-structure")
+			}
+		})
 	})
 	t.Run("0001.4.2 no comment passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "comment-structure")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "comment-structure")
+		req.Then(t, "0001.4.1.2.1", "857dd667", func(_ req.A) {
+			out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "comment-structure")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "comment-structure")
+		})
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -16,17 +17,24 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a dist folder git does not ignore fails with the hint", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", nil)
-		acceptance.Write(t, repo, map[string]string{"dist/app.js": "built\n"})
-		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 1, "Add dist/ to .gitignore (git check-ignore reports dist is not git-ignored)")
+		req.Then(t, "0001.1.4.1.1", "a319ca67", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", nil)
+			acceptance.Write(t, repo, map[string]string{"dist/app.js": "built\n"})
+			out, code := buildOutputRun(t, repo)
+			acceptance.Sees(t, out, code, 1, "Add dist/ to .gitignore (git check-ignore reports dist is not git-ignored)")
+		})
 	})
 	t.Run("0001.1.2 tracked files in an ignored dist fail in one list", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"sub/dist/b.js": "built\n", "dist/a.js": "built\n"})
 		acceptance.Commit(t, repo, map[string]string{".gitignore": buildOutputIgnore}, "chore: ignore dist")
 		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 1, "Remove tracked files: dist/a.js, sub/dist/b.js (git rm --cached)")
+		req.Then(t, "0001.1.4.2.1", "8947a321", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "Remove tracked files: dist/a.js, sub/dist/b.js")
+		})
+		req.Then(t, "0001.1.4.2.2", "6cd95550", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "(git rm --cached)")
+		})
 	})
 	t.Run("0001.1.3 tracked Maven and Gradle output joins the list", func(t *testing.T) {
 		t.Parallel()
@@ -44,11 +52,15 @@ func Test0001_1(t *testing.T) {
 			"src/main/java/A.txt":              "source\n",
 		})
 		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 1, "Remove tracked files: classes/Old.class, lib[1]/.gradle/state, lib[1]/build/out.txt, src/app/target/app.jar, target/app.jar (git rm --cached)")
 		// A build folder in a repo without Java is no build's output.
-		out, code = buildOutputRun(t, acceptance.Example(t, "happyRepo", map[string]string{"build/notes.txt": "kept\n"}))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, buildOutputCheck)
+		plain, plainCode := buildOutputRun(t, acceptance.Example(t, "happyRepo", map[string]string{"build/notes.txt": "kept\n"}))
+		req.Then(t, "0001.1.4.3.1", "6e3dfb53", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "Remove tracked files: classes/Old.class, lib[1]/.gradle/state, lib[1]/build/out.txt, src/app/target/app.jar, target/app.jar (git rm --cached)")
+		})
+		req.Then(t, "0001.1.4.3.2", "a8782c42", func(_ req.A) {
+			acceptance.Sees(t, plain, plainCode, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, plain, buildOutputCheck)
+		})
 	})
 	t.Run("0001.1.4 an import from dist fails at its line", func(t *testing.T) {
 		t.Parallel()
@@ -59,13 +71,23 @@ func Test0001_1(t *testing.T) {
 				"const z = require('pkg/dist/z.js');\n" +
 				"const m = await import('../dist/mod.js');\n",
 			"src/load.cts": "const c = require('../dist/c.cjs');\n",
+			"src/page.ts":  "import page from '../dist/page.js';\n",
 		})
 		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 1,
-			`src/app.test.ts:2 imports build output: "../dist/foo.js"`,
-			`src/app.test.ts:3 imports build output: "pkg/dist/z.js"`,
-			`src/app.test.ts:4 imports build output: "../dist/mod.js"`,
-			`src/load.cts:1 imports build output: "../dist/c.cjs"`)
+		req.Then(t, "0001.1.4.4.1", "2b5e5e98", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `src/page.ts:1 imports build output: "../dist/page.js"`)
+		})
+		req.Then(t, "0001.1.4.4.2", "862e4ce1", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `src/app.test.ts:4 imports build output: "../dist/mod.js"`)
+		})
+		req.Then(t, "0001.1.4.4.3", "ba0f3544", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				`src/app.test.ts:3 imports build output: "pkg/dist/z.js"`,
+				`src/load.cts:1 imports build output: "../dist/c.cjs"`)
+		})
+		req.Then(t, "0001.1.4.4.4", "f6dff963", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, `src/app.test.ts:2 imports build output: "../dist/foo.js"`)
+		})
 	})
 	t.Run("0001.1.5 no tracked dist import passes whether commented out, untracked or local", func(t *testing.T) {
 		t.Parallel()
@@ -77,7 +99,12 @@ func Test0001_1(t *testing.T) {
 			})
 			acceptance.Write(t, repo, map[string]string{"scratch.ts": "import x from '../dist/x.js';\n"})
 			out, code := buildOutputRun(t, repo)
-			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
+			req.Then(t, "0001.1.4.5.1", "29a04f88", func(_ req.A) {
+				acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			})
+			req.Then(t, "0001.1.4.5.2", "e447709a", func(_ req.A) {
+				acceptance.Sees(t, out, code, 0, "2 files scanned")
+			})
 		})
 		t.Run("an ignored dist with local imports passes, counting the dist rules once", func(t *testing.T) {
 			t.Parallel()
@@ -87,14 +114,21 @@ func Test0001_1(t *testing.T) {
 				"src/b.mts":  "export const b = require('./c.cjs');\n",
 			})
 			out, code := buildOutputRun(t, repo)
-			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 3 files scanned")
+			req.Then(t, "0001.1.4.5.3", "4217b2c2", func(_ req.A) {
+				acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			})
+			req.Then(t, "0001.1.4.5.4", "69031f08", func(_ req.A) {
+				acceptance.Sees(t, out, code, 0, "3 files scanned")
+			})
 		})
 	})
 	t.Run("0001.1.6 a repo with no output or TypeScript passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := buildOutputRun(t, acceptance.Example(t, "happyRepo", nil))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, buildOutputCheck)
+		req.Then(t, "0001.1.4.6.1", "857dd667", func(_ req.A) {
+			out, code := buildOutputRun(t, acceptance.Example(t, "happyRepo", nil))
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, buildOutputCheck)
+		})
 	})
 }
 

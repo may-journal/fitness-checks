@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/may-journal/fitness-checks/internal/config"
+	"github.com/may-journal/fitness-checks/internal/marks"
 	"github.com/may-journal/fitness-checks/internal/packages"
 	"github.com/may-journal/fitness-checks/internal/program"
 	"github.com/may-journal/fitness-checks/internal/requirement"
@@ -32,6 +33,13 @@ const docsDir = "docs/requirements/"
 // fixFlag makes the check delete every leftover Source line before it judges.
 const fixFlag = "--fix"
 
+// tagFlag makes the check tag each case it matches to one THEN by name, then list the rest.
+// dryFlag, beside it, writes nothing and counts the tags it would write.
+const (
+	tagFlag = "--tag"
+	dryFlag = "--dry-run"
+)
+
 func run(root string, args []string) (checkkit.Result, error) {
 	roots := packages.Roots()
 	paths := docPaths(root, roots)
@@ -42,13 +50,22 @@ func run(root string, args []string) (checkkit.Result, error) {
 	if err != nil || len(written) == 0 {
 		return checkkit.Pass(0), err
 	}
+	return judgeAll(root, roots, paths, tests, files, written, args)
+}
+
+// judgeAll reads the tags and judges every package and the changed files.
+func judgeAll(root string, roots, paths []string, tests []reqTest, files []string, written []lang.Module, args []string) (checkkit.Result, error) {
+	tags, left, err := taggedRun(root, roots, paths, tests, files, args)
+	if err != nil {
+		return checkkit.Result{}, err
+	}
 	checks, proven := reqChecks(root, roots)
-	errs, notes, err := packageErrors(root, roots, paths, tests, written, proven)
+	errs, notes, err := packageErrors(root, roots, paths, tests, tags, written, proven)
 	if err != nil {
 		return checkkit.Result{}, err
 	}
 	pairs, err := pairErrors(root, roots, paths, append(files, checks...), tests)
-	res := result(len(paths)+len(files), append(errs, pairs...))
+	res := result(len(paths)+len(files), append(append(errs, pairs...), left...))
 	res.Info = notes
 	return res, err
 }
@@ -59,6 +76,7 @@ type pkg struct {
 	root   string
 	paths  []string
 	tests  []reqTest
+	tags   []marks.Tag
 	proven map[string]bool
 	// alone is true for the repo root of a repo that names no packages.
 	alone bool
@@ -69,17 +87,13 @@ type pkg struct {
 }
 
 // split gives each package root the docs, tests, checks and code it owns.
-func split(roots, paths, code []string, tests []reqTest, proven map[string]map[string]bool) []pkg {
+func split(roots, paths, code []string, tests []reqTest, tags []marks.Tag, proven map[string]map[string]bool) []pkg {
 	var out []pkg
 	for _, r := range roots {
 		p := pkg{root: r, paths: packages.Owned(roots, r, paths), proven: proven[r], alone: len(roots) == 1}
 		p.checks = checkNames(roots, r)
 		p.code = len(packages.Owned(roots, r, code)) > 0
-		for _, t := range tests {
-			if packages.Of(roots, t.File) == r {
-				p.tests = append(p.tests, t)
-			}
-		}
+		p.tests, p.tags = inRoot(roots, r, tests, testFile), inRoot(roots, r, tags, tagFile)
 		out = append(out, p)
 	}
 	return out
@@ -87,7 +101,7 @@ func split(roots, paths, code []string, tests []reqTest, proven map[string]map[s
 
 // packageErrors judges each package root's docs and tests on their own, then
 // the test tools of every test.
-func packageErrors(root string, roots, paths []string, tests []reqTest, written []lang.Module, proven map[string]map[string]bool) (errs, notes []string, err error) {
+func packageErrors(root string, roots, paths []string, tests []reqTest, tags []marks.Tag, written []lang.Module, proven map[string]map[string]bool) (errs, notes []string, err error) {
 	limit, err := maxAcceptances(root)
 	if err != nil {
 		return nil, nil, err
@@ -95,7 +109,7 @@ func packageErrors(root string, roots, paths []string, tests []reqTest, written 
 	whole := true
 	code := walkfs.FilesByExt(root, lang.Exts(written)...)
 	hists, historyNote := readHistories(root, roots, paths)
-	for _, p := range split(roots, paths, code, tests, proven) {
+	for _, p := range split(roots, paths, code, tests, tags, proven) {
 		found, skipped, judged := docErrors(root, p, hists[p.root], written, limit)
 		errs, notes, whole = append(errs, found...), append(notes, skipped...), whole && judged
 	}
@@ -123,7 +137,8 @@ func docErrors(root string, p pkg, hist history, written []lang.Module, limit in
 	errs = append(errs, scopeErrors(docs, p.checks)...)
 	errs = append(errs, overlapErrors(docs)...)
 	errs = append(errs, ownershipErrors(docs, p.tests, written, p.proven)...)
-	errs = append(errs, stepCaseErrors(docs, p.tests)...)
+	errs = append(errs, stepCaseErrors(docs, p.tests, p.tags)...)
+	errs = append(errs, tagErrors(docs, p.tags)...)
 	return append(errs, orphanChecks(p.root, docs, p.proven)...), notes, true
 }
 

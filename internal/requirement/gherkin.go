@@ -338,20 +338,29 @@ func readAs(k, prev kind, word string) string {
 func fromScenario(a IDLine, sc *messages.Scenario, at func(*messages.Location) int) IDLine {
 	var givens []string
 	var thens [][]string
+	var thenItems [][]Then
 	for _, st := range sc.Steps {
 		switch {
 		case st.KeywordType == messages.StepKeywordType_ACTION:
 			a.Steps = append(a.Steps, Step{Line: at(st.Location), When: st.Text})
 			thens = append(thens, nil)
+			thenItems = append(thenItems, nil)
 		case len(a.Steps) == 0:
 			givens = append(givens, st.Text)
 			a.GivenLine = cmp.Or(a.GivenLine, at(st.Location))
 		default:
-			thens[len(thens)-1] = append(thens[len(thens)-1], st.Text)
+			i := len(thens) - 1
+			thens[i] = append(thens[i], st.Text)
+			id := fmt.Sprintf("%s.%d.%d.%d", a.ID, len(givens), i+1, len(thens[i]))
+			thenItems[i] = append(thenItems[i], Then{ID: id, Line: at(st.Location), Text: st.Text})
 		}
 	}
 	a.Given = strings.Join(givens, " and ")
-	return numberSteps(a, thens)
+	a = numberSteps(a, thens)
+	for i := range a.Steps {
+		a.Steps[i].Thens = thenItems[i]
+	}
+	return a
 }
 
 // numberSteps sets each step's Then. One WHEN is the acceptance itself, and

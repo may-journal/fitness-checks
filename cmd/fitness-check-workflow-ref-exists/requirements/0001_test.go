@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -29,8 +30,12 @@ func Test0001_1(t *testing.T) {
 			found("repos/may-journal/fitness-runner/contents/.github/workflows/ci-reusable.yml?ref=v1", `{"name":"ci-reusable.yml"}`),
 			found("repos/may-journal/fitness-runner/contents?ref="+refSha, `[{"name":"README.md"},{"name":"action.yml"}]`),
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "workflow-ref-exists", "1")
+		req.Then(t, "0001.1.2.1.1", "07b8e753", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.1.2", "c5f9c595", func(_ req.A) {
+			acceptance.PassedWith(t, out, "workflow-ref-exists", "1")
+		})
 	})
 	t.Run("0001.1.2 a workflow missing at its tag fails naming file then line then path then ref", func(t *testing.T) {
 		t.Parallel()
@@ -41,8 +46,18 @@ func Test0001_1(t *testing.T) {
 			notFound("repos/may-journal/fitness-runner/contents/.github/workflows/comment-check-reusable.yml?ref=v1"),
 			found("repos/may-journal/fitness-runner", `{"full_name":"may-journal/fitness-runner"}`),
 		})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1: "+
-			".github/workflows/comment-check-reusable.yml does not exist at v1")
+		req.Then(t, "0001.1.2.2.1", "f7956a3e", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line")
+		})
+		req.Then(t, "0001.1.2.2.2", "aabd0f94", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "line 5: may-journal/fitness-runner/.github/workflows/comment-check-reusable.yml@v1")
+		})
+		req.Then(t, "0001.1.2.2.3", "103da62c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/comment-check-reusable.yml does not exist")
+		})
+		req.Then(t, "0001.1.2.2.4", "c2c6f756", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "does not exist at v1")
+		})
 	})
 	t.Run("0001.1.3 an unknown ref or sha fails naming file then line then ref", func(t *testing.T) {
 		t.Parallel()
@@ -53,11 +68,16 @@ func Test0001_1(t *testing.T) {
 			{Match: []string{"contents?ref=" + badSha}, Stderr: "gh: No commit found for the ref " + badSha + " (HTTP 404)\n", Exit: 1},
 			found("repos/may-journal/fitness-runner", `{"full_name":"may-journal/fitness-runner"}`),
 		})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner@v9: v9 is not a tag, a branch, or a full commit sha",
-			".github/workflows/ci.yml: line 7: may-journal/fitness-runner@"+badSha+": no commit "+badSha+" exists")
-		if n := strings.Count(out, ".github/workflows/ci.yml: line"); n != 2 {
-			t.Errorf("want the file and line named for each bad ref, got %d findings:\n%s", n, out)
-		}
+		req.Then(t, "0001.1.2.3.1", "83687d6c", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner@v9", ".github/workflows/ci.yml: line 7: may-journal/fitness-runner@"+badSha)
+			a.Equal(2, strings.Count(out, ".github/workflows/ci.yml: line"))
+		})
+		req.Then(t, "0001.1.2.3.2", "47a0a88b", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "line 5: may-journal/fitness-runner@v9: v9 is not", "line 7: may-journal/fitness-runner@"+badSha+": no commit")
+		})
+		req.Then(t, "0001.1.2.3.3", "fcefc8ee", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "v9 is not a tag, a branch, or a full commit sha", "no commit "+badSha+" exists")
+		})
 	})
 	t.Run("0001.1.4 local and other owner calls are not read", func(t *testing.T) {
 		t.Parallel()
@@ -70,19 +90,21 @@ func Test0001_1(t *testing.T) {
 			notFound("repos/may-journal/fitness-runner/git/ref/tags/main"),
 			found("repos/may-journal/fitness-runner/git/ref/heads/main", `{"ref":"refs/heads/main"}`),
 		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if rp.Called("gh", "contents") || rp.Called("gh", "actions/checkout") {
-			t.Errorf("an ignored line read GitHub: %q", rp.Calls("gh"))
-		}
-		if strings.Contains(out, ".github/workflows/ci.yml: line") {
-			t.Errorf("a call that is not read produced a finding:\n%s", out)
-		}
+		req.Then(t, "0001.1.2.4.1", "2bd91a53", func(a req.A) {
+			a.True(!rp.Called("gh", "contents") && !rp.Called("gh", "actions/checkout"), "an ignored line read GitHub: %q", rp.Calls("gh"))
+		})
+		req.Then(t, "0001.1.2.4.2", "a717e7b2", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.True(!strings.Contains(out, ".github/workflows/ci.yml: line"), "a call that is not read produced a finding:\n%s", out)
+		})
 	})
 	t.Run("0001.1.5 a repo with no workflows passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "workflow-ref-exists")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "workflow-ref-exists")
+		req.Then(t, "0001.1.2.5.1", "857dd667", func(_ req.A) {
+			out, code := acceptance.Fitness(t, acceptance.Example(t, "happyRepo", nil), nil, "workflow-ref-exists")
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "workflow-ref-exists")
+		})
 	})
 }
 
@@ -90,10 +112,12 @@ func Test0001_1(t *testing.T) {
 func Test0001_2(t *testing.T) {
 	t.Run("0001.2.1 a repo the token cannot read is skipped with a note", func(t *testing.T) {
 		t.Parallel()
-		out, code, _ := refCheck(t, refWorkflow("may-journal/hub/.github/workflows/sync.yml@v1"), []acceptance.Response{
-			notFound("repos/may-journal/hub"),
+		req.Then(t, "0001.2.1.1.1", "a191a356", func(_ req.A) {
+			out, code, _ := refCheck(t, refWorkflow("may-journal/hub/.github/workflows/sync.yml@v1"), []acceptance.Response{
+				notFound("repos/may-journal/hub"),
+			})
+			acceptance.Sees(t, out, code, 0, ".github/workflows/ci.yml: line 5: may-journal/hub/.github/workflows/sync.yml@v1: skipped, may-journal/hub cannot be read with this token")
 		})
-		acceptance.Sees(t, out, code, 0, ".github/workflows/ci.yml: line 5: may-journal/hub/.github/workflows/sync.yml@v1: skipped, may-journal/hub cannot be read with this token")
 	})
 	t.Run("0001.2.2 calls GitHub could not answer are noted and the findings kept", func(t *testing.T) {
 		t.Parallel()
@@ -108,19 +132,25 @@ func Test0001_2(t *testing.T) {
 			{Match: []string{"repos/may-journal/hub/"}, Stderr: "gh: Resource not accessible by integration (HTTP 403)\n", Exit: 1},
 			{Match: []string{"repos/may-journal/journey/"}, Stderr: "error connecting to api.github.com\n", Exit: 1},
 		})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/nope.yml@v1: .github/workflows/nope.yml does not exist at v1",
-			".github/workflows/ci.yml: line 7: may-journal/hub/.github/workflows/sync.yml@v1: skipped, GitHub answered gh: Resource not accessible by integration (HTTP 403)",
-			"workflow refs from .github/workflows/ci.yml line 9 on were not verified: gh api repos/may-journal/journey/git/ref/tags/v1: error connecting to api.github.com")
+		req.Then(t, "0001.2.1.2.1", "373ef274", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner/.github/workflows/nope.yml@v1: .github/workflows/nope.yml does not exist at v1",
+				".github/workflows/ci.yml: line 7: may-journal/hub/.github/workflows/sync.yml@v1: skipped, GitHub answered gh: Resource not accessible by integration (HTTP 403)")
+		})
+		req.Then(t, "0001.2.1.2.2", "95999216", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "workflow refs from .github/workflows/ci.yml line 9 on were not verified: gh api repos/may-journal/journey/git/ref/tags/v1: error connecting to api.github.com")
+		})
 	})
 	t.Run("0001.2.3 a service that cannot answer passes with info", func(t *testing.T) {
 		t.Parallel()
 		out, code, _ := refCheck(t, refWorkflow("may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1"), []acceptance.Response{
 			{Stderr: "error connecting to api.github.com\n", Exit: 1},
 		})
-		acceptance.Sees(t, out, code, 0, "workflow refs were not verified: gh api repos/may-journal/fitness-runner/git/ref/tags/v1: error connecting to api.github.com")
-		if strings.Contains(acceptance.Row(out, "workflow-ref-exists"), "failed") {
-			t.Errorf("a check whose service cannot answer must not fail, got row %q", acceptance.Row(out, "workflow-ref-exists"))
-		}
+		req.Then(t, "0001.2.1.3.1", "7422cd0c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "workflow refs were not verified: gh api repos/may-journal/fitness-runner/git/ref/tags/v1: error connecting to api.github.com")
+		})
+		req.Then(t, "0001.2.1.3.2", "3a14c329", func(a req.A) {
+			a.True(!strings.Contains(acceptance.Row(out, "workflow-ref-exists"), "failed"), "a check whose service cannot answer must not fail, got row %q", acceptance.Row(out, "workflow-ref-exists"))
+		})
 	})
 	t.Run("0001.2.4 pinned calls are read in parallel", func(t *testing.T) {
 		// Not parallel: a wall-clock limit beside other tests would time their load.
@@ -131,17 +161,12 @@ func Test0001_2(t *testing.T) {
 		slow := found("repos/may-journal/fitness-runner/contents/.github/workflows/", `{"name":"w.yml"}`)
 		slow.Wait = 1
 		out, code, rp := refCheck(t, refWorkflow(uses...), []acceptance.Response{slow})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		if reads := len(rp.Calls("gh")); reads != slowRefs {
-			t.Errorf("workflow-ref-exists read GitHub %d times, want %d", reads, slowRefs)
-		}
-		took := rowDuration.FindStringSubmatch(acceptance.Row(out, "workflow-ref-exists"))
-		if took == nil {
-			t.Fatalf("workflow-ref-exists shows no time in %q", acceptance.Row(out, "workflow-ref-exists"))
-		}
-		if d, _ := time.ParseDuration(took[1] + took[2]); d >= slowRefs*time.Second/2 {
-			t.Errorf("workflow-ref-exists took %v on %d one-second reads, want under %v", d, slowRefs, slowRefs*time.Second/2)
-		}
+		req.Then(t, "0001.2.1.4.1", "0b8dac0d", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			a.Equal(slowRefs, len(rp.Calls("gh")))
+			took := rowTook(t, out)
+			a.True(took < slowRefs*time.Second/2, "workflow-ref-exists took %v on %d one-second reads, want under %v", took, slowRefs, slowRefs*time.Second/2)
+		})
 	})
 }
 
@@ -177,6 +202,18 @@ func refCheck(t *testing.T, workflow string, saved []acceptance.Response) (strin
 	repo := acceptance.Example(t, "happyRepo", map[string]string{".github/workflows/ci.yml": workflow})
 	out, code := acceptance.Fitness(t, repo, rp.Env, "workflow-ref-exists")
 	return out, code, rp
+}
+
+// rowTook is the time the check's results row shows, failing the test when the row shows none.
+func rowTook(t *testing.T, out string) time.Duration {
+	t.Helper()
+	row := acceptance.Row(out, "workflow-ref-exists")
+	took := rowDuration.FindStringSubmatch(row)
+	if took == nil {
+		t.Fatalf("workflow-ref-exists shows no time in %q", row)
+	}
+	d, _ := time.ParseDuration(took[1] + took[2])
+	return d
 }
 
 // rowDuration matches a results-table row's time, in milliseconds or seconds.

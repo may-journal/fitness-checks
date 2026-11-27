@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -40,24 +41,42 @@ func chained(t *testing.T, requirements, doc string, steps int) (string, int) {
 // more step fails naming the limit.
 func chainsWithin(t *testing.T, requirements string, limit int) {
 	t.Helper()
+	chainPasses(t, requirements, limit)
+	chainFails(t, requirements, limit)
+}
+
+// chainPasses fails unless each doc's chain of limit steps passes.
+func chainPasses(t *testing.T, requirements string, limit int) {
+	t.Helper()
 	for _, doc := range docs {
 		out, code := chained(t, requirements, doc, limit)
 		acceptance.Sees(t, out, code, 0)
-		out, code = chained(t, requirements, doc, limit+1)
+	}
+}
+
+// chainFails fails unless one step more than limit fails naming the limit.
+func chainFails(t *testing.T, requirements string, limit int) {
+	t.Helper()
+	for _, doc := range docs {
+		out, code := chained(t, requirements, doc, limit+1)
 		acceptance.Sees(t, out, code, 1, fmt.Sprintf("%s: a list has more than %d items at level 3", doc, limit))
 	}
 }
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, `, "requirements": {"maxSteps": 5}`, 5)
+	limit := `, "requirements": {"maxSteps": 5}`
+	req.Then(t, "0001.1.2.1.1", "96193d20", func(_ req.A) { chainPasses(t, limit, 5) })
+	req.Then(t, "0001.1.2.1.2", "6bf75511", func(_ req.A) { chainFails(t, limit, 5) })
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	chainsWithin(t, "", 7)
-	// A chain holds two steps at least, so a smaller limit keeps the default.
-	chainsWithin(t, `, "requirements": {"maxSteps": 1}`, 7)
+	req.Then(t, "0001.2.2.1.1", "589b6740", func(_ req.A) {
+		chainsWithin(t, "", 7)
+		// A chain holds two steps at least, so a smaller limit keeps the default.
+		chainsWithin(t, `, "requirements": {"maxSteps": 1}`, 7)
+	})
 }
 
 // numberedDoc is a requirement doc of limit numbered acceptances, each
@@ -94,35 +113,47 @@ func Test0001_3(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.3.1 Removed lines count toward no limit", func(t *testing.T) {
 		t.Parallel()
-		out, code := prosed(t, numberedDoc(8))
-		acceptance.Sees(t, out, code, 0)
-		// The same count of acceptances alone passes the limit and fails.
-		out, code = prosed(t, strings.ReplaceAll(numberedDoc(8), ". Removed in 2026.11.25.1230: folded into", ". Adds"))
-		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 8 items at level 1")
+		req.Then(t, "0001.3.1.1.1", "3433b9b5", func(_ req.A) {
+			out, code := prosed(t, numberedDoc(8))
+			acceptance.Sees(t, out, code, 0)
+			// The same count of acceptances alone passes the limit and fails.
+			out, code = prosed(t, strings.ReplaceAll(numberedDoc(8), ". Removed in 2026.11.25.1230: folded into", ". Adds"))
+			acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 8 items at level 1")
+		})
 	})
 	t.Run("0001.3.2 GIVENs or a WHEN's THENs past half the list limit fail at that level", func(t *testing.T) {
 		t.Parallel()
-		within := "1. Adds\n" + items("   ", "GIVEN two numbers", 4) + "      1. WHEN I add them\n" + items("         ", "THEN I get their sum", 4)
-		out, code := prosed(t, acceptance.DocWith(within))
-		acceptance.Sees(t, out, code, 0)
-		out, code = prosed(t, acceptance.DocWith("1. Adds\n"+items("   ", "GIVEN two numbers", 5)+"      1. WHEN I add them\n         1. THEN I get their sum\n"))
-		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 2")
-		out, code = prosed(t, acceptance.DocWith("1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n"+items("         ", "THEN I get their sum", 5)))
-		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 4")
+		req.Then(t, "0001.3.1.2.1", "590b2739", func(_ req.A) {
+			within := "1. Adds\n" + items("   ", "GIVEN two numbers", 4) + "      1. WHEN I add them\n" + items("         ", "THEN I get their sum", 4)
+			out, code := prosed(t, acceptance.DocWith(within))
+			acceptance.Sees(t, out, code, 0)
+			out, code = prosed(t, acceptance.DocWith("1. Adds\n"+items("   ", "GIVEN two numbers", 5)+"      1. WHEN I add them\n         1. THEN I get their sum\n"))
+			acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 2")
+			out, code = prosed(t, acceptance.DocWith("1. Adds\n   1. GIVEN two numbers\n      1. WHEN I add them\n"+items("         ", "THEN I get their sum", 5)))
+			acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 4")
+		})
 	})
 }
 
 func Test0001_4(t *testing.T) {
 	t.Parallel()
-	out, code := proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 7))})
-	acceptance.Sees(t, out, code, 0)
-	out, code = proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 8))})
-	acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 7 items at level 3")
-	out, code = proseBudget(t, map[string]string{"README.md": acceptance.DocWith(acceptance.Chain("0001.1", 3))})
-	acceptance.Sees(t, out, code, 1, "README.md: a list has more than 2 items at level 3")
-	numbered := strings.Replace(acceptance.DocWith(acceptance.Chain("0001.1", 2)), "## Measurement", "- Steps\n"+strings.Repeat("    1. Sub step\n", 7)+"\n## Measurement", 1)
-	out, code = proseBudget(t, map[string]string{docs[0]: numbered})
-	acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 2")
+	req.Then(t, "0001.4.1.1.1", "0313afb9", func(_ req.A) {
+		out, code := proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 7))})
+		acceptance.Sees(t, out, code, 0)
+	})
+	req.Then(t, "0001.4.1.1.2", "dbb8210f", func(_ req.A) {
+		out, code := proseBudget(t, map[string]string{docs[0]: acceptance.DocWith(acceptance.Chain("0001.1", 8))})
+		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 7 items at level 3")
+	})
+	req.Then(t, "0001.4.1.1.3", "1a0043e2", func(_ req.A) {
+		out, code := proseBudget(t, map[string]string{"README.md": acceptance.DocWith(acceptance.Chain("0001.1", 3))})
+		acceptance.Sees(t, out, code, 1, "README.md: a list has more than 2 items at level 3")
+	})
+	req.Then(t, "0001.4.1.1.4", "e6bd117a", func(_ req.A) {
+		numbered := strings.Replace(acceptance.DocWith(acceptance.Chain("0001.1", 2)), "## Measurement", "- Steps\n"+strings.Repeat("    1. Sub step\n", 7)+"\n## Measurement", 1)
+		out, code := proseBudget(t, map[string]string{docs[0]: numbered})
+		acceptance.Sees(t, out, code, 1, docs[0]+": a list has more than 4 items at level 2")
+	})
 }
 
 // readme is a short clean README.

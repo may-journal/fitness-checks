@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func Test0002_1(t *testing.T) {
@@ -15,18 +16,24 @@ func Test0002_1(t *testing.T) {
 	}
 	t.Run("0002.1.1 another package's test plus doc beside a package's code change fails", func(t *testing.T) {
 		t.Parallel()
-		out, code := staged(t, acceptance.Monorepo(true), pair(pairedDoc, "adder_test.go"))
-		acceptance.Sees(t, out, code, 1, "pkgs/a/a.go changed without a test and a requirement doc")
+		req.Then(t, "0002.1.3.1.1", "f7956a3e", func(_ req.A) {
+			out, code := staged(t, acceptance.Monorepo(true), pair(pairedDoc, "adder_test.go"))
+			acceptance.Sees(t, out, code, 1, "pkgs/a/a.go changed without a test and a requirement doc")
+		})
 	})
 	t.Run("0002.1.2 a package's code beside its own test plus doc passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := staged(t, acceptance.Monorepo(true), pair(acceptance.PackageDoc("a"), "pkgs/a/requirements/0001_test.go"))
-		acceptance.Sees(t, out, code, 0, passed)
+		req.Then(t, "0002.1.3.2.1", "07b8e753", func(_ req.A) {
+			out, code := staged(t, acceptance.Monorepo(true), pair(acceptance.PackageDoc("a"), "pkgs/a/requirements/0001_test.go"))
+			acceptance.Sees(t, out, code, 0, passed)
+		})
 	})
 	t.Run("0002.1.3 a package file deleted while a doc names it fails naming the file with the doc", func(t *testing.T) {
 		t.Parallel()
-		naming := acceptance.With(acceptance.Monorepo(true), map[string]string{pairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "by hand.", "by hand in pkgs/a/a.go.", 1)})
-		out, code := staged(t, naming, map[string]string{"pkgs/a/a.go": ""})
-		acceptance.Sees(t, out, code, 1, "pkgs/a/a.go was deleted, leaving requirement doc "+pairedDoc)
+		req.Then(t, "0002.1.3.3.1", "1a761cb6", func(_ req.A) {
+			naming := acceptance.With(acceptance.Monorepo(true), map[string]string{pairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "by hand.", "by hand in pkgs/a/a.go.", 1)})
+			out, code := staged(t, naming, map[string]string{"pkgs/a/a.go": ""})
+			acceptance.Sees(t, out, code, 1, "pkgs/a/a.go was deleted, leaving requirement doc "+pairedDoc)
+		})
 	})
 }

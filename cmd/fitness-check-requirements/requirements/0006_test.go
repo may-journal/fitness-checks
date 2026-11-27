@@ -183,103 +183,117 @@ func Test0006_1(t *testing.T) {
 	unpairedDoc := pairedTest + " changed without its requirement doc " + acceptance.PairedDoc + "; change both together"
 	t.Run("0006.1.1 a test or a doc changed without its partner fails naming both files of the pair", func(t *testing.T) {
 		t.Parallel()
-		repo := hooked(t, acceptance.PairedRepo())
-		acceptance.Write(t, repo, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))})
-		acceptance.User(t, repo, nil, "add", "-A")
-		out, code := acceptance.User(t, repo, nil, "commit", "-m", "test(reqs): check sums twice")
-		acceptance.Sees(t, out, code, 1, unpairedDoc)
-		out, code = prRun(t, acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))}, "docs(requirements): reword 0001")
-		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test "+pairedTest+"; change both together")
+		req.Then(t, "0006.1.1.1.1", "9266991c", func(_ req.A) {
+			repo := hooked(t, acceptance.PairedRepo())
+			acceptance.Write(t, repo, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))})
+			acceptance.User(t, repo, nil, "add", "-A")
+			out, code := acceptance.User(t, repo, nil, "commit", "-m", "test(reqs): check sums twice")
+			acceptance.Sees(t, out, code, 1, unpairedDoc)
+			out, code = prRun(t, acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))}, "docs(requirements): reword 0001")
+			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test "+pairedTest+"; change both together")
+		})
 	})
 	t.Run("0006.1.2 a test named for two requirements needs either doc", func(t *testing.T) {
 		t.Parallel()
-		doc := "docs/requirements/0002-adds-again.md"
-		test := map[string]string{twoTest: edited(twoRepo()[twoTest])}
-		out, code := stagedRun(t, twoRepo(), test)
-		acceptance.Sees(t, out, code, 1, twoTest+" changed without its requirement doc "+acceptance.PairedDoc+" or "+doc)
-		out, code = stagedRun(t, twoRepo(), acceptance.With(test, map[string]string{doc: reworded(twoRepo()[doc])}))
-		acceptance.Sees(t, out, code, 0)
+		req.Then(t, "0006.1.1.2.1", "afd027ec", func(_ req.A) {
+			doc := "docs/requirements/0002-adds-again.md"
+			test := map[string]string{twoTest: edited(twoRepo()[twoTest])}
+			out, code := stagedRun(t, twoRepo(), test)
+			acceptance.Sees(t, out, code, 1, twoTest+" changed without its requirement doc "+acceptance.PairedDoc+" or "+doc)
+			out, code = stagedRun(t, twoRepo(), acceptance.With(test, map[string]string{doc: reworded(twoRepo()[doc])}))
+			acceptance.Sees(t, out, code, 0)
+		})
 	})
 	t.Run("0006.1.3 a changed shared helper needs no partner", func(t *testing.T) {
 		t.Parallel()
-		out, code := stagedRun(t, acceptance.PairedRepo(), map[string]string{"reqs/tools_test.go": edited(acceptance.PairedRepo()["reqs/tools_test.go"])})
-		acceptance.Sees(t, out, code, 0)
+		req.Then(t, "0006.1.1.3.1", "ddadd49f", func(_ req.A) {
+			out, code := stagedRun(t, acceptance.PairedRepo(), map[string]string{"reqs/tools_test.go": edited(acceptance.PairedRepo()["reqs/tools_test.go"])})
+			acceptance.Sees(t, out, code, 0)
+		})
 	})
 	t.Run("0006.1.4 a merge or a cherry-pick or a revert judges only its own changes", func(t *testing.T) {
 		t.Parallel()
-		keep := []string{"--no-edit"}
-		for _, r := range [][][]string{
-			{{"merge", "--no-edit", "side"}, keep, {"--amend", "-m", "chore(reqs): merge the reword"}},
-			{{"cherry-pick", "side"}, keep},
-			{{"revert", "--no-edit", "side"}, {"-m", "revert(reqs): undo the reword"}},
-		} {
-			out, code := replayed(t, r[0], r[1:]...)
+		req.Then(t, "0006.1.1.4.1", "8f6f5739", func(_ req.A) {
+			keep := []string{"--no-edit"}
+			for _, r := range [][][]string{
+				{{"merge", "--no-edit", "side"}, keep, {"--amend", "-m", "chore(reqs): merge the reword"}},
+				{{"cherry-pick", "side"}, keep},
+				{{"revert", "--no-edit", "side"}, {"-m", "revert(reqs): undo the reword"}},
+			} {
+				out, code := replayed(t, r[0], r[1:]...)
+				acceptance.Sees(t, out, code, 0)
+			}
+			out, code := acceptance.Fitness(t, mergedBase(t), acceptance.PullRequestEnv, "requirements")
 			acceptance.Sees(t, out, code, 0)
-		}
-		out, code := acceptance.Fitness(t, mergedBase(t), acceptance.PullRequestEnv, "requirements")
-		acceptance.Sees(t, out, code, 0)
+		})
 	})
 	t.Run("0006.1.5 an amend is judged since its parent", func(t *testing.T) {
 		t.Parallel()
-		repo := hooked(t, acceptance.PairedRepo())
-		acceptance.Write(t, repo, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))})
-		userSteps(t, repo, []string{"add", "-A"}, []string{"commit", "-q", "--no-verify", "-m", "test(reqs): check sums twice"})
-		acceptance.Write(t, repo, map[string]string{acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))})
-		acceptance.Git(t, repo, "add", "-A")
-		out, code := acceptance.Fitness(t, repo, amending, "requirements")
-		acceptance.Sees(t, out, code, 0)
+		req.Then(t, "0006.1.1.5.1", "caa80fab", func(_ req.A) {
+			repo := hooked(t, acceptance.PairedRepo())
+			acceptance.Write(t, repo, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))})
+			userSteps(t, repo, []string{"add", "-A"}, []string{"commit", "-q", "--no-verify", "-m", "test(reqs): check sums twice"})
+			acceptance.Write(t, repo, map[string]string{acceptance.PairedDoc: reworded(acceptance.RequirementDoc("0001.1"))})
+			acceptance.Git(t, repo, "add", "-A")
+			out, code := acceptance.Fitness(t, repo, amending, "requirements")
+			acceptance.Sees(t, out, code, 0)
+		})
 	})
 	t.Run("0006.1.6 fixing a failing test needs no doc", func(t *testing.T) {
 		t.Parallel()
-		failing := acceptance.With(swiftRepo(), map[string]string{swiftTest: xcTestFile("test0001_1")})
-		fixed := map[string]string{swiftTest: swiftTestingFile("test0001_1")}
-		out, code := stagedRun(t, failing, fixed)
-		acceptance.Sees(t, out, code, 0)
-		out, code = prRun(t, failing, fixed, "test(adder): move to Swift Testing")
-		acceptance.Sees(t, out, code, 0)
-		repo := hooked(t, failing)
-		acceptance.Write(t, repo, fixed)
-		userSteps(t, repo, []string{"add", "-A"}, []string{"commit", "-q", "--no-verify", "-m", "test(adder): move to Swift Testing"})
-		acceptance.Write(t, repo, map[string]string{swiftTest: edited(fixed[swiftTest])})
-		acceptance.Git(t, repo, "add", "-A")
-		out, code = acceptance.Fitness(t, repo, amending, "requirements")
-		acceptance.Sees(t, out, code, 0)
-		out, code = stagedRun(t, swiftRepo(), map[string]string{swiftTest: edited(swiftTestingFile("test0001_1"))})
-		acceptance.Sees(t, out, code, 1, swiftTest+" changed without its requirement doc "+acceptance.PairedDoc+"; change both together")
+		req.Then(t, "0006.1.1.6.1", "85b378e4", func(_ req.A) {
+			failing := acceptance.With(swiftRepo(), map[string]string{swiftTest: xcTestFile("test0001_1")})
+			fixed := map[string]string{swiftTest: swiftTestingFile("test0001_1")}
+			out, code := stagedRun(t, failing, fixed)
+			acceptance.Sees(t, out, code, 0)
+			out, code = prRun(t, failing, fixed, "test(adder): move to Swift Testing")
+			acceptance.Sees(t, out, code, 0)
+			repo := hooked(t, failing)
+			acceptance.Write(t, repo, fixed)
+			userSteps(t, repo, []string{"add", "-A"}, []string{"commit", "-q", "--no-verify", "-m", "test(adder): move to Swift Testing"})
+			acceptance.Write(t, repo, map[string]string{swiftTest: edited(fixed[swiftTest])})
+			acceptance.Git(t, repo, "add", "-A")
+			out, code = acceptance.Fitness(t, repo, amending, "requirements")
+			acceptance.Sees(t, out, code, 0)
+			out, code = stagedRun(t, swiftRepo(), map[string]string{swiftTest: edited(swiftTestingFile("test0001_1"))})
+			acceptance.Sees(t, out, code, 1, swiftTest+" changed without its requirement doc "+acceptance.PairedDoc+"; change both together")
+		})
 	})
 	t.Run("0006.1.7 a comment-only or format-only change needs no partner", func(t *testing.T) {
 		t.Parallel()
-		given := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: unformatted.Replace(acceptance.RequirementDoc("0001.1"))})
-		if !strings.Contains(given[acceptance.PairedDoc], "\n    1. GIVEN") {
-			t.Fatalf("the unformatted doc must nest its numbered items apart from the formatted one:\n%s", given[acceptance.PairedDoc])
-		}
-		formatted := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
-		out, code := stagedRun(t, given, formatted)
-		acceptance.Sees(t, out, code, 0)
-		out, code = prRun(t, given, formatted, "style(docs): format requirement docs with Biome")
-		acceptance.Sees(t, out, code, 0)
-		out, code = stagedRun(t, given, acceptance.With(formatted, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))}))
-		acceptance.Sees(t, out, code, 0)
-		// A rename in place changes no wording, but a changed GIVEN does.
-		renamed := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "Adds pair 1", "Sums a pair", 1)}
-		out, code = stagedRun(t, acceptance.PairedRepo(), renamed)
-		acceptance.Sees(t, out, code, 0)
-		changedGiven := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "GIVEN two numbers", "GIVEN three numbers", 1)}
-		out, code = stagedRun(t, acceptance.PairedRepo(), changedGiven)
-		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
-		sourced := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: acceptance.WithSource(acceptance.RequirementDoc("0001.1"), "`adder.go:5`")})
-		dropped := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
-		out, code = stagedRun(t, sourced, dropped)
-		acceptance.Sees(t, out, code, 0)
-		out, code = prRun(t, sourced, dropped, "docs(requirements): drop the Source line")
-		acceptance.Sees(t, out, code, 0)
-		out, code = stagedRun(t, sourced, map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "sums asked for", "sums tried", 1)})
-		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
-		cited := map[string]string{acceptance.PairedDoc: acceptance.WithSource(acceptance.RequirementDoc("0001.1"), "`adder.go:6`")}
-		out, code = stagedRun(t, sourced, cited)
-		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
-		renamedPairs(t)
-		commentedPairs(t)
+		req.Then(t, "0006.1.1.7.1", "a9d69d2d", func(_ req.A) {
+			sourced := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: acceptance.WithSource(acceptance.RequirementDoc("0001.1"), "`adder.go:5`")})
+			dropped := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
+			out, code := stagedRun(t, sourced, dropped)
+			acceptance.Sees(t, out, code, 0)
+			out, code = prRun(t, sourced, dropped, "docs(requirements): drop the Source line")
+			acceptance.Sees(t, out, code, 0)
+			out, code = stagedRun(t, sourced, map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "sums asked for", "sums tried", 1)})
+			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
+			cited := map[string]string{acceptance.PairedDoc: acceptance.WithSource(acceptance.RequirementDoc("0001.1"), "`adder.go:6`")}
+			out, code = stagedRun(t, sourced, cited)
+			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
+			commentedPairs(t)
+		})
+		req.Then(t, "0006.1.1.7.2", "0409185f", func(a req.A) {
+			given := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: unformatted.Replace(acceptance.RequirementDoc("0001.1"))})
+			a.Contains(given[acceptance.PairedDoc], "\n    1. GIVEN")
+			formatted := map[string]string{acceptance.PairedDoc: acceptance.RequirementDoc("0001.1")}
+			out, code := stagedRun(t, given, formatted)
+			acceptance.Sees(t, out, code, 0)
+			out, code = prRun(t, given, formatted, "style(docs): format requirement docs with Biome")
+			acceptance.Sees(t, out, code, 0)
+			out, code = stagedRun(t, given, acceptance.With(formatted, map[string]string{pairedTest: edited(acceptance.TestFile("reqs", "Test0001_1"))}))
+			acceptance.Sees(t, out, code, 0)
+			// A rename in place changes no wording, but a changed GIVEN does.
+			renamed := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "Adds pair 1", "Sums a pair", 1)}
+			out, code = stagedRun(t, acceptance.PairedRepo(), renamed)
+			acceptance.Sees(t, out, code, 0)
+			changedGiven := map[string]string{acceptance.PairedDoc: strings.Replace(acceptance.RequirementDoc("0001.1"), "GIVEN two numbers", "GIVEN three numbers", 1)}
+			out, code = stagedRun(t, acceptance.PairedRepo(), changedGiven)
+			acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
+			renamedPairs(t)
+		})
 		req.Then(t, "0006.1.1.7.3", "eea8612a", func(a req.A) {
 			a.True(tagEdits(t, "sums the pair", "\t\t\t_ = t.Name()\n") == 0, "a rename and a req.Then wrapper needed a doc")
 			a.True(tagEdits(t, "adds the pair", "\t\t\t_ = t.Name() + t.Name()\n") == 1, "a changed body passed with no doc")

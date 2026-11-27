@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain keeps the host's git config out of the example repos.
@@ -36,9 +37,17 @@ func inPlansFolder(path string) string {
 	return path + ": a `plans` folder holds temporary work; " + toPlanIssue
 }
 
+// unreported asserts out names no error line for any of the files.
+func unreported(a req.A, out string, files ...string) {
+	for _, f := range files {
+		a.True(!strings.Contains(out, f+":"), "%s was reported, yet it is no plan or design work:\n%s", f, out)
+	}
+}
+
 // inOrder asserts each want appears in out after the one before it.
 func inOrder(t *testing.T, out string, want ...string) {
 	t.Helper()
+	req.Asserted(t)
 	text, at := acceptance.Read(out), 0
 	for _, w := range want {
 		i := strings.Index(text[at:], w)
@@ -55,9 +64,15 @@ func Test0001_1(t *testing.T) {
 	t.Run("0001.1.1 a file in a plans folder at any depth fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := plans(t, map[string]string{"docs/plans/03-publish.md": "# Publish\n"})
-		acceptance.Sees(t, out, code, 1, inPlansFolder("docs/plans/03-publish.md"))
-		out, code = plans(t, map[string]string{"docs/plans/archive/old.md": "# Old\n"})
-		acceptance.Sees(t, out, code, 1, inPlansFolder("docs/plans/archive/old.md"))
+		deepOut, deepCode := plans(t, map[string]string{"docs/plans/archive/old.md": "# Old\n"})
+		req.Then(t, "0001.1.2.1.1", "103da62c", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "docs/plans/03-publish.md:")
+			acceptance.Sees(t, deepOut, deepCode, 1, "docs/plans/archive/old.md:")
+		})
+		req.Then(t, "0001.1.2.1.2", "5e77a3ef", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, inPlansFolder("docs/plans/03-publish.md"))
+			acceptance.Sees(t, deepOut, deepCode, 1, inPlansFolder("docs/plans/archive/old.md"))
+		})
 	})
 	t.Run("0001.1.2 maintained docs and shipped images pass and stay", func(t *testing.T) {
 		t.Parallel()
@@ -69,12 +84,15 @@ func Test0001_1(t *testing.T) {
 		}
 		repo := acceptance.Example(t, "happyRepo", files)
 		out, code := acceptance.Fitness(t, repo, nil, "no-plans-dir")
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		for name := range files {
-			if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(name))); err != nil {
-				t.Errorf("no-plans-dir must leave %s in place: %v", name, err)
+		req.Then(t, "0001.1.2.2.1", "82953b51", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.2.2", "887ee612", func(a req.A) {
+			for name := range files {
+				_, err := os.Stat(filepath.Join(repo, filepath.FromSlash(name)))
+				a.True(err == nil, "no-plans-dir must leave %s in place: %v", name, err)
 			}
-		}
+		})
 	})
 	t.Run("0001.1.3 design artifact folders and plan or mockup names fail", func(t *testing.T) {
 		t.Parallel()
@@ -87,37 +105,44 @@ func Test0001_1(t *testing.T) {
 			"docs/validation-checklist.md":    "# Validation\n",
 			"tests/fixtures/review/input.txt": "in",
 		})
-		acceptance.Sees(t, out, code, 1,
-			"design/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-			"reports/validation/run.txt: a `validation` folder holds temporary work; "+toPRComment,
-			"review-artifacts/diff.txt: a `review-artifacts` folder holds temporary work; "+toPRComment,
-			"src/Plans/next.md: a `plans` folder holds temporary work; "+toPlanIssue,
-		)
-		inOrder(t, out, "design/mockups/home.png:", "reports/validation/run.txt:", "review-artifacts/diff.txt:", "src/Plans/next.md:")
-		for _, kept := range []string{"assets/icons/validation-ok.png", "docs/validation-checklist.md", "tests/fixtures/review/input.txt"} {
-			if strings.Contains(out, kept+":") {
-				t.Errorf("%s names no artifact folder, yet it was reported:\n%s", kept, out)
-			}
-		}
-		{
-			out, code := plans(t, map[string]string{
-				"docs/launch-plan.md":  "# Launch\n",
-				"img/home-mockup.png":  "png",
-				"pr-42-before.png":     "png",
-				"docs/planner.md":      "# Planner\n",
-				"img/print-before.png": "png",
-			})
+		nameOut, nameCode := plans(t, map[string]string{
+			"docs/launch-plan.md":  "# Launch\n",
+			"img/home-mockup.png":  "png",
+			"pr-42-before.png":     "png",
+			"docs/planner.md":      "# Planner\n",
+			"img/print-before.png": "png",
+		})
+		req.Then(t, "0001.1.2.3.1", "79c051fa", func(a req.A) {
 			acceptance.Sees(t, out, code, 1,
+				"design/mockups/home.png: a `mockups` folder holds temporary work",
+				"reports/validation/run.txt: a `validation` folder holds temporary work",
+				"review-artifacts/diff.txt: a `review-artifacts` folder holds temporary work",
+				"src/Plans/next.md: a `plans` folder holds temporary work",
+			)
+			acceptance.Sees(t, nameOut, nameCode, 1,
+				"docs/launch-plan.md: a `*-plan.md` file is a plan",
+				"img/home-mockup.png: a `*-mockup.*` file is a design mockup",
+				"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request",
+			)
+			unreported(a, out, "assets/icons/validation-ok.png", "docs/validation-checklist.md", "tests/fixtures/review/input.txt")
+			unreported(a, nameOut, "docs/planner.md", "img/print-before.png")
+		})
+		req.Then(t, "0001.1.2.3.2", "2509026b", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				"design/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
+				"reports/validation/run.txt: a `validation` folder holds temporary work; "+toPRComment,
+				"review-artifacts/diff.txt: a `review-artifacts` folder holds temporary work; "+toPRComment,
+				"src/Plans/next.md: a `plans` folder holds temporary work; "+toPlanIssue,
+			)
+			acceptance.Sees(t, nameOut, nameCode, 1,
 				"docs/launch-plan.md: a `*-plan.md` file is a plan; "+toPlanIssue,
 				"img/home-mockup.png: a `*-mockup.*` file is a design mockup; "+toPlanDesign,
 				"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request; "+toPRComment,
 			)
-			for _, kept := range []string{"docs/planner.md", "img/print-before.png"} {
-				if strings.Contains(out, kept+":") {
-					t.Errorf("%s matches no artifact name, yet it was reported:\n%s", kept, out)
-				}
-			}
-		}
+		})
+		req.Then(t, "0001.1.2.3.3", "d6fd8919", func(_ req.A) {
+			inOrder(t, out, "design/mockups/home.png:", "reports/validation/run.txt:", "review-artifacts/diff.txt:", "src/Plans/next.md:")
+		})
 	})
 	t.Run("0001.1.4 a needs checklist outside github fails", func(t *testing.T) {
 		t.Parallel()
@@ -126,31 +151,33 @@ func Test0001_1(t *testing.T) {
 			".github/ISSUE_TEMPLATE/plan.md": planChecklist,
 			"docs/what-needs-to-happen.md":   "# Notes\n\n## What needs to happen\n\nNothing yet.\n",
 		})
-		acceptance.Sees(t, out, code, 1, "docs/ship.md: a `## What needs to happen` checklist is a plan; "+toPlanIssue)
-		for _, kept := range []string{".github/ISSUE_TEMPLATE/plan.md", "docs/what-needs-to-happen.md"} {
-			if strings.Contains(out, kept+":") {
-				t.Errorf("%s holds no Plan checklist outside .github/, yet it was reported:\n%s", kept, out)
-			}
-		}
+		req.Then(t, "0001.1.2.4.1", "4d616356", func(a req.A) {
+			acceptance.Sees(t, out, code, 1, "docs/ship.md: a `## What needs to happen` checklist is a plan; "+toPlanIssue)
+			unreported(a, out, ".github/ISSUE_TEMPLATE/plan.md", "docs/what-needs-to-happen.md")
+		})
 	})
 	t.Run("0001.1.5 staged and renamed plan files fail", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{"docs/home.png": "png"})
-		acceptance.Write(t, repo, map[string]string{"docs/plans/next.md": "# Next\n"})
-		acceptance.Git(t, repo, "add", "docs/plans/next.md")
-		acceptance.MustDo(t, os.MkdirAll(filepath.Join(repo, "docs", "mockups"), 0o755))
-		acceptance.Git(t, repo, "mv", "docs/home.png", "docs/mockups/home.png")
-		out, code := acceptance.Fitness(t, repo, nil, "no-plans-dir")
-		acceptance.Sees(t, out, code, 1,
-			"docs/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
-			inPlansFolder("docs/plans/next.md"),
-		)
+		req.Then(t, "0001.1.2.5.1", "bbc5c8b4", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", map[string]string{"docs/home.png": "png"})
+			acceptance.Write(t, repo, map[string]string{"docs/plans/next.md": "# Next\n"})
+			acceptance.Git(t, repo, "add", "docs/plans/next.md")
+			acceptance.MustDo(t, os.MkdirAll(filepath.Join(repo, "docs", "mockups"), 0o755))
+			acceptance.Git(t, repo, "mv", "docs/home.png", "docs/mockups/home.png")
+			out, code := acceptance.Fitness(t, repo, nil, "no-plans-dir")
+			acceptance.Sees(t, out, code, 1,
+				"docs/mockups/home.png: a `mockups` folder holds temporary work; "+toPlanDesign,
+				inPlansFolder("docs/plans/next.md"),
+			)
+		})
 	})
 	t.Run("0001.1.6 an unreadable index fails", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", nil)
-		acceptance.MustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index"), 0o644))
-		out, code := acceptance.Fitness(t, repo, nil, "no-plans-dir")
-		acceptance.Sees(t, out, code, 1, "cannot list the repo's files")
+		req.Then(t, "0001.1.2.6.1", "71ec8e43", func(_ req.A) {
+			repo := acceptance.Example(t, "happyRepo", nil)
+			acceptance.MustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index"), 0o644))
+			out, code := acceptance.Fitness(t, repo, nil, "no-plans-dir")
+			acceptance.Sees(t, out, code, 1, "cannot list the repo's files")
+		})
 	})
 }

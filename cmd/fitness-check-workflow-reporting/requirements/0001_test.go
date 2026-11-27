@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 func TestMain(m *testing.M) {
@@ -20,42 +21,55 @@ func Test0001_1(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.1.1 a final always summary step passes", func(t *testing.T) {
 		t.Parallel()
-		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(reportStep)})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "workflow-reporting", "1")
+		req.Then(t, "0001.1.1.1.1", "07b8e753", func(_ req.A) {
+			out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(reportStep)})
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWith(t, out, "workflow-reporting", "1")
+		})
 	})
 	t.Run("0001.1.2 a job with no reporting step fails naming file then line with the step to add", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, map[string]string{".github/workflows/build.yaml": reportingJob("")})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY",
-			"add a last step with `if: ${{ always() }}` whose run writes the job's status to \"$GITHUB_STEP_SUMMARY\"")
+		req.Then(t, "0001.1.1.2.1", "f7956a3e", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml")
+		})
+		req.Then(t, "0001.1.1.2.2", "85662110", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/build.yaml:4: job build has no step that runs with if: always() and writes $GITHUB_STEP_SUMMARY")
+		})
+		req.Then(t, "0001.1.1.2.3", "17485c08", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, "add a last step with `if: ${{ always() }}` whose run writes the job's status to \"$GITHUB_STEP_SUMMARY\"")
+		})
 	})
 	t.Run("0001.1.3 a summary step that skips failure fails", func(t *testing.T) {
 		t.Parallel()
-		onSuccess := strings.Replace(reportStep, "        if: ${{ always() }}\n", "", 1)
-		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(onSuccess)})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job build writes $GITHUB_STEP_SUMMARY only when earlier steps pass, at line 9",
-			"add `if: ${{ always() }}` to the step at line 9")
+		req.Then(t, "0001.1.1.3.1", "2e75f4b8", func(_ req.A) {
+			onSuccess := strings.Replace(reportStep, "        if: ${{ always() }}\n", "", 1)
+			out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": reportingJob(onSuccess)})
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job build writes $GITHUB_STEP_SUMMARY only when earlier steps pass, at line 9",
+				"add `if: ${{ always() }}` to the step at line 9")
+		})
 	})
 	t.Run("0001.1.4 a job calling a reusable workflow passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": "name: CI\non: push\njobs:\n" +
 			"  fitness:\n    uses: may-journal/fitness-runner/.github/workflows/ci-reusable.yml@v1\n    secrets: inherit\n"})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "workflow-reporting", "1")
-		if strings.Contains(out, "job fitness") {
-			t.Errorf("a job that only calls a reusable workflow was asked for a step:\n%s", out)
-		}
+		req.Then(t, "0001.1.1.4.1", "2c49bcbd", func(a req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWith(t, out, "workflow-reporting", "1")
+			a.True(!strings.Contains(out, "job fitness"), "a job that only calls a reusable workflow was asked for a step:\n%s", out)
+		})
 	})
 	t.Run("0001.1.5 a matrix job is judged and named once", func(t *testing.T) {
 		t.Parallel()
 		matrix := "name: CI\non: push\njobs:\n  test:\n    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest, windows-latest]\n" +
 			"    runs-on: ${{ matrix.os }}\n    steps:\n      - run: make test\n"
 		out, code := reportingCheck(t, map[string]string{".github/workflows/ci.yml": matrix})
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job test has no step")
-		if n := strings.Count(out, "job test has no step"); n != 1 {
-			t.Errorf("a matrix job must be named once, got %d times:\n%s", n, out)
-		}
+		req.Then(t, "0001.1.1.5.1", "b6b44002", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:4: job test has no step")
+		})
+		req.Then(t, "0001.1.1.5.2", "b2e40d20", func(a req.A) {
+			a.Equal(1, strings.Count(out, "job test has no step"))
+		})
 	})
 }
 
@@ -67,23 +81,32 @@ func Test0001_2(t *testing.T) {
 		files[".github/workflows/ci.yml"] = "name: CI\non: push\njobs:\n  build:\n\truns-on: ubuntu-latest\n"
 		out, code := reportingCheck(t, files)
 		const bad = ": this workflow is not valid YAML: "
-		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:5"+bad+"a tab indents this line",
-			".github/workflows/fork.yml:5:116"+bad+"a `: ` inside a plain value starts a mapping",
-			".github/workflows/reserved.yml:5:14"+bad+"a plain value cannot start with '@'",
-			".github/workflows/key-line.yml:5:14"+bad+"'-' opens a list item on its key's line",
-			"move it onto its own line, indented under the key",
-			".github/workflows/continued.yml:6:13"+bad+"a `: ` inside a plain value",
-			".github/workflows/colon-end.yml:5:27"+bad+"a plain value ends in `:`",
-			".github/workflows/flow-trailing.yml:5:27"+bad+"text follows the closing bracket",
-			".github/workflows/wide.yml:5:18"+bad+"a `: ` inside a plain value")
-		out, code = reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		accepted, acceptedCode := reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
+		req.Then(t, "0001.2.1.1.1", "aabd0f94", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:5"+bad+"a tab indents this line",
+				".github/workflows/continued.yml:6:13"+bad+"a `: ` inside a plain value")
+		})
+		req.Then(t, "0001.2.1.1.2", "12caef24", func(_ req.A) {
+			acceptance.Sees(t, out, code, 1,
+				".github/workflows/fork.yml:5:116"+bad+"a `: ` inside a plain value starts a mapping",
+				".github/workflows/reserved.yml:5:14"+bad+"a plain value cannot start with '@'",
+				".github/workflows/key-line.yml:5:14"+bad+"'-' opens a list item on its key's line",
+				"move it onto its own line, indented under the key",
+				".github/workflows/colon-end.yml:5:27"+bad+"a plain value ends in `:`",
+				".github/workflows/flow-trailing.yml:5:27"+bad+"text follows the closing bracket",
+				".github/workflows/wide.yml:5:18"+bad+"a `: ` inside a plain value")
+		})
+		req.Then(t, "0001.2.1.1.3", "5cec70e9", func(_ req.A) {
+			acceptance.Sees(t, accepted, acceptedCode, 0, "All 1 checks passed")
+		})
 	})
 	t.Run("0001.2.2 a repo with no workflows passes with no files", func(t *testing.T) {
 		t.Parallel()
-		out, code := reportingCheck(t, nil)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, "workflow-reporting")
+		req.Then(t, "0001.2.1.2.1", "857dd667", func(_ req.A) {
+			out, code := reportingCheck(t, nil)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+			acceptance.PassedWithNoFiles(t, out, "workflow-reporting")
+		})
 	})
 	t.Run("0001.2.3 this repo's own workflows pass", func(t *testing.T) {
 		t.Parallel()
@@ -99,7 +122,9 @@ func Test0001_2(t *testing.T) {
 			files[".github/workflows/"+filepath.Base(f)] = string(body)
 		}
 		out, code := reportingCheck(t, files)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		req.Then(t, "0001.2.1.3.1", "82953b51", func(_ req.A) {
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 

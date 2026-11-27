@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // TestMain lets this test binary stand in for the JDK and the build tools. Run
@@ -26,15 +27,20 @@ func Test0001_1(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleWarning(repo)}})
-		acceptance.Sees(t, out, code, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
 		// Gradle prints a warning only when its task runs, never when it holds
 		// the task up to date, so each task must rerun.
-		repo = javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'checkstyle' }\n", checkstyleConfig: checkstyleCeiling})
-		rp, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"gradle": {checkstyleGradleWarning(repo)}})
-		acceptance.Sees(t, out, code, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
-		if !rp.Called("gradle", "checkstyleMain --rerun", "checkstyleTest --rerun") {
-			t.Errorf("gradle calls = %q, want both Checkstyle tasks forced to rerun", rp.Calls("gradle"))
-		}
+		gradleRepo := javaRepo(t, map[string]string{"build.gradle": "plugins { id 'java'; id 'checkstyle' }\n", checkstyleConfig: checkstyleCeiling})
+		rp, gradleOut, gradleCode := javaRun(t, gradleRepo, "checkstyle", map[string][]acceptance.Response{"gradle": {checkstyleGradleWarning(gradleRepo)}})
+		req.Then(t, "0001.1.2.1.1", "047c391a", func(a req.A) {
+			acceptance.Sees(a.T(), out, code, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
+			acceptance.Sees(a.T(), gradleOut, gradleCode, 1, javaSource+":3:5 - Name 'Foo' must match pattern '^[a-z][a-zA-Z0-9]*$' (MethodName)")
+		})
+		req.Then(t, "0001.1.2.1.2", "d1bdfb53", func(a req.A) {
+			a.True(rp.Called("gradle", "checkstyleMain --rerun"), "gradle calls = %q, want checkstyleMain forced to rerun", rp.Calls("gradle"))
+		})
+		req.Then(t, "0001.1.2.1.3", "0c94eb78", func(a req.A) {
+			a.True(rp.Called("gradle", "checkstyleTest --rerun"), "gradle calls = %q, want checkstyleTest forced to rerun", rp.Calls("gradle"))
+		})
 	})
 	t.Run("0001.1.2 clean sources pass checkstyle, counting the Java files", func(t *testing.T) {
 		t.Parallel()
@@ -45,8 +51,16 @@ func Test0001_1(t *testing.T) {
 		})
 		clean := acceptance.Response{Match: []string{"checkstyle:check", "checkstyle.config.location=", "/" + checkstyleConfig}, Stdout: checkstyleClean.Stdout}
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {clean}})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWith(t, out, "checkstyle", "1")
+		req.Then(t, "0001.1.2.2.1", "07b8e753", func(a req.A) {
+			acceptance.Sees(a.T(), out, code, 0, "All 1 checks passed")
+		})
+		req.Then(t, "0001.1.2.2.2", "e60b1cdc", func(a req.A) {
+			acceptance.PassedWith(a.T(), out, "checkstyle", "1")
+		})
+		req.Then(t, "0001.1.2.2.3", "3bf10f5c", func(a req.A) {
+			// The config in the test source set holds no ceiling, yet the run passes.
+			acceptance.Sees(a.T(), out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
@@ -54,42 +68,58 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 build without checkstyle plugin gets snippet", func(t *testing.T) {
 		t.Parallel()
-		repo := checkstyleRepo(t, "", map[string]string{checkstyleConfig: checkstyleCeiling})
-		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
-		acceptance.Sees(t, out, code, 1, "Checkstyle is not in the Maven build at .; add it:")
-		javaSeesSnippet(t, out, "<artifactId>maven-checkstyle-plugin</artifactId>")
+		req.Then(t, "0001.2.2.1.1", "10cdf9c6", func(_ req.A) {
+			repo := checkstyleRepo(t, "", map[string]string{checkstyleConfig: checkstyleCeiling})
+			_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+			acceptance.Sees(t, out, code, 1, "Checkstyle is not in the Maven build at .; add it:")
+			javaSeesSnippet(t, out, "<artifactId>maven-checkstyle-plugin</artifactId>")
+		})
 	})
 	t.Run("0001.2.2 build without checkstyle config fails", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, nil)
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
-		acceptance.Sees(t, out, code, 1, "no Checkstyle config sets a complexity ceiling; add "+checkstyleConfig+" holding")
+		req.Then(t, "0001.2.2.2.1", "91846ac5", func(a req.A) {
+			acceptance.Sees(a.T(), out, code, 1, "no Checkstyle config sets a complexity ceiling; add "+checkstyleConfig+" holding")
+		})
+		req.Then(t, "0001.2.2.2.2", "e835c107", func(a req.A) {
+			a.Contains(acceptance.Read(out), "<!DOCTYPE module PUBLIC \"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\"")
+		})
 	})
 	t.Run("0001.2.3 config without complexity ceiling fails naming the config", func(t *testing.T) {
 		t.Parallel()
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: checkstyleNoCeiling})
 		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
-		acceptance.Sees(t, out, code, 1, checkstyleConfig+" sets no complexity ceiling; add inside TreeWalker:")
-		javaSeesSnippet(t, out, `<module name="CyclomaticComplexity">`)
+		req.Then(t, "0001.2.2.3.1", "ecf92075", func(a req.A) {
+			acceptance.Sees(a.T(), out, code, 1, checkstyleConfig+" sets no complexity ceiling; add inside TreeWalker:")
+		})
+		req.Then(t, "0001.2.2.3.2", "297a826c", func(a req.A) {
+			javaSeesSnippet(a.T(), out, `<module name="CyclomaticComplexity">`)
+		})
 	})
 	t.Run("0001.2.4 maven build with hinted config passes", func(t *testing.T) {
 		t.Parallel()
 		_, out, _ := javaRun(t, checkstyleRepo(t, checkstyleMaven, nil), "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
 		hinted := checkstyleHinted(t, out)
-		if !strings.HasPrefix(hinted, "<!DOCTYPE module PUBLIC \"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\"") {
-			t.Errorf("the hinted config lacks the document type line Maven needs:\n%s", hinted)
-		}
 		repo := checkstyleRepo(t, checkstyleMaven, map[string]string{checkstyleConfig: hinted})
-		_, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		rp, out, code := javaRun(t, repo, "checkstyle", map[string][]acceptance.Response{"mvn": {checkstyleClean}})
+		req.Then(t, "0001.2.2.4.1", "7ae789b7", func(a req.A) {
+			a.True(strings.HasPrefix(hinted, "<!DOCTYPE module PUBLIC \"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\""), "the hinted config lacks the document type line Maven needs:\n%s", hinted)
+			a.True(rp.Called("mvn", "checkstyle.config.location=", "/"+checkstyleConfig), "mvn calls = %q, want the added config", rp.Calls("mvn"))
+		})
+		req.Then(t, "0001.2.2.4.2", "926285a2", func(a req.A) {
+			acceptance.Sees(a.T(), out, code, 0, "All 1 checks passed")
+		})
 	})
 }
 
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	_, out, code := javaRun(t, acceptance.Example(t, "happyRepo", nil), "checkstyle", nil)
-	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	acceptance.PassedWithNoFiles(t, out, "checkstyle")
+	req.Then(t, "0001.3.1.1.1", "857dd667", func(_ req.A) {
+		_, out, code := javaRun(t, acceptance.Example(t, "happyRepo", nil), "checkstyle", nil)
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		acceptance.PassedWithNoFiles(t, out, "checkstyle")
+	})
 }
 
 // javaJDK is what `java -version` prints, on stderr, for a running JDK 21.
@@ -134,6 +164,7 @@ func javaRun(t *testing.T, repo, check string, saved map[string][]acceptance.Res
 // javaSeesSnippet asserts the user saw a build file snippet, which the
 // results table may break inside a long word, by comparing without spaces.
 func javaSeesSnippet(t *testing.T, out, snippet string) {
+	req.Asserted(t)
 	t.Helper()
 	squeeze := func(s string) string { return strings.Join(strings.Fields(acceptance.Read(s)), "") }
 	if !strings.Contains(squeeze(out), squeeze(snippet)) {

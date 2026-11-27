@@ -1,6 +1,10 @@
 package requirements
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/may-journal/fitness-checks/req"
+)
 
 // edgeCase is one case of an acceptance's table test: an edge case the
 // acceptance covers, with the test that proves it.
@@ -14,5 +18,6 @@ func runCases(t *testing.T, cases []edgeCase) {
 	t.Helper()
 	for _, c := range cases {
 		t.Run(c.name, c.run)
+		req.Asserted(t)
 	}
 }

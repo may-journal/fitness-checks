@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/may-journal/fitness-checks/req/digest"
 	"github.com/may-journal/fitness-runner/go/pkg/walkfs"
 )
 
@@ -30,6 +31,16 @@ type Step struct {
 	Line int
 	When string
 	Then string
+	// Thens are the step's THEN items, each with its own ID.
+	Thens []Then
+}
+
+// A Then is a THEN item with its words after THEN. Its ID joins the doc,
+// acceptance, last GIVEN, WHEN and THEN numbers, such as 0005.3.1.2.1.
+type Then struct {
+	ID   string
+	Line int
+	Text string
 }
 
 // Document is one parsed requirement doc.
@@ -238,3 +249,6 @@ func checkSectionNames(p *problems, sections []section) {
 		p.add(1, "sections must be exactly ## Why, ## Measurement, ## Requirements, in that order, each with content")
 	}
 }
+
+// Hash is the tag hash of the THEN's text, which a test case's tag repeats.
+func (t Then) Hash() string { return digest.Of(t.Text) }
