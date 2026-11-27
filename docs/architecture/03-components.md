@@ -10,7 +10,7 @@ C4Component
     Container_Boundary(checks, "Check programs") {
         Component(check, "3 Check package", "Go", "cmd/fitness-check-*")
         Component(entry, "4 Program entry", "Go", "internal/program")
-        Component(helpers, "5 Check-only helpers", "Go", "internal/acceptance, internal/architecture, internal/clonedetect, internal/config, internal/describe, internal/diagrams, internal/lang, internal/match, internal/mdfilename, internal/packages, internal/requirement, internal/sharedconf, internal/spell, internal/waiting, req/")
+        Component(helpers, "5 Check-only helpers", "Go", "internal/acceptance, internal/architecture, internal/clonedetect, internal/config, internal/describe, internal/diagrams, internal/lang, internal/match, internal/mdfilename, internal/packages, internal/requirement, internal/sharedconf, internal/spell, internal/waiting")
     }
 
     System_Ext(peers, "6 Peer tools", "each language module's formatters, linters and test runners")

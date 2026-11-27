@@ -157,11 +157,10 @@ func pairErrors(root string, roots, docPaths, testFiles []string, tests []reqTes
 	base := gitx.ScopeBase(root)
 	p := newPairs(roots, docPaths, testFiles, tests, changed)
 	changed, err := p.withoutCommentOnly(root, base, changed)
-	changed, renameErr := p.withoutTagEdits(root, base, changed)
 	reformatted, reformatErr := reformats(root, roots, base, changed)
 	errs := p.judge(changed, reformatted, fixedAtBase(root, base))
 	sort.Strings(errs)
-	return errs, errors.Join(err, renameErr, reformatErr)
+	return errs, errors.Join(err, reformatErr)
 }
 
 // withoutCommentOnly drops each changed test or doc whose code, comments
