@@ -93,7 +93,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: scripts/release-index-publish.sh
       # The org's .github repo reruns the fitness suite on open pull requests, since the new check changes what they must pass.
-      # A failed dispatch turns the run red on purpose. Start the rerun workflow there by hand to catch up.
+      # A failed dispatch turns the run red, and a hand start there catches up.
       - name: Mint a token for the .github repo
         if: ${{ needs.publish.result == 'success' && needs.plan.outputs.tags != '[]' }}
         id: dispatch-token
