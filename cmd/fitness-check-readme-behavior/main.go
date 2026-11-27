@@ -297,16 +297,16 @@ func leaves(keys []configKey) []configKey {
 	return out
 }
 
-// describe runs the program of check name that sits beside this one and
-// decodes what its --describe prints.
+// describe runs the installed program of check name, found as the engine
+// finds it, and decodes what its --describe prints.
 func describe(name string) (described, error) {
-	self, err := os.Executable()
-	if err != nil {
-		return described{}, err
+	installed, found := checkkit.Discover()[name]
+	if !found {
+		return described{}, fmt.Errorf("no program fitness-check-%s is installed", name)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), describeTimeout)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, filepath.Join(filepath.Dir(self), "fitness-check-"+name), "--describe").Output()
+	out, err := exec.CommandContext(ctx, installed, "--describe").Output()
 	if err != nil {
 		return described{}, err
 	}
