@@ -38,7 +38,7 @@ changes to product code
 2. Other files need no pair
    1. GIVEN Developer has a repo with Go or Swift code
    2. GIVEN it has requirement docs
-      1. WHEN only vendored or fixture or build output or generated files change
+      1. WHEN only vendored files or `testdata` or build output such as `dist` or `.build` or `DerivedData` or generated files change
          1. THEN it passes since they are not product code
       2. WHEN a full scan runs with nothing staged
          1. THEN it judges nothing

@@ -6,3 +6,4 @@
 - Docs: `semantic-commit` gains acceptance 0001.4 for the message each run judges, and `workflow-reporting` gains requirement 0002 for rejected values and the files read.
 - Docs: `requirements` gains acceptance 0009.1.3 for a code span, and its README links the acceptances for steps and Gherkin.
 - Build: `scripts/describe-diff.sh` diffs a check's `--describe` answer between its last release before a commit and the working tree.
+- Docs: requirement 0012 and its test prove `scripts/describe-diff.sh` prints identical or the diff and exits to match.
