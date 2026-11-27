@@ -25,6 +25,9 @@ type history struct {
 	// held holds every acceptance ID a commit added outside an HTML comment.
 	// A numbered doc that drops one must keep it as a Removed line.
 	held map[string]bool
+	// drops holds each Removed line a commit or the working tree deleted
+	// beside the acceptances that moved up over it.
+	drops map[drop]bool
 }
 
 // wholeDoc is the diff context that keeps each changed doc whole in one hunk,
@@ -39,14 +42,15 @@ func readHistories(root string, roots, paths []string) (map[string]history, stri
 	hists := map[string]history{}
 	dirs := make([]string, len(roots))
 	for i, r := range roots {
-		hists[r] = history{removed: map[string]bool{}, homes: map[string]string{}, held: map[string]bool{}}
+		hists[r] = history{removed: map[string]bool{}, homes: map[string]string{}, held: map[string]bool{}, drops: map[drop]bool{}}
 		dirs[i] = packages.Join(r, docsDir)
 	}
 	log, note := docLog(root, dirs)
 	logs := splitLog(roots, log)
+	working := splitCommit(roots, uncommittedDocs(root, paths))
 	for _, r := range roots {
 		// A restructure the docs judged now keep none of restarts the record, as one more commit would.
-		if h := hists[r]; h.replay(logs[r]).keepsNone(packages.Owned(roots, r, paths)) {
+		if h := hists[r]; h.replay(logs[r], working[r]).keepsNone(packages.Owned(roots, r, paths)) {
 			h.restart()
 		}
 	}
@@ -104,8 +108,9 @@ func splitCommit(roots []string, commit string) map[string]string {
 }
 
 // replay folds each commit of a history log into h, clearing the record after
-// each restructure, and returns the docs that remain.
-func (h history) replay(log string) docFiles {
+// each restructure, and returns the docs that remain. The uncommitted diff
+// of the docs only drops the Removed lines it deletes, as a commit would.
+func (h history) replay(log, uncommitted string) docFiles {
 	live, docs := map[string]int{}, docFiles{}
 	for _, commit := range strings.Split(log, "\x00") {
 		restructure := docs.restructures(commit)
@@ -114,10 +119,12 @@ func (h history) replay(log string) docFiles {
 		h.settle(names)
 		h.keep(names["+"])
 		h.keep(names[heldSide])
+		h.compact(live, commit)
 		if restructure {
 			h.restart()
 		}
 	}
+	h.compact(live, uncommitted)
 	return docs
 }
 
@@ -126,6 +133,7 @@ func (h history) restart() {
 	clear(h.removed)
 	clear(h.homes)
 	clear(h.held)
+	clear(h.drops)
 }
 
 // keep marks each ID that ids map to as held.
