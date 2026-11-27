@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -86,14 +87,18 @@ func Test0001_2(t *testing.T) {
 func Test0001_3(t *testing.T) {
 	t.Parallel()
 	for _, broken := range dcBrokenRegistries(t) {
-		start := time.Now()
 		out, code := dcAgainst(t, broken)
 		acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
 		if broken.hits != nil && broken.hits.Load() == 0 {
 			t.Errorf("%s: the check never asked the registry", broken.name)
-		}
-		if took := time.Since(start); took > dcSilentWithin {
-			t.Errorf("%s: the run took %v, past the %v a silent registry may cost", broken.name, took.Round(time.Second), dcSilentWithin)
+			if broken.waits != nil {
+				for deadline := time.Now().Add(dcSilentWithin); broken.waits.Load() == 0 && time.Now().Before(deadline); {
+					time.Sleep(10 * time.Millisecond)
+				}
+				if waited := time.Duration(broken.waits.Load()); waited == 0 || waited > dcSilentWithin {
+					t.Errorf("%s: the check held the silent connection %v, want it closed within %v", broken.name, waited, dcSilentWithin)
+				}
+			}
 		}
 	}
 }
@@ -196,11 +201,13 @@ type dcBroken struct {
 	hits      *atomic.Int32
 	home      bool
 	env       []string
+	waits     *atomic.Int64
 }
 
 // dcBrokenRegistries are unreachable, erroring, garbage-answering and silent
 // registries, set in the repo or home .npmrc or behind a proxy.
 func dcBrokenRegistries(t *testing.T) []dcBroken {
+	silentURL, silentWaits := timedSilentListener(t)
 	failing, failHits := dcAnswer(t, http.StatusInternalServerError, `{"error":"Internal Server Error"}`)
 	garbage, garbageHits := dcAnswer(t, http.StatusOK, "<html>proxy login</html>")
 	homeGarbage, homeHits := dcAnswer(t, http.StatusOK, `{"dist-tags": `)
@@ -208,7 +215,7 @@ func dcBrokenRegistries(t *testing.T) []dcBroken {
 		{name: "unreachable", url: dcUnreachable},
 		{name: "server error", url: failing, hits: failHits},
 		{name: "garbage", url: garbage, hits: garbageHits},
-		{name: "silent", url: silentListener(t)},
+		{name: "silent", url: silentURL, waits: silentWaits},
 		{name: "home garbage", url: homeGarbage, hits: homeHits, home: true},
 		{name: "silent proxy", url: "https://registry.example.invalid", want: "did not answer within 2s through proxy", env: []string{"HTTPS_PROXY=" + silentListener(t), "NO_PROXY=", "GITHUB_API_URL=https://api.github.com"}},
 	}
@@ -224,21 +231,35 @@ func dcAgainst(t *testing.T, broken dcBroken) (string, int) {
 		delete(files, ".npmrc")
 		acceptance.Write(t, home, map[string]string{".npmrc": dcNpmrc(broken.url)})
 	}
-	return dependencyCurrency(t, files, append([]string{"HOME=" + home}, broken.env...)...)
+	return dependencyCurrency(t, files, append([]string{"HOME=" + home, "FITNESS_DEPENDENCY_CURRENCY_TIMEOUT=" + dcRequestTimeout}, broken.env...)...)
 }
 
-// dcSilentWithin bounds a run whose registry never answers: the ten-second
-// request timeout plus install, well under the 30-second budget.
-const dcSilentWithin = 20 * time.Second
+// dcRequestTimeout is the shortened timeout the check is told to use, so a
+// silent registry is given up on in a second instead of ten.
+const dcRequestTimeout = "1s"
+
+// dcSilentWithin bounds how long the check may hold a silent connection,
+// measured by the listener itself, so load that slows the installer or the
+// runner cannot move it. It is several times the timeout.
+const dcSilentWithin = 5 * time.Second
 
 // silentListener starts a TCP listener that accepts connections and never
 // answers, as a proxy dropping traffic does, and returns its URL.
 func silentListener(t *testing.T) string {
 	t.Helper()
+	url, _ := timedSilentListener(t)
+	return url
+}
+
+// timedSilentListener is silentListener that also returns the longest time,
+// in nanoseconds, a client held one connection before closing it.
+func timedSilentListener(t *testing.T) (string, *atomic.Int64) {
+	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	acceptance.MustDo(t, err)
 	var mu sync.Mutex
 	var held []net.Conn
+	longest := new(atomic.Int64)
 	go func() {
 		for {
 			conn, err := ln.Accept()
@@ -248,6 +269,13 @@ func silentListener(t *testing.T) string {
 			mu.Lock()
 			held = append(held, conn)
 			mu.Unlock()
+			go func() {
+				start := time.Now()
+				_, _ = io.Copy(io.Discard, conn)
+				if d := int64(time.Since(start)); d > longest.Load() {
+					longest.Store(d)
+				}
+			}()
 		}
 	}()
 	t.Cleanup(func() {
@@ -258,7 +286,7 @@ func silentListener(t *testing.T) string {
 			_ = conn.Close()
 		}
 	})
-	return "http://" + ln.Addr().String()
+	return "http://" + ln.Addr().String(), longest
 }
 
 // registry serves saved npm registry answers, package name to response body,
