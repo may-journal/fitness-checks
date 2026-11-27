@@ -25,3 +25,9 @@ tagged cases
          1. THEN the test fails naming the THEN
       2. WHEN its body asserts
          1. THEN the test passes
+3. A body runs as it was written
+   1. GIVEN Developer has a Go test that calls `req.Then` with a body of its own `*testing.T`
+      1. WHEN the body fails the test with `t.Errorf`
+         1. THEN the test fails with that message
+      2. WHEN the body asserts through a helper that calls `req.Asserted`
+         1. THEN the test passes

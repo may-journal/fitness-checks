@@ -69,20 +69,30 @@ func (a A) NoError(err error) {
 	}
 }
 
-// A call of Then tags body with the ID and hash of its THEN and fails t when body makes no assertion.
-func Then(t *testing.T, id, hash string, body func(a A)) {
+// Body is what a Then runs: a function of the case's own test, or of the A
+// that wraps it.
+type Body interface{ func(t *testing.T) | func(a A) }
+
+// A call of Then tags body with the ID and hash of its THEN and runs it in a
+// nested case of t. A body of func(t *testing.T) gets that case's test, so
+// code written for a plain test runs as it was. The nested case fails when
+// body makes no assertion, and neither fails nor skips.
+func Then[B Body](t *testing.T, id, hash string, body B) {
 	t.Helper()
-	count := new(atomic.Int64)
-	outer, nested := running.Swap(t, count)
-	defer func() {
-		if nested {
-			running.Store(t, outer)
-		} else {
-			running.Delete(t)
+	t.Run("then", func(t *testing.T) {
+		count := new(atomic.Int64)
+		running.Store(t, count)
+		defer running.Delete(t)
+		defer func() {
+			if count.Load() == 0 && !t.Failed() && !t.Skipped() {
+				t.Errorf("THEN %s#%s makes no assertion; assert its result in the case", id, hash)
+			}
+		}()
+		switch run := any(body).(type) {
+		case func(t *testing.T):
+			run(t)
+		case func(a A):
+			run(A{t: t})
 		}
-	}()
-	body(A{t: t})
-	if count.Load() == 0 {
-		t.Errorf("THEN %s#%s makes no assertion; assert its result in the case", id, hash)
-	}
+	})
 }

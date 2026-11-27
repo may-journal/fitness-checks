@@ -63,3 +63,22 @@ func Test0011_2(t *testing.T) {
 		})
 	})
 }
+
+func Test0011_3(t *testing.T) {
+	t.Parallel()
+	t.Run("0011.3.1 a body fails the test with Errorf", func(t *testing.T) {
+		t.Parallel()
+		req.Then(t, "0011.3.1.1.1", "2af13583", func(a req.A) {
+			out, passed := proof(t, "\treq.Then(t, \"0001.1.1.1.1\", \"00000000\", func(t *testing.T) { t.Errorf(\"body said no\") })\n")
+			a.True(!passed, "a failing body passed:\n%s", out)
+			a.Contains(out, "body said no")
+		})
+	})
+	t.Run("0011.3.2 a body asserts through a helper", func(t *testing.T) {
+		t.Parallel()
+		req.Then(t, "0011.3.1.2.1", "19dc2572", func(a req.A) {
+			out, passed := proof(t, "\treq.Then(t, \"0001.1.1.1.1\", \"00000000\", func(t *testing.T) { req.Asserted(t) })\n")
+			a.True(passed, "a body that asserts failed:\n%s", out)
+		})
+	})
+}
