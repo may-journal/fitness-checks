@@ -17,10 +17,10 @@ Givens in repos with architecture views
 1. Givens start with declared actors
    1. GIVEN Developer has a repo with requirement docs
    2. GIVEN it has a system context declaring its actors
-      1. WHEN a GIVEN starts with an actor's name or Mermaid ID as a whole word in the diagram's case
+      1. WHEN an actor's name or Mermaid ID opens a GIVEN as a whole word in the diagram's case
          1. THEN it passes counting the docs read
          2. THEN it passes though some actors start no GIVEN
-      2. WHEN a GIVEN starts with no declared actor
+      2. WHEN no declared actor opens a GIVEN
          1. THEN it fails naming the GIVEN line
          2. THEN it names the context line
          3. THEN it names the declared actors

@@ -33,48 +33,51 @@ var (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a merge, cherry-pick or revert in progress skips", func(t *testing.T) {
+	t.Run("0001.1.1 a merge, cherry-pick, revert or nothing staged skips", func(t *testing.T) {
 		t.Parallel()
-		repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
-		git(t, repo, "checkout", "-q", "-b", "side")
-		commit(t, repo, map[string]string{
-			"src.txt":      changelogFeature,
-			"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
-		}, "feat: add runner")
-		git(t, repo, "checkout", "-q", "-")
-		commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
-		git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
-		out, code := fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
-		// A conflicting cherry-pick stops with nothing about its change staged.
-		git(t, repo, "merge", "--abort")
-		commit(t, repo, map[string]string{"src.txt": "other\n"}, "fix: other")
-		if err := exec.Command("git", "-C", repo, "cherry-pick", "side").Run(); err == nil {
-			t.Fatal("cherry-pick must stop on its conflict")
-		}
-		out, code = fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
-		// Reverting a commit that added an entry stages its deletion.
-		git(t, repo, "cherry-pick", "--abort")
-		commit(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."), "feat: add runner")
-		git(t, repo, "revert", "--no-commit", "HEAD")
-		out, code = fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
+		t.Run("a merge, cherry-pick or revert in progress skips", func(t *testing.T) {
+			t.Parallel()
+			repo := example(t, "happyRepo", map[string]string{"src.txt": "base\n"})
+			git(t, repo, "checkout", "-q", "-b", "side")
+			commit(t, repo, map[string]string{
+				"src.txt":      changelogFeature,
+				"CHANGELOG.md": changelogEntry("2026.07.07.0850", "Feat: added runner feature for validation."),
+			}, "feat: add runner")
+			git(t, repo, "checkout", "-q", "-")
+			commit(t, repo, map[string]string{"README.md": readme + "\nMore.\n"}, "docs: more")
+			git(t, repo, "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-commit", "--no-ff", "side")
+			out, code := fitness(t, repo, nil, "changelog-updated")
+			sees(t, out, code, 0, "All 1 checks passed")
+			// A conflicting cherry-pick stops with nothing about its change staged.
+			git(t, repo, "merge", "--abort")
+			commit(t, repo, map[string]string{"src.txt": "other\n"}, "fix: other")
+			if err := exec.Command("git", "-C", repo, "cherry-pick", "side").Run(); err == nil {
+				t.Fatal("cherry-pick must stop on its conflict")
+			}
+			out, code = fitness(t, repo, nil, "changelog-updated")
+			sees(t, out, code, 0, "All 1 checks passed")
+			// Reverting a commit that added an entry stages its deletion.
+			git(t, repo, "cherry-pick", "--abort")
+			commit(t, repo, changelogStagedEntry(changelogStamp, "Feat: added runner feature for validation."), "feat: add runner")
+			git(t, repo, "revert", "--no-commit", "HEAD")
+			out, code = fitness(t, repo, nil, "changelog-updated")
+			sees(t, out, code, 0, "All 1 checks passed")
+		})
+		t.Run("nothing staged skips", func(t *testing.T) {
+			t.Parallel()
+			repo := example(t, "happyRepo", nil)
+			write(t, repo, map[string]string{"src.txt": changelogFeature})
+			out, code := fitness(t, repo, nil, "changelog-updated")
+			sees(t, out, code, 0, "All 1 checks passed")
+			passedWithNoFiles(t, out, "changelog-updated")
+		})
 	})
-	t.Run("0001.1.2 nothing staged skips", func(t *testing.T) {
-		t.Parallel()
-		repo := example(t, "happyRepo", nil)
-		write(t, repo, map[string]string{"src.txt": changelogFeature})
-		out, code := fitness(t, repo, nil, "changelog-updated")
-		sees(t, out, code, 0, "All 1 checks passed")
-		passedWithNoFiles(t, out, "changelog-updated")
-	})
-	t.Run("0001.1.3 changes with no entry file fail", func(t *testing.T) {
+	t.Run("0001.1.2 changes with no entry file fail", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogStaged(t, map[string]string{"src.txt": changelogFeature})
 		sees(t, out, code, 1, "Stage a changelog/<yyyy-mm-dd-HHMM>-<change>.md entry file that mentions your staged changes")
 	})
-	t.Run("0001.1.4 a new entry passes whatever the changelog", func(t *testing.T) {
+	t.Run("0001.1.3 a new entry passes whatever the changelog", func(t *testing.T) {
 		t.Parallel()
 		for _, changelog := range []string{
 			changelogEntry(changelogStamp, "Feat: added runner feature for validation."),
@@ -92,7 +95,7 @@ func Test0001_1(t *testing.T) {
 		out, code := fitness(t, repo, nil, "changelog-updated")
 		sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 an entry sharing few words fails with the count", func(t *testing.T) {
+	t.Run("0001.1.4 an entry sharing few words fails with the count", func(t *testing.T) {
 		t.Parallel()
 		out, code := changelogStaged(t, changelogStagedEntry(changelogStamp, "Fix: minor tweak."))
 		sees(t, out, code, 1,
@@ -110,7 +113,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("the suggestion must stop at ten words:\n%s", out)
 		}
 	})
-	t.Run("0001.1.6 only added words of three or more letters count", func(t *testing.T) {
+	t.Run("0001.1.5 only added words of three or more letters count", func(t *testing.T) {
 		t.Parallel()
 		repo := example(t, "happyRepo", map[string]string{"src.txt": "Runner feature validation.\n"})
 		files := withEntries(map[string]string{

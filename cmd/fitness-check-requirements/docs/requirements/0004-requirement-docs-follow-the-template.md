@@ -46,9 +46,9 @@ requirement docs
          1. THEN it fails naming both docs
 5. IDs are never reused
    1. GIVEN Developer has a repo whose history removed an ID
-      1. WHEN a commit brings a removed ID back
+      1. WHEN a removed ID returns in a commit
          1. THEN it fails naming the ID
-      2. WHEN a commit brings a removed step back
+      2. WHEN a removed step returns in a commit
          1. THEN it fails naming the step
       3. WHEN a commit removes every doc
          1. THEN the history restarts

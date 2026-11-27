@@ -110,7 +110,7 @@ func Test0001_1(t *testing.T) {
 		out, code = ajRun(t, ajEdit(eight, ajTagOpen, "open(2 Open the app<br/>Req "+ids+")"))
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.4 a behavior node naming no ID fails at its line", func(t *testing.T) {
+	t.Run("0001.1.4 a behavior node naming no ID fails at the node's line", func(t *testing.T) {
 		t.Parallel()
 		// An edge label naming 0001 still leaves the done node naming none.
 		for want, files := range map[string]map[string]string{

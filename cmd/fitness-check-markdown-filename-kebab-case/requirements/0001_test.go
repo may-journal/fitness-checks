@@ -61,12 +61,14 @@ func Test0001_1(t *testing.T) {
 			"docs/ApiNotes.md: filename must be kebab-case",
 			"docs/api notes.md: filename must be kebab-case")
 	})
-	t.Run("0001.1.3 kebab-case names pass", func(t *testing.T) {
+	t.Run("0001.1.3 kebab-case names and standard root docs pass with digits then a GitHub template name passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(map[string]string{
 			"architecture/02-containers.md": "# Containers\n",
 			"docs/adr001.md":                "# ADR\n",
 		}))
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		out, code = docs(t, docsRepo(exempt))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 	t.Run("0001.1.4 a kebab-case doc in a capitalized folder passes", func(t *testing.T) {
@@ -87,11 +89,6 @@ func Test0001_1(t *testing.T) {
 		if strings.Contains(out, "oldNotes.md") {
 			t.Errorf("only the staged file may be judged:\n%s", out)
 		}
-	})
-	t.Run("0001.1.6 standard and GitHub named docs pass", func(t *testing.T) {
-		t.Parallel()
-		out, code := docs(t, docsRepo(exempt))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }
 

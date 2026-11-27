@@ -18,7 +18,7 @@ package code changes
    1. GIVEN Developer has a monorepo whose `.fitnessrc.json` names its package folders
    2. GIVEN each package holds its own requirement docs
    3. GIVEN each package holds its own tests
-      1. WHEN a package's code changes beside another package's test plus doc
+      1. WHEN another package's test plus doc sit beside a package's code change
          1. THEN it fails naming the file
       2. WHEN a package's code changes beside its own test plus doc
          1. THEN it passes

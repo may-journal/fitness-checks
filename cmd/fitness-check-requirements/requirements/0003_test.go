@@ -221,7 +221,7 @@ func Test0003_5(t *testing.T) {
 		out, code := judged(t, gherkinRepo(t, strings.Replace(sum, "Adds", "Removed in bulk", 1), acceptance.TestFile("adder", "Test0001_1")))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0003.5.3 a test naming a Removed acceptance fails", func(t *testing.T) {
+	t.Run("0003.5.3 a test naming a Removed acceptance fails naming the test", func(t *testing.T) {
 		t.Parallel()
 		out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved)
 		acceptance.Sees(t, out, code, 1, "Test0001_1")
@@ -232,7 +232,7 @@ func Test0003_5(t *testing.T) {
 		out, code := removedRun(t, provingTests("0001.2.1 add", "0001.2.2 double"), firstRemoved, back)
 		acceptance.Sees(t, out, code, 1, rootDoc+":17: 0001.1 was deleted before; IDs are never reused")
 	})
-	t.Run("0003.5.5 a Removed acceptance removed then appended in one commit is no move", func(t *testing.T) {
+	t.Run("0003.5.5 a Removed acceptance removed then appended in one commit passes as no move", func(t *testing.T) {
 		t.Parallel()
 		appended := firstRemoved + "3. Adds on a calculator\n   1. GIVEN two numbers\n      1. WHEN I add them\n         1. THEN I get their sum\n"
 		tests := strings.Replace(onlySecond, "func Test0001_2", "func Test0001_3(t *testing.T) {}\n\nfunc Test0001_2", 1)

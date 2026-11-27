@@ -20,16 +20,14 @@ Mermaid diagrams
          1. THEN the flowchart passes
          2. THEN the sequence diagram passes
          3. THEN the C4 diagram passes
-      2. WHEN a flowchart has an edge with no target or a subgraph with no end
+      2. WHEN a flowchart or sequence diagram has an edge or message with no target or a block with no end
          1. THEN it fails naming each line
          2. THEN it names the diagram line
-      3. WHEN a sequence diagram has a message with no target or a block with no end
-         1. THEN it fails naming each line
-      4. WHEN a diagram type is unknown
+      3. WHEN a diagram type is unknown
          1. THEN it fails naming the type
-      5. WHEN a C4 diagram has an unclosed bracket
+      4. WHEN a C4 diagram has an unclosed bracket
          1. THEN it fails naming the line
-      6. WHEN an unquoted flowchart label holds brackets or quotes
+      5. WHEN an unquoted flowchart label holds brackets or quotes
          1. THEN it fails asking for double quotes
 2. Diagrams are found wherever they sit
    1. GIVEN Developer has diagrams in many kinds of file

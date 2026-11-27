@@ -21,10 +21,10 @@ runs of `node-version` in repos with a `package.json`
          1. THEN `node-version` passes with zero files
       2. WHEN the repo has no `.nvmrc`
          1. THEN it fails with `missing .nvmrc`
-      3. WHEN `.nvmrc` holds a major no higher than the active Node's
+      3. WHEN the active Node meets `.nvmrc`
          1. THEN it passes
          2. THEN it reads a `v` prefix as no prefix
-      4. WHEN `.nvmrc` holds a major above the active Node's
+      4. WHEN `.nvmrc` outranks the active Node
          1. THEN it fails with `does not satisfy .nvmrc`
          2. THEN it gives the fix `nvm use`
       5. WHEN `.nvmrc` holds no number

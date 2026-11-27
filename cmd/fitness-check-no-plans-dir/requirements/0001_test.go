@@ -76,7 +76,7 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.3 design artifact folders fail in path order", func(t *testing.T) {
+	t.Run("0001.1.3 design artifact folders and plan or mockup names fail", func(t *testing.T) {
 		t.Parallel()
 		out, code := plans(t, map[string]string{
 			"src/Plans/next.md":               "# Next\n",
@@ -99,28 +99,27 @@ func Test0001_1(t *testing.T) {
 				t.Errorf("%s names no artifact folder, yet it was reported:\n%s", kept, out)
 			}
 		}
-	})
-	t.Run("0001.1.4 plan and mockup file names fail", func(t *testing.T) {
-		t.Parallel()
-		out, code := plans(t, map[string]string{
-			"docs/launch-plan.md":  "# Launch\n",
-			"img/home-mockup.png":  "png",
-			"pr-42-before.png":     "png",
-			"docs/planner.md":      "# Planner\n",
-			"img/print-before.png": "png",
-		})
-		acceptance.Sees(t, out, code, 1,
-			"docs/launch-plan.md: a `*-plan.md` file is a plan; "+toPlanIssue,
-			"img/home-mockup.png: a `*-mockup.*` file is a design mockup; "+toPlanDesign,
-			"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request; "+toPRComment,
-		)
-		for _, kept := range []string{"docs/planner.md", "img/print-before.png"} {
-			if strings.Contains(out, kept+":") {
-				t.Errorf("%s matches no artifact name, yet it was reported:\n%s", kept, out)
+		{
+			out, code := plans(t, map[string]string{
+				"docs/launch-plan.md":  "# Launch\n",
+				"img/home-mockup.png":  "png",
+				"pr-42-before.png":     "png",
+				"docs/planner.md":      "# Planner\n",
+				"img/print-before.png": "png",
+			})
+			acceptance.Sees(t, out, code, 1,
+				"docs/launch-plan.md: a `*-plan.md` file is a plan; "+toPlanIssue,
+				"img/home-mockup.png: a `*-mockup.*` file is a design mockup; "+toPlanDesign,
+				"pr-42-before.png: a `pr-<number>-*` file belongs to one pull request; "+toPRComment,
+			)
+			for _, kept := range []string{"docs/planner.md", "img/print-before.png"} {
+				if strings.Contains(out, kept+":") {
+					t.Errorf("%s matches no artifact name, yet it was reported:\n%s", kept, out)
+				}
 			}
 		}
 	})
-	t.Run("0001.1.5 a needs checklist outside github fails", func(t *testing.T) {
+	t.Run("0001.1.4 a needs checklist outside github fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := plans(t, map[string]string{
 			"docs/ship.md":                   planChecklist,
@@ -134,7 +133,7 @@ func Test0001_1(t *testing.T) {
 			}
 		}
 	})
-	t.Run("0001.1.6 staged and renamed plan files fail", func(t *testing.T) {
+	t.Run("0001.1.5 staged and renamed plan files fail", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", map[string]string{"docs/home.png": "png"})
 		acceptance.Write(t, repo, map[string]string{"docs/plans/next.md": "# Next\n"})
@@ -147,7 +146,7 @@ func Test0001_1(t *testing.T) {
 			inPlansFolder("docs/plans/next.md"),
 		)
 	})
-	t.Run("0001.1.7 an unreadable index fails", func(t *testing.T) {
+	t.Run("0001.1.6 an unreadable index fails", func(t *testing.T) {
 		t.Parallel()
 		repo := acceptance.Example(t, "happyRepo", nil)
 		acceptance.MustDo(t, os.WriteFile(filepath.Join(repo, ".git", "index"), []byte("not an index"), 0o644))

@@ -16,14 +16,11 @@ comments checked
 
 1. Comments stay within their budgets
    1. GIVEN Developer has a comment that reaches the check by `--body-file`
-      1. WHEN the comment holds more words than the budget outside tables or code or diagrams
+      1. WHEN the comment holds more words outside tables or code or diagrams or more plain tables than its budget
          1. THEN it fails naming the count
          2. THEN it fails naming the budget
-      2. WHEN the repo sets `comment.maxWords` above that count
+      2. WHEN the repo sets `comment.maxWords` above the word count
          1. THEN it passes
-      3. WHEN the comment holds more plain tables than the budget
-         1. THEN it fails naming the count
-         2. THEN it fails naming the budget
 2. Diagrams carry numbered callouts
    1. GIVEN Developer has a comment with a mermaid diagram
       1. WHEN the diagram has no numbered callouts
@@ -32,19 +29,10 @@ comments checked
          1. THEN it passes
 3. Agent noise fails
    1. GIVEN Developer has a comment written by an agent
-      1. WHEN the comment holds a change-log note such as `Edit 2:`
+      1. WHEN the comment holds agent noise outside code such as a change-log note or agent frame or model identifier or fitness marker
          1. THEN it fails naming the line
-         2. THEN it fails naming the note
-      2. WHEN the comment holds an agent frame such as a `<system-reminder>` tag
-         1. THEN it fails naming the line
-         2. THEN it fails naming the frame
-      3. WHEN the comment holds a model identifier outside code
-         1. THEN it fails naming the line
-         2. THEN it fails naming the identifier
-      4. WHEN the comment holds a fitness marker outside code
-         1. THEN it fails naming the line
-         2. THEN it fails naming the marker
-      5. WHEN the comment names a model inside a code span
+         2. THEN it fails naming the noise
+      2. WHEN the comment names a model inside a code span
          1. THEN it passes
 4. Other input is left alone
    1. GIVEN Developer has text that is no comment

@@ -17,19 +17,15 @@ Diagrams with a callout table
 1. The gap holds no paragraph
    1. GIVEN Developer has Markdown files or a PR body with diagrams
    2. GIVEN each diagram has a callout table
-      1. WHEN a paragraph sits in the gap from a diagram to its table
+      1. WHEN a paragraph sits in the gap from a diagram or a legend to its table
          1. THEN it fails naming the line
-      2. WHEN a paragraph sits in the gap from a legend to the table
-         1. THEN it fails naming the line
-      3. WHEN the only line between them is a caption that starts with `Numbers` plus the claim they `match the callout table`
+      2. WHEN the only line between them is a caption starting with `Numbers` plus the claim they `match the callout table` or prose sits outside the gap
          1. THEN the diagram passes
-      4. WHEN a paragraph follows the caption
+      3. WHEN a paragraph follows the caption
          1. THEN it fails naming that line
          2. THEN the caption is not named
-      5. WHEN prose sits before the diagram or after the table
-         1. THEN the diagram passes
-      6. WHEN a file has no diagram
+      4. WHEN a file has no diagram
          1. THEN it is skipped
          2. THEN it is not counted
-      7. WHEN a PR body has a paragraph in the gap
+      5. WHEN a PR body has a paragraph in the gap
          1. THEN it fails naming `(description)`

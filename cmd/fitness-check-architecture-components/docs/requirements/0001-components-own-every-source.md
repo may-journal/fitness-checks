@@ -35,7 +35,7 @@ repos with a components view
          2. THEN only a build condition counts
          3. THEN that condition is named after `under`
       7. WHEN a product source cannot be parsed
-         1. THEN it fails naming the source
+         1. THEN it fails naming the source it cannot parse
 2. Edges follow the references
    1. GIVEN Developer has a repo
    2. GIVEN it may hold a components view
@@ -49,8 +49,10 @@ repos with a components view
       4. WHEN a runtime reaches a component under another runtime's container boundary
          1. THEN it fails naming that boundary
          2. THEN components outside every container are shared
-      5. WHEN a scoped run changes only tests or changelog or docs
+3. Scoped runs
+   1. GIVEN Developer has a scoped run changing files
+      1. WHEN only tests or changelog or docs move
          1. THEN it passes with zero files
-      6. WHEN a scoped run changes a view or a product source
+      2. WHEN a view or a product source moves
          1. THEN it reads the whole model
          2. THEN it reads every product source

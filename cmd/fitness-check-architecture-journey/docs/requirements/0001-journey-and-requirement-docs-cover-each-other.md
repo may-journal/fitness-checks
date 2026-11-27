@@ -25,7 +25,7 @@ requirement docs
          1. THEN it fails at its line
          2. THEN a label over eight IDs fails too
       4. WHEN a non-persona node names no ID in its label or enclosing subgraph
-         1. THEN it fails at its line
+         1. THEN it fails at the node's line
       5. WHEN two steps' labels hold each other's doc title words
          1. THEN both fail
       6. WHEN the repo has no views

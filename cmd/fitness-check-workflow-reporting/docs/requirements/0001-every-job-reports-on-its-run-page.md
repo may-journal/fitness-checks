@@ -25,7 +25,7 @@ workflow jobs
       3. WHEN a summary step lacks `if: always()`
          1. THEN it fails naming that step's line
       4. WHEN a job only calls a reusable workflow
-         1. THEN it passes
+         1. THEN it passes with no step needed
       5. WHEN a job is a matrix
          1. THEN it is judged once
          2. THEN it is named once

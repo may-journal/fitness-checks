@@ -35,7 +35,7 @@ func Test0001_1(t *testing.T) {
 		out, code = check(t, repo, "fix(app): more\n\nPlan https://github.com/may-journal/.github/issues/144")
 		acceptance.Sees(t, out, code, 1, `may-journal/.github#144 is already linked by commit`, `("feat(app): begin")`)
 	})
-	t.Run("0001.1.2 a link to another repo passes", func(t *testing.T) {
+	t.Run("0001.1.2 an issue of another repo that a new message links passes", func(t *testing.T) {
 		t.Parallel()
 		repo := onGitHub(t, "topic")
 		commitAs(t, repo, "", "feat(app): start\n\nPlan #12")

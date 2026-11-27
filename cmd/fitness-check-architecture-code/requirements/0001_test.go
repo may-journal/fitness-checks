@@ -175,7 +175,7 @@ func Test0001_1(t *testing.T) {
 		out, code = cvRun(t, files)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.7 an exported type the view leaves out fails", func(t *testing.T) {
+	t.Run("0001.1.7 an exported type the view leaves out fails naming the type", func(t *testing.T) {
 		t.Parallel()
 		files := cvEdit(cvFixture(), cvStore, cvSaves, cvSaves+"\n// Batch is many records.\ntype Batch struct{}\n\ntype batch struct{}\n")
 		out, code := cvRun(t, files)

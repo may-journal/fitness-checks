@@ -30,9 +30,9 @@ repos with architecture views or product code
          1. THEN they pass as one model
       4. WHEN callouts are renumbered
          1. THEN diagram IDs keep their identity
-      5. WHEN a pull request changes only tests or changelog or docs
+      5. WHEN only tests or changelog or docs change in a pull request
          1. THEN it passes with no files
-      6. WHEN a pull request changes another file while a view stays broken
+      6. WHEN another file changes in a pull request while a view stays broken
          1. THEN the broken view stays reported
 2. The five views agree
    1. GIVEN Developer has five views with diagrams
@@ -50,7 +50,7 @@ repos with architecture views or product code
       5. WHEN an evidence link names a missing file or line range
          1. THEN it fails naming the row
       6. WHEN a requirement reference resolves to no doc
-         1. THEN it fails naming the line
-         2. THEN an acceptance or chained step that resolves to nothing fails the same way
+         1. THEN it fails naming the reference line
+         2. THEN an acceptance or step resolving to nothing fails the same way
       7. WHEN a diagram uses an unsupported Mermaid form or C4 macro
          1. THEN it fails naming the line

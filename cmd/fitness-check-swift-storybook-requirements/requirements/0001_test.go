@@ -73,7 +73,7 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, "App/Pages.swift:2 - page name name is not a plain literal; write the acceptance name, such as \"0001.1 label\"",
 			"App/BadgeView.swift:7 - page name \"0001.1 \\(mode)\" is not a plain literal")
 	})
-	t.Run("0001.1.5 a name without a defined acceptance ID fails naming the file then the line", func(t *testing.T) {
+	t.Run("0001.1.5 a name without a defined acceptance ID fails naming the file and line that hold it", func(t *testing.T) {
 		t.Parallel()
 		pages := "let pages = [BookPage(title: \"BadgeView: empty\") { BadgeView() }]\n"
 		out, code := storybookCheck(t, map[string]string{"App/BadgeView.swift": storybookView("#Preview(\"day\") { BadgeView() }\n"), "App/Pages.swift": pages})

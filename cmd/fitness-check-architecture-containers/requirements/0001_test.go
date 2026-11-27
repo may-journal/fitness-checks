@@ -113,7 +113,7 @@ func Test0001_1(t *testing.T) {
 		out, code = accRun(t, files)
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.1.4 a technology differing from the language fails naming the line", func(t *testing.T) {
+	t.Run("0001.1.4 a technology differing from the language fails naming the container line", func(t *testing.T) {
 		t.Parallel()
 		out, code := accRun(t, acEdit(acContainer, "\"Go\", \"src/cmd/service\"", "\"Node\", \"src/cmd/service\""))
 		sees(t, out, code, 1, "architecture/02-containers.md:7: container service says \"Node\" but Go command service at src/cmd/service/main.go:1 is Go")
@@ -215,7 +215,11 @@ func Test0001_2(t *testing.T) {
 		out, code = accRun(t, files)
 		sees(t, out, code, 1, "project.yml:17: extension target Notify"+accNoOwner)
 	})
-	t.Run("0001.2.4 a scoped run of tests, changelog or docs passes with zero files", func(t *testing.T) {
+}
+
+func Test0001_3(t *testing.T) {
+	t.Parallel()
+	t.Run("0001.3.1 only tests or changelog or docs moving passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		repo := accScoped(t, map[string]string{
 			"src/store/store_test.go": "package store\n\nfunc helper() {}\n",
@@ -226,7 +230,7 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, accCheck)
 	})
-	t.Run("0001.2.5 a scoped run of a view or product reads every view or product", func(t *testing.T) {
+	t.Run("0001.3.2 a view or a product moving reads every view and every product", func(t *testing.T) {
 		t.Parallel()
 		for _, change := range []map[string]string{
 			{"src/cmd/service/main.go": "package main\n\nfunc main() { run() }\n\nfunc run() {}\n"},

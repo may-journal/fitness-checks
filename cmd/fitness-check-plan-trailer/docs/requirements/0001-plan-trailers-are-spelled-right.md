@@ -28,6 +28,6 @@ commit messages
       5. WHEN no message is supplied
          1. THEN it reads the HEAD commit
       6. WHEN it names a Plan of another repo as `Plan <owner>/<repo>#<number>` or as an issue URL
-         1. THEN it passes
+         1. THEN the Plan of another repo passes
       7. WHEN a Plan line of another repo is misspelled
          1. THEN it fails with the same fix

@@ -34,7 +34,7 @@ const (
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 a GIVEN opening with an actor's name or ID passes", func(t *testing.T) {
+	t.Run("0001.1.1 an actor's name or ID opening a GIVEN passes", func(t *testing.T) {
 		t.Parallel()
 		for _, given := range []string{"User" + aaOpens, "user" + aaOpens, "User", "User has an app"} {
 			out, code := aaRun(t, aaFixture(given))
@@ -46,7 +46,7 @@ func Test0001_1(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWith(t, out, aaCheck, "1")
 	})
-	t.Run("0001.1.2 a GIVEN opening with no declared actor fails naming the line and the actors", func(t *testing.T) {
+	t.Run("0001.1.2 no declared actor opening a GIVEN fails naming the line and the actors", func(t *testing.T) {
 		t.Parallel()
 		for _, given := range []string{"no network", "Users open the app", "Admin" + aaOpens, "USER" + aaOpens, "a user" + aaOpens} {
 			out, code := aaRun(t, aaFixture(given))

@@ -23,7 +23,7 @@ PR bodies
       3. WHEN it says it implements an issue without closing it
          1. THEN it fails naming each unclosed issue
       4. WHEN the keyword sits only inside code or an HTML comment
-         1. THEN it fails for lack of a closing keyword
+         1. THEN it fails for lacking a closing keyword
       5. WHEN `--require-close` names an issue the body leaves open
          1. THEN it fails naming that issue
       6. WHEN the body closes every required issue

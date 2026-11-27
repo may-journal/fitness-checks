@@ -189,7 +189,7 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("a comment or string made a reference:\n%s", out)
 		}
 	})
-	t.Run("0001.1.7 an unparseable product source fails", func(t *testing.T) {
+	t.Run("0001.1.7 an unparseable product source fails naming the source it cannot parse", func(t *testing.T) {
 		t.Parallel()
 		out, code := aoRun(t, with(aoFixture(), map[string]string{aoStore: "package store\n\nfunc Save( {}\n"}))
 		sees(t, out, code, 1, aoStore+":1: cannot parse "+aoStore+":3:12: expected ')', found '{'")
@@ -268,7 +268,11 @@ func Test0001_2(t *testing.T) {
 		out, code = aoRun(t, aoEdit(files, aoModel+"}", "}\nSystem_Boundary(shared, \"Shared\") {\n"+aoModel+"}"))
 		sees(t, out, code, 0)
 	})
-	t.Run("0001.2.5 a scoped run of tests, changelog or docs passes with zero files", func(t *testing.T) {
+}
+
+func Test0001_3(t *testing.T) {
+	t.Parallel()
+	t.Run("0001.3.1 only tests or changelog or docs moving passes with zero files", func(t *testing.T) {
 		t.Parallel()
 		repo := aoScoped(t, map[string]string{
 			"src/store/store_test.go": "package store\n\nfunc helper() {}\n",
@@ -279,7 +283,7 @@ func Test0001_2(t *testing.T) {
 		sees(t, out, code, 0)
 		passedWithNoFiles(t, out, aoCheck)
 	})
-	t.Run("0001.2.6 a scoped run of a view or product source reads the whole model or every source", func(t *testing.T) {
+	t.Run("0001.3.2 a view or a product source moving reads the whole model and every product source", func(t *testing.T) {
 		t.Parallel()
 		for _, change := range []map[string]string{
 			{aoStore: "package store\n\n// Save writes one record.\nfunc Save() {}\n\n// Load reads one record.\nfunc Load() {}\n"},

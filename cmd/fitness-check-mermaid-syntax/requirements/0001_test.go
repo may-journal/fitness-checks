@@ -58,28 +58,25 @@ func Test0001_1(t *testing.T) {
 		out, code := syntax(t, doc(diagrams...))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.2 a flowchart open edge and open subgraph fail", func(t *testing.T) {
+	t.Run("0001.1.2 a flowchart or sequence diagram left open fails", func(t *testing.T) {
 		t.Parallel()
 		rejects(t, []string{"flowchart TD", "A -->", "subgraph S", "B --> C"},
 			"README.md: line 11: an edge has no target node (diagram at line 9)",
 			"README.md: line 12: subgraph is never closed with end (diagram at line 9)")
-	})
-	t.Run("0001.1.3 a sequence open message and open loop fail", func(t *testing.T) {
-		t.Parallel()
 		rejects(t, []string{"sequenceDiagram", "A->>B", "loop every minute", "A->>B: hi"},
 			`README.md: line 11: message "A->>B" needs a target and a colon`,
 			"README.md: line 12: loop is never closed with end (diagram at line 9)")
 	})
-	t.Run("0001.1.4 an unknown diagram type fails by name", func(t *testing.T) {
+	t.Run("0001.1.3 an unknown diagram type fails by name", func(t *testing.T) {
 		t.Parallel()
 		rejects(t, []string{"graf TD", "A --> B"}, `README.md: line 10: unknown diagram type "graf" (diagram at line 9)`)
 	})
-	t.Run("0001.1.5 a C4 unclosed bracket fails", func(t *testing.T) {
+	t.Run("0001.1.4 a C4 unclosed bracket fails", func(t *testing.T) {
 		t.Parallel()
 		rejects(t, []string{"C4Context", `Person(user, "1 User")`, `Rel(user, app, "2"`},
 			"README.md: line 12: '(' is never closed (diagram at line 9)")
 	})
-	t.Run("0001.1.6 a bare bracket label fails", func(t *testing.T) {
+	t.Run("0001.1.5 a bare bracket label fails", func(t *testing.T) {
 		t.Parallel()
 		rejects(t, []string{"flowchart TD", "A[Start (x)] --> B"},
 			`README.md: line 11: node A: label "Start (x)" has brackets or quotes; wrap it in double quotes (diagram at line 9)`)

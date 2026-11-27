@@ -55,6 +55,9 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml: line 5: may-journal/fitness-runner@v9: v9 is not a tag, a branch, or a full commit sha",
 			".github/workflows/ci.yml: line 7: may-journal/fitness-runner@"+badSha+": no commit "+badSha+" exists")
+		if n := strings.Count(out, ".github/workflows/ci.yml: line"); n != 2 {
+			t.Errorf("want the file and line named for each bad ref, got %d findings:\n%s", n, out)
+		}
 	})
 	t.Run("0001.1.4 local and other owner calls are not read", func(t *testing.T) {
 		t.Parallel()
@@ -70,6 +73,9 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		if rp.Called("gh", "contents") || rp.Called("gh", "actions/checkout") {
 			t.Errorf("an ignored line read GitHub: %q", rp.Calls("gh"))
+		}
+		if strings.Contains(out, ".github/workflows/ci.yml: line") {
+			t.Errorf("a call that is not read produced a finding:\n%s", out)
 		}
 	})
 	t.Run("0001.1.5 a repo with no workflows passes with no files", func(t *testing.T) {

@@ -27,7 +27,7 @@ repos with a containers view
          1. THEN it fails naming the view line
          2. THEN paths holding only source layers fail the same way
       4. WHEN a container's technology does not name its product's language
-         1. THEN it fails naming the view line
+         1. THEN it fails naming the container line
          2. THEN it fails naming the product
       5. WHEN an owned store names no path
          1. THEN it fails naming the store
@@ -47,9 +47,11 @@ repos with a containers view
          1. THEN it proves no product
          2. THEN a test folder or `scripts/` file proves none
       3. WHEN `.gitattributes` marks a build manifest `linguist-generated`
-         1. THEN it still reads that manifest
-      4. WHEN a scoped run changes only tests or changelog or docs
+         1. THEN it still reads it
+3. Scoped runs
+   1. GIVEN Developer has a scoped run changing files
+      1. WHEN only tests or changelog or docs move
          1. THEN it passes with zero files
-      5. WHEN a scoped run changes a view or a product
+      2. WHEN a view or a product moves
          1. THEN it reads every view
          2. THEN it reads every product

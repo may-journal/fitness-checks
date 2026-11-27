@@ -22,7 +22,7 @@ Plan bodies
          1. THEN it fails
          2. THEN it asks for a one-line pitch
       3. WHEN its pitch is still the template placeholder
-         1. THEN it fails
+         1. THEN it fails as the template placeholder
          2. THEN it asks for the real pitch
       4. WHEN it has no Background section
          1. THEN it fails naming the missing section
@@ -31,7 +31,7 @@ Plan bodies
       6. WHEN it has an extra section
          1. THEN it fails naming the unexpected section
       7. WHEN a section is named for open questions
-         1. THEN it fails
+         1. THEN it fails naming the open questions section
          2. THEN it asks to turn unknowns into checklist steps
 2. A missing Plan body passes
    1. GIVEN Developer runs a check with no Plan body

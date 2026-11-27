@@ -19,7 +19,7 @@ comments the check judges
       1. WHEN a comment sentence runs long or a paragraph holds too many sentences
          1. THEN `prose-budget` fails naming the line
       2. WHEN a sentence starts with So
-         1. THEN it fails with the `comment-fragment` rule
+         1. THEN it fails asking to join the sentence before it or drop it
       3. WHEN a sentence has three words or fewer
          1. THEN it fails with the `comment-fragment` rule
       4. WHEN a comment holds three sentences
@@ -47,9 +47,7 @@ comments the check judges
          1. THEN it fails with the `tutorial-tone` rule
 4. Similar words pass
    1. GIVEN Developer has comments with words that resemble filler
-      1. WHEN a comment holds a hedge-like word or Markdown
-         1. THEN it passes
-      2. WHEN a comment holds a tutorial-like phrase or quote
+      1. WHEN a comment holds a hedge-like word or a tutorial-like phrase
          1. THEN it passes
 5. Function comments stay proportionate
    1. GIVEN Developer has functions with comments

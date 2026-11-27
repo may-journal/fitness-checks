@@ -33,26 +33,14 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a pattern with no comment fails naming line and pattern", func(t *testing.T) {
-		t.Parallel()
-		out, code := gitignoreWhy(t, "node_modules/\n")
-		acceptance.Sees(t, out, code, 1, `.gitignore:1: pattern "node_modules/" `+noComment)
-	})
-	t.Run("0001.2.2 a second pattern under one comment fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := gitignoreWhy(t, "# deps\nnode_modules/\ndist\n")
-		acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "dist" `+noComment)
-	})
-	t.Run("0001.2.3 a blank line after the comment above a pattern fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := gitignoreWhy(t, "# deps\n\nnode_modules/\n")
-		acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "node_modules/" `+noComment)
-	})
-	t.Run("0001.2.4 a bare comment above the pattern fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := gitignoreWhy(t, "#\nnode_modules/\n")
-		acceptance.Sees(t, out, code, 1, `.gitignore:2: pattern "node_modules/" `+noComment)
-	})
+	out, code := gitignoreWhy(t, "node_modules/\n")
+	acceptance.Sees(t, out, code, 1, `.gitignore:1: pattern "node_modules/" `+noComment)
+	out, code = gitignoreWhy(t, "# deps\nnode_modules/\ndist\n")
+	acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "dist" `+noComment)
+	out, code = gitignoreWhy(t, "# deps\n\nnode_modules/\n")
+	acceptance.Sees(t, out, code, 1, `.gitignore:3: pattern "node_modules/" `+noComment)
+	out, code = gitignoreWhy(t, "#\nnode_modules/\n")
+	acceptance.Sees(t, out, code, 1, `.gitignore:2: pattern "node_modules/" `+noComment)
 }
 
 // noComment is the tail of every gitignore-why failure.

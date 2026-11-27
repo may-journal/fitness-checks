@@ -26,6 +26,6 @@ Markdown files
       3. WHEN the front matter holds only other keys
          1. THEN the file passes
       4. WHEN a leading rule sets a fitness key between two rules before prose
-         1. THEN the file passes
+         1. THEN the file passes with the rule read as prose
       5. WHEN the file sits under `testdata` or `tests/examples`
          1. THEN it is never judged

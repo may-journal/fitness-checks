@@ -46,23 +46,20 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, finding("6 Uses over HTTP"), finding("6 talks both ways"),
 			finding("6 replies"), finding("6 wrapped prose"), finding("B reads"))
 	})
-	t.Run("0001.1.2 a flowchart pipe label with prose fails", func(t *testing.T) {
+	t.Run("0001.1.2 a flowchart pipe label or a colon edge label with prose fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, map[string]string{"docs/arch.md": paired("flowchart LR\napp -->|6 calls the api| api -->|6 reads| db -->|A calls back| app")})
 		acceptance.Sees(t, out, code, 1, finding("6 calls the api"), finding("6 reads"), finding("A calls back"))
-	})
-	t.Run("0001.1.3 a colon edge label with prose fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := prose(t, map[string]string{"docs/arch.md": paired("flowchart LR\napp --> api : 6 sends data   \napi --> db : C writes")})
+		out, code = prose(t, map[string]string{"docs/arch.md": paired("flowchart LR\napp --> api : 6 sends data   \napi --> db : C writes")})
 		acceptance.Sees(t, out, code, 1, finding("6 sends data"), finding("C writes"))
 	})
-	t.Run("0001.1.4 bare number labels pass", func(t *testing.T) {
+	t.Run("0001.1.3 bare number labels pass", func(t *testing.T) {
 		t.Parallel()
 		body := "flowchart LR\napp -->|6| api\napi --> db : 6\ndb --> app : uses 6\n%% note : 6 something\nRel(app, api, \"6\")\nclassDef x fill:#6366f1"
 		out, code := prose(t, map[string]string{"docs/arch.md": paired(body)})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.5 a prose label fails without a callout table", func(t *testing.T) {
+	t.Run("0001.1.4 a prose label fails without a callout table", func(t *testing.T) {
 		t.Parallel()
 		out, code := prose(t, map[string]string{"docs/arch.md": diagram(`Rel(app, api, "6 Uses over HTTP")`)})
 		acceptance.Sees(t, out, code, 1, finding("6 Uses over HTTP"))

@@ -35,28 +35,25 @@ func Test0001_1(t *testing.T) {
 		out, code := localizedText(t, map[string]string{"App/ShareView.swift": localizedView})
 		acceptance.Sees(t, out, code, 1, `App/ShareView.swift:8 - "Library" passed to navigationTitle`+catalogFix)
 	})
-	t.Run("0001.1.3 a literal in a ternary or ?? branch fails", func(t *testing.T) {
+	t.Run("0001.1.3 a literal in a ternary or ?? branch or an interpolated ternary fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{"App/StateView.swift": localizedStateView})
 		acceptance.Sees(t, out, code, 1,
 			`App/StateView.swift:8 - "Shared" passed to Text`+catalogFix,
 			`App/StateView.swift:8 - "Private" passed to Text`+catalogFix,
 			`App/StateView.swift:9 - "Nobody" passed to Text`+catalogFix)
-	})
-	t.Run("0001.1.4 a literal in an interpolated ternary fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := localizedText(t, map[string]string{"App/CountView.swift": localizedCountView})
+		out, code = localizedText(t, map[string]string{"App/CountView.swift": localizedCountView})
 		acceptance.Sees(t, out, code, 1,
 			`App/CountView.swift:7 - "photo" passed to Text`+catalogFix,
 			`App/CountView.swift:7 - "photos" passed to Text`+catalogFix)
 	})
-	t.Run("0001.1.5 a multi-line literal is named whole", func(t *testing.T) {
+	t.Run("0001.1.4 a multi-line literal is named whole", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{"App/HelpView.swift": "import SwiftUI\n\nstruct HelpView: View {\n    var body: some View {\n        Text(\"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\")\n    }\n}\n"})
 		acceptance.Sees(t, out, code, 1,
 			"App/HelpView.swift:5 - \"\"\"\n            Share a \"photo\"\n            with a friend\n            \"\"\" passed to Text"+catalogFix)
 	})
-	t.Run("0001.1.6 references and values pass", func(t *testing.T) {
+	t.Run("0001.1.5 references and values pass", func(t *testing.T) {
 		t.Parallel()
 		out, code := localizedText(t, map[string]string{"App/PhotoView.swift": `import SwiftUI
 

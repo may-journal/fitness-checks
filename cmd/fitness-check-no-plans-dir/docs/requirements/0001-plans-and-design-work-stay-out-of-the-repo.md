@@ -23,15 +23,13 @@ Repo paths
       2. WHEN files are maintained docs or shipped images or tests quoting plan text
          1. THEN they pass
          2. THEN every file stays in place
-      3. WHEN a file sits in a `mockups` or `validation` or `review-artifacts` folder
-         1. THEN it fails in path order
-         2. THEN it names the comment it belongs in
-      4. WHEN a file is named `*-plan.md` or `*-mockup.*` or `pr-<number>-*`
+      3. WHEN a file sits in a `mockups` or `validation` or `review-artifacts` folder or is named `*-plan.md` or `*-mockup.*` or `pr-<number>-*`
          1. THEN it fails naming the rule
          2. THEN it names the comment it belongs in
-      5. WHEN a Markdown file outside `.github` holds a `## What needs to happen` checklist
+         3. THEN folder hits list in path order
+      4. WHEN a Markdown file outside `.github` holds a `## What needs to happen` checklist
          1. THEN it fails naming the Plan issue
-      6. WHEN a plan file is staged or a rename lands in a mockups folder
+      5. WHEN a plan file is staged or a rename lands in a mockups folder
          1. THEN it fails before the commit
-      7. WHEN git cannot list the repo files
+      6. WHEN git cannot list the repo files
          1. THEN it fails saying it cannot list them

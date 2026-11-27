@@ -21,14 +21,8 @@ Markdown files and comment blocks judged
          2. THEN it names its prose words plus its scores
          3. THEN it adds the formulas plus the fix
          4. THEN it adds the methodology
-      2. WHEN a file has short plain sentences
+      2. WHEN a file is plain or short or in alarm on one formula or dense only in fenced code
          1. THEN it passes
-      3. WHEN a file has fewer than 100 prose words
-         1. THEN it passes without a score
-      4. WHEN only one formula is in alarm
-         1. THEN it passes
-      5. WHEN dense text sits inside fenced code
-         1. THEN it passes since code is never scored
 2. Judging follows the repo and the run
    1. GIVEN Developer has a repo with Markdown files
       1. WHEN an issue or a pull request body is passed with `--body-file`

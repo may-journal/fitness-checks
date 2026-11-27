@@ -24,7 +24,7 @@ const readme = "---\ntitle: App\n---\n\n# App\n\nShort and clean.\n"
 
 func Test0001_1(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.1.1 product code without its test or doc fails naming the file and the missing half", func(t *testing.T) {
+	t.Run("0001.1.1 changed product code without its test or doc fails naming the file and the missing half", func(t *testing.T) {
 		t.Parallel()
 		adder := map[string]string{"adder.go": adderPlus()}
 		out, code := staged(t, acceptance.GoRepo(), adder)
@@ -44,7 +44,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, passed)
 	})
-	t.Run("0001.1.3 docs or config or a rename or a comment change passes", func(t *testing.T) {
+	t.Run("0001.1.3 docs or config or a rename or a comment change passes since nothing there needs a pair", func(t *testing.T) {
 		t.Parallel()
 		adder := acceptance.GoRepo()["adder.go"]
 		for _, files := range []map[string]string{
@@ -79,7 +79,7 @@ func Test0001_1(t *testing.T) {
 		out, code = staged(t, acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: named}), map[string]string{"adder.go": ""})
 		acceptance.Sees(t, out, code, 1, "adder.go was deleted, leaving requirement doc "+pairedDoc+" and test adder_test.go unchanged; change or delete them with it")
 	})
-	t.Run("0001.1.6 a repo with no requirement doc passes", func(t *testing.T) {
+	t.Run("0001.1.6 a repo with no requirement doc passes since there is no doc to pair with", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{pairedDoc: ""})
 		out, code := staged(t, given, map[string]string{"adder.go": adderPlus()})

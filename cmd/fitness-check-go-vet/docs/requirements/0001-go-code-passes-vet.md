@@ -24,16 +24,14 @@ repos with Go modules
       3. WHEN every module is clean
          1. THEN it passes
          2. THEN it counts the modules vetted
-      4. WHEN the repo has no Go module to vet
+      4. WHEN the repo has no Go module to vet or a run is scoped to changed files with none of them Go
          1. THEN it passes with no files
          2. THEN it never runs `go vet`
          3. THEN a `testdata` module counts as none
          4. THEN a `vendor` module counts as none
-      5. WHEN a run is scoped to changed files with none of them Go
-         1. THEN it passes with no files
-      6. WHEN Go is not on PATH
+      5. WHEN Go is not on PATH
          1. THEN it reports info with the hint `see https://go.dev/dl`
-      7. WHEN `go vet` fails naming no `.go` file
+      6. WHEN `go vet` fails naming no `.go` file
          1. THEN it reports info quoting what went wrong
          2. THEN a failure to start counts the same
          3. THEN a kill counts the same

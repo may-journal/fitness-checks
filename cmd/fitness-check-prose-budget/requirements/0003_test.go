@@ -42,7 +42,7 @@ func Test0003_1(t *testing.T) {
 		out, code = proseBudget(t, map[string]string{"README.md": readme + "\nOne. Two. Three. Four. Five.\n"})
 		acceptance.Sees(t, out, code, 1, "README.md: a paragraph has 5 sentences (max 4)")
 	})
-	t.Run("0003.1.6 fenced code and a Measurement dash pass", func(t *testing.T) {
+	t.Run("0003.1.6 fenced code or a Measurement dash or a ticked Plan task within the limit passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := proseBudget(t, map[string]string{"README.md": readme + "\n```\n" + acceptance.LongSentence + "```\n"})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
@@ -50,13 +50,10 @@ func Test0003_1(t *testing.T) {
 		// the Measurement over.
 		out, code = proseBudget(t, map[string]string{"docs/requirements/0001-adds-numbers.md": acceptance.RequirementDoc("0001.1")})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
-	t.Run("0003.1.7 a ticked Plan task within the word limit passes", func(t *testing.T) {
-		t.Parallel()
 		// The task holds 23 words, the default limit, so only a counted box
 		// would push it over.
 		task := "- [x] " + strings.Repeat("word ", 22) + "end"
-		out, code := proseBudget(t, map[string]string{"plan.md": planBody(task)}, "--body-file", "plan.md")
+		out, code = proseBudget(t, map[string]string{"plan.md": planBody(task)}, "--body-file", "plan.md")
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 }

@@ -57,9 +57,11 @@ func Test0001_1(t *testing.T) {
 		}))
 		acceptance.Sees(t, out, code, 1, "docs/api_design.md: filename must be camelCase", "docs/ApiDesign.md: filename must be camelCase")
 	})
-	t.Run("0001.1.3 camelCase names pass", func(t *testing.T) {
+	t.Run("0001.1.3 camelCase names and standard root docs pass then a GitHub template name passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := docs(t, docsRepo(nil))
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		out, code = docs(t, docsRepo(exempt))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 	t.Run("0001.1.4 a camelCase doc in a capitalized folder passes", func(t *testing.T) {
@@ -81,32 +83,22 @@ func Test0001_1(t *testing.T) {
 			t.Errorf("only the staged file may be judged:\n%s", out)
 		}
 	})
-	t.Run("0001.1.6 standard and GitHub named docs pass", func(t *testing.T) {
-		t.Parallel()
-		out, code := docs(t, docsRepo(exempt))
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-	})
 }
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a mostly hyphenated repo passes with no files", func(t *testing.T) {
-		t.Parallel()
-		out, code := docs(t, map[string]string{
-			"docs/api-design.md":   "# API\n",
-			"docs/user-guide.md":   "# Guide\n",
-			"docs/releaseNotes.md": "# Release notes\n",
-		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, check)
+	out, code := docs(t, map[string]string{
+		"docs/api-design.md":   "# API\n",
+		"docs/user-guide.md":   "# Guide\n",
+		"docs/releaseNotes.md": "# Release notes\n",
 	})
-	t.Run("0001.2.2 a tie between hyphens or capitals goes to kebab-case then passes with no files", func(t *testing.T) {
-		t.Parallel()
-		out, code := docs(t, map[string]string{
-			"docs/api-design.md":   "# API\n",
-			"docs/releaseNotes.md": "# Release notes\n",
-		})
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
-		acceptance.PassedWithNoFiles(t, out, check)
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	acceptance.PassedWithNoFiles(t, out, check)
+	// A tie between hyphens and capitals goes to kebab-case.
+	out, code = docs(t, map[string]string{
+		"docs/api-design.md":   "# API\n",
+		"docs/releaseNotes.md": "# Release notes\n",
 	})
+	acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+	acceptance.PassedWithNoFiles(t, out, check)
 }

@@ -38,6 +38,9 @@ func Test0001_1(t *testing.T) {
 		out, code := scriptsCheck(t, map[string]string{"action.yml": action})
 		acceptance.Sees(t, out, code, 1, "action.yml:6: this run step holds a pipe", "action.yml:8: this run step holds an && chain",
 			"action.yml:10: this run step holds shell control flow", "action.yml:12: this run step holds an && chain")
+		if n := strings.Count(out, "action.yml:"); n != 4 {
+			t.Errorf("want the file and line named once per step, got %d:\n%s", n, out)
+		}
 	})
 	t.Run("0001.1.4 operators in quotes and expressions pass", func(t *testing.T) {
 		t.Parallel()
@@ -45,6 +48,9 @@ func Test0001_1(t *testing.T) {
 			"      - run: make test # lint | format\n      - run: find . -name x -exec rm {} \\;\n      - run: grep ok <<< \"$out\"\n"
 		out, code := scriptsCheck(t, map[string]string{".github/workflows/ci.yml": stepsWorkflow(steps)})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		if strings.Contains(out, "this run step") {
+			t.Errorf("operators in quotes or expressions were read as plain text, want no finding:\n%s", out)
+		}
 	})
 	t.Run("0001.1.5 a plain scalar is judged and block text is left alone", func(t *testing.T) {
 		t.Parallel()

@@ -50,7 +50,7 @@ func Test0001_1(t *testing.T) {
 		})
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
 	})
-	t.Run("0001.1.3 directive text in strings fails in every extension", func(t *testing.T) {
+	t.Run("0001.1.3 a string holding directive text fails in every extension", func(t *testing.T) {
 		t.Parallel()
 		files := map[string]string{}
 		var want []string
@@ -61,7 +61,7 @@ func Test0001_1(t *testing.T) {
 		out, code := check(t, files)
 		acceptance.Sees(t, out, code, 1, append(want, "7 files scanned")...)
 	})
-	t.Run("0001.1.4 directive text in Markdown passes", func(t *testing.T) {
+	t.Run("0001.1.4 a Markdown file holding directive text passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := check(t, map[string]string{
 			"docs/lint.md": "Never write " + next,

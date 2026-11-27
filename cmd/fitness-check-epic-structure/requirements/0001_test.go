@@ -59,9 +59,11 @@ func Test0001_1(t *testing.T) {
 
 func Test0001_2(t *testing.T) {
 	t.Parallel()
-	t.Run("0001.2.1 a checkbox or emoji or status word or other text fails naming the item", func(t *testing.T) {
+	t.Run("0001.2.1 a checkbox or emoji or status word or other text or an item before the item its note names fails naming the item", func(t *testing.T) {
 		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+list("- [ ] #1"))
+		out, code := epicStructure(t, nil, pitch+background+list("- org/repo#3\n- #1, after #2\n- #2"))
+		acceptance.Sees(t, out, code, 1, "item 2 (#1) is listed before #2, which it runs after; list them in run order")
+		out, code = epicStructure(t, nil, pitch+background+list("- [ ] #1"))
 		acceptance.Sees(t, out, code, 1, "item 1 uses a checkbox; list the issue as a plain reference, and GitHub shows whether it is done")
 		out, code = epicStructure(t, nil, pitch+background+list("- #1 ✅\n- #2, blocked\n- #5 after #6"))
 		acceptance.Sees(t, out, code, 1,
@@ -74,12 +76,7 @@ func Test0001_2(t *testing.T) {
 		out, code := epicStructure(t, nil, pitch+background+list("- #3\n- #3"))
 		acceptance.Sees(t, out, code, 1, "#3 is listed more than once; list each issue once")
 	})
-	t.Run("0001.2.3 an item listed before the item its note names fails", func(t *testing.T) {
-		t.Parallel()
-		out, code := epicStructure(t, nil, pitch+background+list("- org/repo#3\n- #1, after #2\n- #2"))
-		acceptance.Sees(t, out, code, 1, "item 2 (#1) is listed before #2, which it runs after; list them in run order")
-	})
-	t.Run("0001.2.4 a table fails", func(t *testing.T) {
+	t.Run("0001.2.3 a table fails", func(t *testing.T) {
 		t.Parallel()
 		out, code := epicStructure(t, nil, pitch+background+"| a | b |\n| - | - |\n| 1 | 2 |\n\n"+list("- #1"))
 		acceptance.Sees(t, out, code, 1, "tables are not allowed; list each issue as a plain reference")

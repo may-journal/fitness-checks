@@ -26,9 +26,7 @@ READMEs the check judges
    1. GIVEN Developer has a README whose Behavior holds one link
       1. WHEN the link names a doc in its folder's `docs/requirements`
          1. THEN it passes
-      2. WHEN the link names another folder
-         1. THEN it fails naming the line
-      3. WHEN the link names nothing that exists
+      2. WHEN the link names another folder or nothing that exists
          1. THEN it fails naming the line
 3. A check README has an Example
    1. GIVEN Developer has the README of a check program

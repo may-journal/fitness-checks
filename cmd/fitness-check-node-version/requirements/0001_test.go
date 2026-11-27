@@ -28,14 +28,14 @@ func Test0001_1(t *testing.T) {
 		out, code := nodeVersionCheck(t, map[string]string{"package.json": "{}\n"}, nil)
 		acceptance.Sees(t, out, code, 1, "missing .nvmrc")
 	})
-	t.Run("0001.1.3 an nvmrc at or below the active Node passes", func(t *testing.T) {
+	t.Run("0001.1.3 the active Node meets an nvmrc", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("1\n"), nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 		out, code = nodeVersionCheck(t, nodeVersionRepo("v1.2.3\n"), nil)
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
-	t.Run("0001.1.4 an nvmrc above the active Node fails", func(t *testing.T) {
+	t.Run("0001.1.4 an nvmrc outranks the active Node", func(t *testing.T) {
 		t.Parallel()
 		out, code := nodeVersionCheck(t, nodeVersionRepo("999\n"), nil)
 		acceptance.Sees(t, out, code, 1, "does not satisfy .nvmrc (requires 999.x). Run: nvm use")

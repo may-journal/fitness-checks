@@ -199,7 +199,7 @@ func Test0006_1(t *testing.T) {
 		out, code = stagedRun(t, twoRepo(), acceptance.With(test, map[string]string{doc: reworded(twoRepo()[doc])}))
 		acceptance.Sees(t, out, code, 0)
 	})
-	t.Run("0006.1.3 a shared helper needs no partner", func(t *testing.T) {
+	t.Run("0006.1.3 a changed shared helper needs no partner", func(t *testing.T) {
 		t.Parallel()
 		out, code := stagedRun(t, acceptance.PairedRepo(), map[string]string{"reqs/tools_test.go": edited(acceptance.PairedRepo()["reqs/tools_test.go"])})
 		acceptance.Sees(t, out, code, 0)
@@ -246,7 +246,7 @@ func Test0006_1(t *testing.T) {
 		out, code = stagedRun(t, swiftRepo(), map[string]string{swiftTest: edited(swiftTestingFile("test0001_1"))})
 		acceptance.Sees(t, out, code, 1, swiftTest+" changed without its requirement doc "+acceptance.PairedDoc+"; change both together")
 	})
-	t.Run("0006.1.7 a comment or format change needs no partner", func(t *testing.T) {
+	t.Run("0006.1.7 a comment-only or format-only change needs no partner", func(t *testing.T) {
 		t.Parallel()
 		given := acceptance.With(acceptance.PairedRepo(), map[string]string{acceptance.PairedDoc: unformatted.Replace(acceptance.RequirementDoc("0001.1"))})
 		if !strings.Contains(given[acceptance.PairedDoc], "\n    1. GIVEN") {

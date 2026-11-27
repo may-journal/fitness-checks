@@ -32,7 +32,7 @@ Numbered acceptances
 3. Tests need no change
    1. GIVEN Developer moves a bullet doc to numbered items
       1. WHEN `requirements` judges it
-         1. THEN its tests need no change
+         1. THEN tests need no change
 4. Renames and moves
    1. GIVEN Developer has numbered acceptances
       1. WHEN one is renamed in place
@@ -40,31 +40,31 @@ Numbered acceptances
       2. WHEN a commit moves one
          1. THEN it names both IDs
       3. WHEN it moves back
-         1. THEN it passes
+         1. THEN it passes again
 5. Removed lines
    1. GIVEN Developer has numbered acceptances
       1. WHEN a commit removes one with its test
          1. THEN it passes
-      2. WHEN a `Removed` line holds items or lacks a version or reason
+      2. WHEN a `Removed` line holds items or lacks version or reason
          1. THEN it fails
       3. WHEN a test names a `Removed` acceptance
-         1. THEN it fails
+         1. THEN it fails naming the test
       4. WHEN it is restored
          1. THEN it fails as reused
       5. WHEN one commit removes one plus appends it
-         1. THEN it passes
+         1. THEN it passes as no move
 6. Removed lines uncapped
    1. GIVEN Developer has a capped doc with `Removed` lines
-      1. WHEN either `requirements` or `prose-budget` reads it
+      1. WHEN `requirements` or `prose-budget` reads it
          1. THEN it passes
 7. Unknown flags fail
-   1. GIVEN Developer runs `requirements` with a flag it does not have
+   1. GIVEN Developer runs `requirements` with an unknown flag
       1. WHEN the flag is a removed `--up` or `--down`
          1. THEN it fails naming the flag
 8. Last acceptance kept
    1. GIVEN Developer has numbered acceptances
       1. WHEN the last becomes `Removed`
          1. THEN it passes
-      2. WHEN the last is deleted outright
+      2. WHEN the last is deleted
          1. THEN it names the `Removed` line
 9. Removed in 2026.11.26.2000: moved to 0008

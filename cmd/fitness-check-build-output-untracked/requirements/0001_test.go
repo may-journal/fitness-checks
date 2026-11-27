@@ -67,27 +67,30 @@ func Test0001_1(t *testing.T) {
 			`src/app.test.ts:4 imports build output: "../dist/mod.js"`,
 			`src/load.cts:1 imports build output: "../dist/c.cjs"`)
 	})
-	t.Run("0001.1.5 a commented-out or untracked import passes", func(t *testing.T) {
+	t.Run("0001.1.5 no tracked dist import passes whether commented out, untracked or local", func(t *testing.T) {
 		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
-			".gitignore": buildOutputIgnore,
-			"src/a.ts":   "import x from './b.js';\n// import old from '../dist/old.js';\n/* const z = require('../dist/z.js'); */\n",
+		t.Run("a commented-out or untracked import passes", func(t *testing.T) {
+			t.Parallel()
+			repo := acceptance.Example(t, "happyRepo", map[string]string{
+				".gitignore": buildOutputIgnore,
+				"src/a.ts":   "import x from './b.js';\n// import old from '../dist/old.js';\n/* const z = require('../dist/z.js'); */\n",
+			})
+			acceptance.Write(t, repo, map[string]string{"scratch.ts": "import x from '../dist/x.js';\n"})
+			out, code := buildOutputRun(t, repo)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
 		})
-		acceptance.Write(t, repo, map[string]string{"scratch.ts": "import x from '../dist/x.js';\n"})
-		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 2 files scanned")
-	})
-	t.Run("0001.1.6 an ignored dist with local imports passes, counting the dist rules once", func(t *testing.T) {
-		t.Parallel()
-		repo := acceptance.Example(t, "happyRepo", map[string]string{
-			".gitignore": buildOutputIgnore,
-			"src/a.ts":   "import x from './b.js';\n",
-			"src/b.mts":  "export const b = require('./c.cjs');\n",
+		t.Run("an ignored dist with local imports passes, counting the dist rules once", func(t *testing.T) {
+			t.Parallel()
+			repo := acceptance.Example(t, "happyRepo", map[string]string{
+				".gitignore": buildOutputIgnore,
+				"src/a.ts":   "import x from './b.js';\n",
+				"src/b.mts":  "export const b = require('./c.cjs');\n",
+			})
+			out, code := buildOutputRun(t, repo)
+			acceptance.Sees(t, out, code, 0, "All 1 checks passed · 3 files scanned")
 		})
-		out, code := buildOutputRun(t, repo)
-		acceptance.Sees(t, out, code, 0, "All 1 checks passed · 3 files scanned")
 	})
-	t.Run("0001.1.7 a repo with no output or TypeScript passes", func(t *testing.T) {
+	t.Run("0001.1.6 a repo with no output or TypeScript passes", func(t *testing.T) {
 		t.Parallel()
 		out, code := buildOutputRun(t, acceptance.Example(t, "happyRepo", nil))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
