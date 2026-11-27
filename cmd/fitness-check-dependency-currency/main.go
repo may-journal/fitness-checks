@@ -42,6 +42,19 @@ const fetchBudget = 25 * time.Second
 // requestTimeout caps one registry request within the overall budget.
 const requestTimeout = 10 * time.Second
 
+// timeoutEnv names a duration, such as 1s, that replaces both timeouts.
+// A test then sees a silent registry dropped without the full wait.
+const timeoutEnv = "FITNESS_DEPENDENCY_CURRENCY_TIMEOUT"
+
+// timeouts returns the fetch budget and the request timeout, shortened
+// to the duration timeoutEnv names when it holds a valid one.
+func timeouts() (budget, request time.Duration) {
+	if d, err := time.ParseDuration(os.Getenv(timeoutEnv)); err == nil && d > 0 {
+		return d, d
+	}
+	return fetchBudget, requestTimeout
+}
+
 func main() {
 	program.Main(docSource, checkkit.Check{
 		Describe: checkkit.Describe{
@@ -308,9 +321,10 @@ func registryValue(line string) string {
 // bounded concurrency. Any failure leaves that name out of the map, so an
 // unreachable registry yields an empty map and the check reports info.
 func fetchLatest(registry string, names []string) map[string]string {
-	ctx, cancel := context.WithTimeout(context.Background(), fetchBudget)
+	budget, request := timeouts()
+	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
-	client := &http.Client{Timeout: requestTimeout}
+	client := &http.Client{Timeout: request}
 	jobs := make(chan string)
 	out := make(map[string]string, len(names))
 	var mu sync.Mutex

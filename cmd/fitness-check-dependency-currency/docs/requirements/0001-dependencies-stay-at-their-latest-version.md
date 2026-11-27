@@ -39,6 +39,8 @@ repos with a `package.json`
       1. WHEN the registry is unreachable or answers an error or garbage
          1. THEN it reports info counting the packages it could not query
          2. THEN it reports no finding
+      2. WHEN the registry holds a connection open without answering
+         1. THEN it closes the connection within its request timeout
 4. A blocked GitHub reads no registry
    1. GIVEN Developer has a repo with a stale dependency behind a proxy
       1. WHEN the runner finds GitHub's API host unreachable
