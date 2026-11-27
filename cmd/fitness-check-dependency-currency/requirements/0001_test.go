@@ -83,20 +83,33 @@ func Test0001_2(t *testing.T) {
 		}
 	})
 }
-
 func Test0001_3(t *testing.T) {
 	t.Parallel()
-	for _, broken := range dcBrokenRegistries(t) {
-		out, code := dcAgainst(t, broken)
-		acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
-		dcAsked(t, broken)
-		dcGaveUp(t, broken)
-	}
+	t.Run("0001.3.1 reports info for a registry that is unreachable or answers an error or garbage", func(t *testing.T) {
+		t.Parallel()
+		for _, broken := range dcBrokenRegistries(t) {
+			if broken.waits == nil {
+				dcInforms(t, broken)
+			}
+		}
+	})
+	t.Run("0001.3.2 closes the connection of a silent registry within its request timeout", func(t *testing.T) {
+		t.Parallel()
+		for _, broken := range dcBrokenRegistries(t) {
+			if broken.waits != nil {
+				dcInforms(t, broken)
+				dcGaveUp(t, broken)
+			}
+		}
+	})
 }
 
-// dcAsked fails when a counting registry was never asked.
-func dcAsked(t *testing.T, broken dcBroken) {
+// dcInforms runs the check against broken and expects the info, and a
+// request to the registry when it counts them.
+func dcInforms(t *testing.T, broken dcBroken) {
 	t.Helper()
+	out, code := dcAgainst(t, broken)
+	acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
 	if broken.hits != nil && broken.hits.Load() == 0 {
 		t.Errorf("%s: the check never asked the registry", broken.name)
 	}
@@ -105,9 +118,6 @@ func dcAsked(t *testing.T, broken dcBroken) {
 // dcGaveUp fails when the check held a silent connection past dcSilentWithin.
 func dcGaveUp(t *testing.T, broken dcBroken) {
 	t.Helper()
-	if broken.waits == nil {
-		return
-	}
 	for deadline := time.Now().Add(dcSilentWithin); broken.waits.Load() == 0 && time.Now().Before(deadline); {
 		time.Sleep(10 * time.Millisecond)
 	}
