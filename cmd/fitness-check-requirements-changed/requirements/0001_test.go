@@ -33,7 +33,6 @@ func Test0001_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, "adder.go changed without a requirement doc; change one with it")
 		out, code = pull(t, acceptance.GoRepo(), adder, "feat(adder): double numbers")
 		acceptance.Sees(t, out, code, 1, "adder.go changed without a test and a requirement doc")
-		codeWithComments(t)
 	})
 	t.Run("0001.1.2 product code beside a changed test plus a changed doc passes", func(t *testing.T) {
 		t.Parallel()
@@ -100,6 +99,12 @@ func Test0001_2(t *testing.T) {
 		given := acceptance.With(acceptance.GoRepo(), map[string]string{".gitattributes": "*.gen linguist-generated\n"})
 		for _, files := range []map[string]string{
 			{"vendor/x/x.go": "package x\n\nconst X = 1\n"},
+			{"third_party/x/x.go": "package x\n\nconst X = 1\n"},
+			{"node_modules/x/x.go": "package x\n\nconst X = 1\n"},
+			{"Pods/x/x.swift": "struct X {}\n"},
+			{"Carthage/x/x.swift": "struct X {}\n"},
+			{".build/x.swift": "struct X {}\n"},
+			{"DerivedData/x.swift": "struct X {}\n"},
 			{"testdata/x.go": "package x\n\nconst X = 1\n"},
 			{"dist/app.js": "console.log(1)\n"},
 			{"table.gen": "generated\n"},
@@ -199,6 +204,7 @@ func codeWithComments(t *testing.T) {
 		{"greet.sh", strings.Replace(greeting, "# says it\necho", "echo", 1)},
 		{"tag.go", "//go:build linux\n\n// Package adder builds on Linux.\npackage adder\n"},
 		{"cgo.go", "package adder\n\n// int three(void) { return 4; }\nimport \"C\"\n"},
+		{"greet.sh", strings.Replace(greeting, "#!/bin/sh", "#!/bin/bash", 1)},
 	} {
 		out, code := staged(t, given(), map[string]string{c.file: c.body})
 		acceptance.Sees(t, out, code, 1, c.file+" changed without a test and a requirement doc; change both with it")

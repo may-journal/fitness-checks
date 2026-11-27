@@ -63,20 +63,14 @@ func Test0001_2(t *testing.T) {
 	t.Parallel()
 	t.Run("0001.2.1 YAML GitHub rejects fails at its line then its column", func(t *testing.T) {
 		t.Parallel()
-		files := runsOnWorkflows(rejectedRunsOn)
+		files := runsOnWorkflows(map[string]string{"fork.yml": mergedRunsOn})
 		files[".github/workflows/ci.yml"] = "name: CI\non: push\njobs:\n  build:\n\truns-on: ubuntu-latest\n"
 		out, code := reportingCheck(t, files)
 		const bad = ": this workflow is not valid YAML: "
 		acceptance.Sees(t, out, code, 1, ".github/workflows/ci.yml:5"+bad+"a tab indents this line",
 			".github/workflows/fork.yml:5:116"+bad+"a `: ` inside a plain value starts a mapping",
-			".github/workflows/reserved.yml:5:14"+bad+"a plain value cannot start with '@'",
-			".github/workflows/key-line.yml:5:14"+bad+"'-' opens a list item on its key's line",
-			"move it onto its own line, indented under the key",
-			".github/workflows/continued.yml:6:13"+bad+"a `: ` inside a plain value",
-			".github/workflows/colon-end.yml:5:27"+bad+"a plain value ends in `:`",
-			".github/workflows/flow-trailing.yml:5:27"+bad+"text follows the closing bracket",
-			".github/workflows/wide.yml:5:18"+bad+"a `: ` inside a plain value")
-		out, code = reportingCheck(t, runsOnWorkflows(acceptedRunsOn))
+		)
+		out, code = reportingCheck(t, runsOnWorkflows(map[string]string{"fork.yml": `"` + strings.ReplaceAll(mergedRunsOn, `"`, `\"`) + `"`}))
 		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
 	})
 	t.Run("0001.2.2 a repo with no workflows passes with no files", func(t *testing.T) {
@@ -129,29 +123,6 @@ const mergedRunsOn = `${{ github.event.repository.private && !github.event.pull_
 // runsOnJob is a reporting workflow whose job runs on runsOn, on line 5.
 func runsOnJob(runsOn string) string {
 	return strings.Replace(reportingJob(reportStep), "runs-on: ubuntu-latest", "runs-on: "+runsOn, 1)
-}
-
-// rejectedRunsOn are runs-on values GitHub rejects as YAML, by file,
-// each failing on line 5 or 6 at the column its message follows.
-var rejectedRunsOn = map[string]string{
-	"fork.yml":          mergedRunsOn,
-	"reserved.yml":      "@self-hosted",
-	"key-line.yml":      "- self-hosted",
-	"continued.yml":     "ubuntu\n      latest: now",
-	"colon-end.yml":     "ubuntu-latest:",
-	"flow-trailing.yml": "[self-hosted]: x",
-	"wide.yml":          "café: x",
-}
-
-// acceptedRunsOn are the quoted or reshaped forms GitHub accepts.
-var acceptedRunsOn = map[string]string{
-	"fork.yml":          `"` + strings.ReplaceAll(mergedRunsOn, `"`, `\"`) + `"`,
-	"reserved.yml":      `"@self-hosted"`,
-	"key-line.yml":      "\n      - self-hosted",
-	"continued.yml":     "ubuntu\n      latest now",
-	"colon-end.yml":     `"ubuntu-latest:"`,
-	"flow-trailing.yml": "[self-hosted] # a comment",
-	"wide.yml":          `"café: x"`,
 }
 
 // runsOnWorkflows writes each runs-on value into a reporting workflow.

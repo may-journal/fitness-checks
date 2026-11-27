@@ -37,6 +37,14 @@ func Test0009_1(t *testing.T) {
 			"      1. WHEN I add them\n         1. THEN it adds fast\n"+
 			"      2. WHEN I add three\n         1. THEN it adds slowly\n")
 	})
+	t.Run("0009.1.3 a code span counts as one word", func(t *testing.T) {
+		t.Parallel()
+		gherkinFails(t, chain("WHEN I add `two small`", "THEN I get their sum", "WHEN I add `two small` later", "THEN I get a total"),
+			"19: WHENs on lines 19 and 21 open with the same words, `I add `two small``; move those words into the GIVEN")
+		passes(t, sum+"2. Doubles a sum\n   1. GIVEN two numbers\n"+
+			"      1. WHEN I add `two small` numbers\n         1. THEN it adds fast\n"+
+			"      2. WHEN I add `two large` numbers\n         1. THEN it adds slowly\n")
+	})
 }
 
 func Test0009_2(t *testing.T) {

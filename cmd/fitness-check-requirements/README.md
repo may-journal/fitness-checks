@@ -49,17 +49,11 @@ The error for a missing test names the one it expects, and deleting an ID delete
 
 ## Steps
 
-An acceptance may chain 2 to `requirements.maxSteps` WHENs under its last GIVEN, as item 2 of the template does. The limit is 7 by default or when set below 2. Each step stays short, and one test still proves the whole acceptance.
-
-Each step of a chain needs its own case in the acceptance's test. The case name opens with the step ID, such as `t.Run("0001.2.2 shows the uploaded edits", …)` in `Test0001_2`. A single step needs only its test. [Requirement 0004](docs/requirements/0004-requirement-docs-follow-the-template.md) states the chain rules and [requirement 0005](docs/requirements/0005-each-acceptance-has-one-test.md) the cases they need.
-
-- Cases: Go reads `t.Run` names and case table rows, and Java dynamic tests and `Named` arguments.
-- Node: its chains need only their test, since it reports no cases until [fitness-runner#1099](https://github.com/may-journal/fitness-runner/issues/1099).
-- Swift: its chains need only their test, since a Swift Testing test may not run the XCTest activities it reports.
+An acceptance may chain WHENs as steps under its last GIVEN, as item 2 of the template does. [Requirement 0001](docs/requirements/0001-step-chains-stay-within-the-configured-limit.md) holds the limit and its default, [0004](docs/requirements/0004-requirement-docs-follow-the-template.md) the chain rules and [0005](docs/requirements/0005-each-acceptance-has-one-test.md) the case each step needs. [Requirement 0007](docs/requirements/0007-tests-fit-their-language.md) holds what each language needs, so a chain's cases are proven there.
 
 ## Gherkin
 
-[Requirement 0003](docs/requirements/0003-acceptances-read-as-gherkin.md) has every doc number its acceptances. The [Cucumber parser](https://github.com/cucumber/gherkin) reads them as Gherkin and fails each line it rejects. Shared context sits in the GIVENs once, each WHEN says only what differs and each THEN gives its own result.
+The [Cucumber parser](https://github.com/cucumber/gherkin) reads each doc as Gherkin. Shared context sits in the GIVENs once, as the example shows. Requirements [0003](docs/requirements/0003-acceptances-read-as-gherkin.md), [0004](docs/requirements/0004-requirement-docs-follow-the-template.md), [0008](docs/requirements/0008-clauses-stay-split.md) and [0009](docs/requirements/0009-steps-say-each-thing-once.md) hold the numbering, keywords, removed lines, split clauses, alike WHENs and repeated THENs.
 
 ```markdown
 1. Opens to photos
@@ -75,21 +69,6 @@ Each step of a chain needs its own case in the acceptance's test. The case name 
          1. THEN the edits are still there
          2. THEN the photo keeps its caption
 ```
-
-An acceptance's place sets its ID, so item 2 of 0001 is 0001.2, and tests, history and messages use that ID. Its other rules are stated in requirement 0003 and proven by its tests: names, moves, removed lines, shape, keywords and steps. Pairing reads a move to numbered items as a reformat, with commas split into items, so tests need no change. A rename in place is a reformat too.
-
-History fails a numbered doc missing an acceptance ID it once held, bullet IDs included, and names the `Removed` line to add. The nested bullet form, `- NNNN.N` over `- Given`, `- When` and `- Then`, is retired. A doc still in it fails at each acceptance, pointing to the template above, while its tests keep owning their IDs.
-
-### Steps say each thing once
-
-[Requirement 0009](docs/requirements/0009-steps-say-each-thing-once.md) states both rules. They read each acceptance on its own.
-
-- Alike WHENs: sibling WHENs that open with the same three words that carry meaning fail, naming the words to move into the GIVEN.
-- Filler: articles and linking words such as `a`, `the`, `it`, `is` and `has` do not count, so "a name is" shares nothing.
-- Code: a code span counts as one word.
-- Repeated THENs: a THEN matching an earlier THEN of its acceptance, once whitespace collapses, fails naming both lines.
-- Grouping: the error asks to group the WHENs that give it, so one WHEN lists each distinct result.
-- Scope: the same THEN in two acceptances passes, since each acceptance stands alone.
 
 ## Behavior
 

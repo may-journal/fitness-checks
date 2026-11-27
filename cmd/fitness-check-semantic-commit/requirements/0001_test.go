@@ -120,6 +120,49 @@ func Test0001_3(t *testing.T) {
 	})
 }
 
+func Test0001_4(t *testing.T) {
+	t.Parallel()
+	t.Run("0001.4.1 a message file judges its first line", func(t *testing.T) {
+		t.Parallel()
+		repo := forkedRepo(t, "main")
+		acceptance.Commit(t, repo, nil, "Add notes")
+		message := filepath.Join(t.TempDir(), "message")
+		acceptance.MustDo(t, os.WriteFile(message, []byte("feat: add endpoint\n\ndocs(readme): not judged"), 0o644))
+		out, code := acceptance.Fitness(t, repo, nil, "hook", "commit-msg", message)
+		acceptance.Sees(t, out, code, 1, `Commit message: "feat: add endpoint" — use type(scope): description `+types)
+		acceptance.MustDo(t, os.WriteFile(message, []byte("docs(readme): note more\n\nAdd notes"), 0o644))
+		out, _ = acceptance.Fitness(t, repo, nil, "hook", "commit-msg", message)
+		if strings.Contains(out, "Commit message:") {
+			t.Errorf("a valid first line failed:\n%s", out)
+		}
+	})
+	t.Run("0001.4.2 a passed message wins over the commit subjects", func(t *testing.T) {
+		t.Parallel()
+		repo := acceptance.Example(t, "happyRepo", nil)
+		acceptance.Commit(t, repo, nil, "Add notes")
+		out, code := acceptance.Fitness(t, repo, nil, "semantic-commit", "--message", "docs(readme): note more")
+		acceptance.Sees(t, out, code, 0, "All 1 checks passed")
+		out, code = acceptance.Fitness(t, repo, nil, "semantic-commit", "--message", "Add more notes")
+		acceptance.Sees(t, out, code, 1, `Commit message: "Add more notes"`)
+	})
+	t.Run("0001.4.3 a pre-commit hook beside a commit-msg hook judges no commit", func(t *testing.T) {
+		t.Parallel()
+		alone := forkedRepo(t, "main")
+		acceptance.Commit(t, alone, nil, "Add notes")
+		out, _ := acceptance.Fitness(t, alone, nil, "hook", "pre-commit")
+		if !strings.Contains(out, `Commit message: "Add notes"`) {
+			t.Errorf("the pre-commit hook alone did not judge the earlier commit:\n%s", out)
+		}
+		beside := forkedRepo(t, "main")
+		acceptance.Commit(t, beside, nil, "Add notes")
+		acceptance.MustDo(t, os.WriteFile(filepath.Join(beside, ".git", "hooks", "commit-msg"), []byte("#!/bin/sh\n"), 0o755))
+		out, _ = acceptance.Fitness(t, beside, nil, "hook", "pre-commit")
+		if strings.Contains(out, "Commit message:") {
+			t.Errorf("the pre-commit hook judged a commit beside a commit-msg hook:\n%s", out)
+		}
+	})
+}
+
 // semanticCommit runs semantic-commit with args on happyRepo, whose HEAD
 // subject is "docs(readme): add readme".
 func semanticCommit(t *testing.T, args ...string) (string, int) {

@@ -4,24 +4,13 @@ Fails a workflow job that can fail without a report on its run page ([#181](http
 
 ## Behavior
 
-[Requirement 0001](docs/requirements/0001-every-job-reports-on-its-run-page.md)
+[Requirements](docs/requirements)
 
 ## Notes
 
 It reads the `.yml` and `.yaml` workflow files directly under `.github/workflows`, keeping each value's line.
 
 A job with `steps` needs one step with `if: always()`, bare or as `${{ always() }}`, whose `run` writes to `$GITHUB_STEP_SUMMARY`.
-
-## Values GitHub rejects
-
-These values fail at their line and column, as GitHub fails them:
-
-- A plain value holding a `:` followed by a space, or ending in `:`. Quote the value.
-- A plain value starting with `,`, `]`, `}`, `%`, `@` or a backtick, which YAML reserves. Quote the value.
-- A list, key or value opened with `- `, `? ` or `: ` on its key's line. Move it onto its own indented line.
-- Text other than a comment after the closing bracket of a `[...]` or `{...}` value.
-
-In a pull request, or a staged commit, it reads only the changed workflow files. It reads the files only: it never runs a step or fetches a called workflow.
 
 ## Errors
 
