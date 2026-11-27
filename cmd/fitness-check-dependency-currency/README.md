@@ -14,7 +14,7 @@ Fails a declared npm dependency behind its latest published version — an insta
 - Only direct declared dependencies count, since you can only bump what you declare.
 - The registry URL comes from the nearest `.npmrc` `registry=` entry, repo root first and then home, and defaults to the public registry.
 - One proxy blocks GitHub and the registry alike.
-- A registry request waits ten seconds, and the fetch twenty-five; `FITNESS_DEPENDENCY_CURRENCY_TIMEOUT`, a duration such as `1s`, shortens both so a test need not wait.
+- A registry request waits ten seconds. `FITNESS_DEPENDENCY_CURRENCY_TIMEOUT`, such as `1s`, shortens that wait for tests.
 
 ## Example
 

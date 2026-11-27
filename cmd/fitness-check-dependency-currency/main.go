@@ -42,9 +42,8 @@ const fetchBudget = 25 * time.Second
 // requestTimeout caps one registry request within the overall budget.
 const requestTimeout = 10 * time.Second
 
-// timeoutEnv names a duration, such as 1s, that replaces both the request
-// timeout and the fetch budget, so a test can watch a silent registry
-// given up on without waiting the full ten seconds.
+// timeoutEnv names a duration, such as 1s, that replaces both timeouts.
+// A test then sees a silent registry dropped without the full wait.
 const timeoutEnv = "FITNESS_DEPENDENCY_CURRENCY_TIMEOUT"
 
 // timeouts returns the fetch budget and the request timeout, shortened

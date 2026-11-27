@@ -89,17 +89,30 @@ func Test0001_3(t *testing.T) {
 	for _, broken := range dcBrokenRegistries(t) {
 		out, code := dcAgainst(t, broken)
 		acceptance.ShowsInfo(t, out, code, "dependency-currency", cmp.Or(broken.want, "1 of 1 packages could not be queried from "+broken.url+", so their currency is unknown"))
-		if broken.hits != nil && broken.hits.Load() == 0 {
-			t.Errorf("%s: the check never asked the registry", broken.name)
-			if broken.waits != nil {
-				for deadline := time.Now().Add(dcSilentWithin); broken.waits.Load() == 0 && time.Now().Before(deadline); {
-					time.Sleep(10 * time.Millisecond)
-				}
-				if waited := time.Duration(broken.waits.Load()); waited == 0 || waited > dcSilentWithin {
-					t.Errorf("%s: the check held the silent connection %v, want it closed within %v", broken.name, waited, dcSilentWithin)
-				}
-			}
-		}
+		dcAsked(t, broken)
+		dcGaveUp(t, broken)
+	}
+}
+
+// dcAsked fails when a counting registry was never asked.
+func dcAsked(t *testing.T, broken dcBroken) {
+	t.Helper()
+	if broken.hits != nil && broken.hits.Load() == 0 {
+		t.Errorf("%s: the check never asked the registry", broken.name)
+	}
+}
+
+// dcGaveUp fails when the check held a silent connection past dcSilentWithin.
+func dcGaveUp(t *testing.T, broken dcBroken) {
+	t.Helper()
+	if broken.waits == nil {
+		return
+	}
+	for deadline := time.Now().Add(dcSilentWithin); broken.waits.Load() == 0 && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if waited := time.Duration(broken.waits.Load()); waited == 0 || waited > dcSilentWithin {
+		t.Errorf("%s: the check held the silent connection %v, want it closed within %v", broken.name, waited, dcSilentWithin)
 	}
 }
 
@@ -234,13 +247,12 @@ func dcAgainst(t *testing.T, broken dcBroken) (string, int) {
 	return dependencyCurrency(t, files, append([]string{"HOME=" + home, "FITNESS_DEPENDENCY_CURRENCY_TIMEOUT=" + dcRequestTimeout}, broken.env...)...)
 }
 
-// dcRequestTimeout is the shortened timeout the check is told to use, so a
-// silent registry is given up on in a second instead of ten.
+// dcRequestTimeout is the short timeout the check is told to use.
+// A silent registry is then dropped in a second, not ten.
 const dcRequestTimeout = "1s"
 
-// dcSilentWithin bounds how long the check may hold a silent connection,
-// measured by the listener itself, so load that slows the installer or the
-// runner cannot move it. It is several times the timeout.
+// dcSilentWithin bounds how long the check may hold a silent connection.
+// The listener measures it, so load on the installer cannot move it.
 const dcSilentWithin = 5 * time.Second
 
 // silentListener starts a TCP listener that accepts connections and never
