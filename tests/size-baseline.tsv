@@ -59,7 +59,7 @@ fitness-check-read-repo-first	4325538
 fitness-check-readme-behavior	4784288
 fitness-check-release-changelog	4391074
 fitness-check-repeated-string-literals	4718754
-fitness-check-requirements	6357154
+fitness-check-requirements	7012514
 fitness-check-requirements-changed	6291618
 fitness-check-semantic-commit	4391074
 fitness-check-spotless	4718754
