@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/may-journal/fitness-checks/internal/acceptance"
+	"github.com/may-journal/fitness-checks/req"
 )
 
 // Paths and edits the pairing tests share.
@@ -279,5 +280,18 @@ func Test0006_1(t *testing.T) {
 		acceptance.Sees(t, out, code, 1, acceptance.PairedDoc+" changed without its requirement test")
 		renamedPairs(t)
 		commentedPairs(t)
+		req.Then(t, "0006.1.1.7.3", "eea8612a", func(a req.A) {
+			a.True(tagEdits(t, "sums the pair", "\t\t\t_ = t.Name()\n") == 0, "a rename and a req.Then wrapper needed a doc")
+			a.True(tagEdits(t, "adds the pair", "\t\t\t_ = t.Name() + t.Name()\n") == 1, "a changed body passed with no doc")
+		})
 	})
+}
+
+// tagEdits stages the test with its case renamed and its body in a req.Then, and returns the exit code.
+func tagEdits(t *testing.T, name, body string) int {
+	t.Helper()
+	before := "package reqs\n\nimport \"testing\"\n\nfunc Test0001_1(t *testing.T) {\n\tt.Run(\"adds the pair\", func(t *testing.T) {\n\t\t_ = t.Name()\n\t})\n}\n"
+	after := "package reqs\n\nimport (\n\t\"testing\"\n\n\t\"github.com/may-journal/fitness-checks/req\"\n)\n\nfunc Test0001_1(t *testing.T) {\n\tt.Run(\"" + name + "\", func(t *testing.T) {\n\t\treq.Then(t, \"0001.1.1.1.1\", \"" + req.Hash("I get their sum") + "\", func(a req.A) {\n" + body + "\t\t})\n\t})\n}\n"
+	_, code := stagedRun(t, acceptance.With(acceptance.PairedRepo(), map[string]string{pairedTest: before}), map[string]string{pairedTest: after})
+	return code
 }
